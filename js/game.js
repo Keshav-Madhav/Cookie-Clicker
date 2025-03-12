@@ -1,19 +1,16 @@
 import { Building } from "./buildings.js";
 import { Upgrade } from "./upgrades.js";
+import { buildings, upgrades } from "./gameData.js";
 
 export class Game {
   constructor() {
     this.cookies = 0;
     this.cookiesPerClick = 1;
     this.cookiesPerSecond = 0;
-    this.upgrades = [
-      new Upgrade("+1 per Click", 10, 1, this)
-    ];
-    this.buildings = [];
 
-    for (let i = 0; i < 10; i++) {
-      this.buildings.push(new Building(`Auto-Baker ${i + 1}`, 50 * (i + 1), 1 * (i + 1), this));
-    }
+    // Load buildings & upgrades from gameData.js
+    this.upgrades = upgrades.map((_, index) => new Upgrade(index, this));
+    this.buildings = buildings.map((_, index) => new Building(index, this));
 
     this.loadGame();
     this.updateUI();
@@ -52,6 +49,8 @@ export class Game {
       let div = building.getButton(index);
       buildingList.appendChild(div);
     });
+
+    this.calculateCPS();
   }
 
   calculateCPS() {
@@ -76,8 +75,8 @@ export class Game {
       this.cookiesPerClick = data.cookiesPerClick;
       this.cookiesPerSecond = data.cookiesPerSecond;
       this.buildings.forEach((b, i) => {
-        b.count = data.buildings[i].count;
-        b.cost = data.buildings[i].cost;
+        b.count = data.buildings[i]?.count || 0;
+        b.cost = data.buildings[i]?.cost || buildings[i].cost;
       });
     }
   }

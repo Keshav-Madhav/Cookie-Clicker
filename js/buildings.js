@@ -1,18 +1,21 @@
+import { buildings } from "./gameData.js";
+
 export class Building {
-  constructor(name, cost, cps, game) {
-    this.name = name;
-    this.cost = cost;
-    this.cps = cps;
+  constructor(index, game) {
+    this.game = game; // Store game instance
+    this.building = buildings[index];
+    this.name = this.building.name
+    this.cost = this.building.cost;
+    this.cps = this.building.cps;
     this.count = 0;
-    this.game = game;
   }
 
   buy() {
     if (this.game.cookies >= this.cost) {
       this.game.cookies -= this.cost;
       this.count++;
-      this.cost = Math.floor(this.cost * 1.3);
-      this.game.calculateCPS();
+      this.cost = Math.floor(this.cost * 1.15); // Price increases
+      this.game.calculateCPS(); // Recalculate CPS after buying
       this.game.updateUI();
     }
   }
@@ -24,23 +27,14 @@ export class Building {
     let span = document.createElement("span");
     span.textContent = `${this.name} (x${this.count}) - ${this.cps} CPS`;
 
-    let progressBarContainer = document.createElement("div");
-    progressBarContainer.classList.add("building-progress");
-
-    let progressBar = document.createElement("div");
-    progressBar.style.width = `${Math.min(this.count * 10, 100)}%`; // Adjusts progress
-
-    progressBarContainer.appendChild(progressBar);
-
     let button = document.createElement("button");
     button.textContent = `Buy (${this.cost})`;
     button.addEventListener("click", () => {
-        this.buy();
-        progressBar.style.width = `${Math.min(this.count * 10, 100)}%`;
+      this.buy();
+      progressBar.style.width = `${Math.min(this.count * 10, 100)}%`;
     });
 
     div.appendChild(span);
-    div.appendChild(progressBarContainer);
     div.appendChild(button);
 
     return div;
