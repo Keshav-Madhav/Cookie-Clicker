@@ -121,37 +121,46 @@ export class Game {
       cookies: this.cookies,
       cookiesPerSecond: this.cookiesPerSecond,
       buildings: this.buildings.map(b => ({ count: b.count })),
-      upgrades: this.upgrades.map(u => ({ level: u.level }))
+      upgrades: this.upgrades.map(u => ({ level: u.level })),
+      lastSavedTime: Date.now() // Store current timestamp
     };
     localStorage.setItem("cookieClickerSave", JSON.stringify(saveData));
   }
-
+  
   loadGame() {
     let savedGame = localStorage.getItem("cookieClickerSave");
     if (savedGame) {
       let data = JSON.parse(savedGame);
       this.cookies = data.cookies || 0;
       this.cookiesPerSecond = data.cookiesPerSecond || 0;
-
+      
+      // Calculate offline earnings
+      if (data.lastSavedTime) {
+        let elapsedTime = Math.floor((Date.now() - data.lastSavedTime) / 1000); // Convert ms to seconds
+        let offlineEarnings = elapsedTime * this.cookiesPerSecond;
+        this.cookies += offlineEarnings;
+        console.log(`Offline earnings: ${offlineEarnings} cookies (${elapsedTime} seconds offline)`);
+      }
+  
       // Load Buildings
       this.buildings.forEach((b, i) => {
         b.count = data.buildings[i]?.count || 0;
         b.cost = Math.floor(b.cost * Math.pow(1.15, b.count)); // Scale cost based on count
       });
-
+  
       // Load Upgrades
       this.upgrades.forEach((u, i) => {
         u.level = data.upgrades[i]?.level || 0;
         u.cost = Math.floor(u.cost * Math.pow(u.cost_multiplier || 3, u.level)); // Scale cost based on level
-
+        
         // Apply the effect for each level
         for (let j = 0; j < u.level; j++) {
           u.applyEffect();
         }
       });
-
+  
       this.calculateCPS();
       this.updateUI();
     }
-  }
+  }  
 }
