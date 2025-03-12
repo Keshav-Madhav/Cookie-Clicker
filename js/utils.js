@@ -2,7 +2,7 @@ export const formatNumberInWords = (num) => {
   if (num < 10000) return num.toString(); // No formatting needed for small numbers
 
   const suffixes = [
-    "", "Thousand", "Million", "Billion", "Trillion", "Quadrillion", "Quintillion", 
+    "", "K", "Million", "Billion", "Trillion", "Quadrillion", "Quintillion", 
     "Sextillion", "Septillion", "Octillion", "Nonillion", "Decillion", "Undecillion", 
     "Duodecillion", "Tredecillion", "Quattuordecillion", "Quindecillion", "Sexdecillion", 
     "Septendecillion", "Octodecillion", "Novemdecillion", "Vigintillion", "Unvigintillion", 

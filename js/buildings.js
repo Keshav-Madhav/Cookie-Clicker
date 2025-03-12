@@ -8,6 +8,7 @@ export class Building {
     this.name = this.building.name
     this.cost = this.building.cost;
     this.cps = this.building.cps;
+    this.cost_multiplier = this.building.cost_multiplier || 1.15;
     this.count = 0;
   }
 
@@ -16,15 +17,15 @@ export class Building {
       this.game.cookies -= this.cost;
       this.game.cookies = parseFloat(this.game.cookies.toFixed(1));
       this.count++;
-      this.cost = Math.floor(this.cost * 1.15);
-      this.game.updateUI(); // Refresh UI after buying
+      this.cost = Math.floor(this.cost * this.cost_multiplier);
+      this.game.updateUI()
     }
   }  
 
   getButton(index) {
-    let div = document.createElement("div");
-    div.addEventListener("click", () => this.buy());
-    div.classList.add("building");
+    let button = document.createElement("button");
+    button.addEventListener("click", () => this.buy());
+    button.classList.add("building");
 
     let name_p = document.createElement("p");
     name_p.classList.add("name_p")
@@ -37,13 +38,17 @@ export class Building {
     let subDiv = document.createElement("div");
     subDiv.appendChild(name_p);
     subDiv.appendChild(price_p);
-    div.appendChild(subDiv);
+    button.appendChild(subDiv);
 
     let quantity_p = document.createElement("p");
     quantity_p.classList.add("quantity_p")
     quantity_p.textContent = `${this.count}`;
 
-    div.appendChild(quantity_p);
-    return div;
+    if(this.cost > this.game.cookies){
+      button.disabled = true;
+    }
+
+    button.appendChild(quantity_p);
+    return button;
   }
 }

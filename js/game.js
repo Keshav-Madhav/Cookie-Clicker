@@ -62,7 +62,33 @@ export class Game {
     document.getElementById("cookie-count").textContent = formatNumberInWords(this.cookies);
     document.getElementById("cps-count").textContent = formatNumberInWords(this.cookiesPerSecond);
     document.getElementById("cpc-count").textContent = formatNumberInWords(this.cookiesPerClick);
+    
+    this.updateButtonsState(); 
   }
+  
+  updateButtonsState() {
+    // Update Upgrades
+    document.querySelectorAll(".upgrade-btn").forEach((button, index) => {
+      let upgrade = this.upgrades[index];
+      if (this.cookies < upgrade.cost) {
+        button.disabled = true;
+        button.dataset.disabledReason = "Not Enough Cookies";
+      } else if (upgrade.level >= upgrade.max_level) {
+        button.disabled = true;
+        button.dataset.disabledReason = `Max Level: ${upgrade.max_level}`;
+      } else {
+        button.disabled = false;
+        delete button.dataset.disabledReason;
+      }
+    });
+  
+    // Update Buildings
+    document.querySelectorAll(".building").forEach((button, index) => {
+      let building = this.buildings[index];
+      button.disabled = this.cookies < building.cost;
+    });
+  }
+  
 
   updateUI() {
     // Update Upgrades
@@ -116,7 +142,7 @@ export class Game {
       // Load Upgrades
       this.upgrades.forEach((u, i) => {
         u.level = data.upgrades[i]?.level || 0;
-        u.cost = Math.floor(u.cost * Math.pow(3, u.level)); // Scale cost based on level
+        u.cost = Math.floor(u.cost * Math.pow(u.cost_multiplier || 3, u.level)); // Scale cost based on level
 
         // Apply the effect for each level
         for (let j = 0; j < u.level; j++) {

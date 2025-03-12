@@ -31,9 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Get tooltip data from attributes
       const effect = button.dataset.tooltipEffect;
       const cost = button.dataset.tooltipCost;
+			const disabled_reason = button.dataset.disabledReason || '';
       
       if (effect && cost) {
-        globalTooltip.textContent = `${effect} (Cost: ${formatNumberInWords(cost)})`;
+        globalTooltip.innerHTML = `<p>${effect}</p> <p>(Cost: ${formatNumberInWords(cost)})</p> <p>${disabled_reason}</p>`;
         globalTooltip.style.opacity = '1';
         
         // Position the tooltip above the button

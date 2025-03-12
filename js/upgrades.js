@@ -4,33 +4,40 @@ import { upgrades } from "./gameData.js";
 export class Upgrade {
   constructor(index, game) {
     this.game = game;
-    this.name = upgrades[index].name;
-    this.cost = upgrades[index].cost;
-    this.effect = upgrades[index].effect;
-    this.type = upgrades[index].type;
-    this.multiplier = upgrades[index].multiplier || 1;
-    this.target = upgrades[index].target || null;
-    this.one_time = upgrades[index].one_time || false;
+    this.upgrade = upgrades[index];
+    this.name = this.upgrade.name;
+    this.cost = this.upgrade.cost;
+    this.effect = this.upgrade.effect;
+    this.type = this.upgrade.type;
+    this.multiplier = this.upgrade.multiplier || 1;
+    this.target = this.upgrade.target || null;
+    this.max_level = this.upgrade.max_level || Infinity;
+    this.cost_multiplier = this.upgrade.cost_multiplier || 3
     this.level = 0;
   }
 
   buy() {
-    if (this.game.cookies >= this.cost && (!this.one_time || this.level === 0)) {
+    if (this.game.cookies >= this.cost && this.max_level > this.level){
       this.game.cookies -= this.cost;
       this.level += 1;
       this.applyEffect();
-      this.cost = Math.floor(this.cost * 3); // Increase cost for next purchase
-      this.game.updateUI();
+      this.cost = Math.floor(this.cost * this.cost_multiplier); // Increase cost for next purchase
+      this.game.updateUI()
     }
   }
 
   applyEffect() {
     if (this.type === "clickMultiplier") {
       this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
+      this.game.buildings.forEach(b => {
+        if(b.name === 'Cursor') {
+          b.cps = parseFloat((b.cps*this.multiplier).toFixed(1))
+        }
+      })
     } else if (this.type === "buildingBoost" && this.target) {
       this.game.buildings.forEach(b => {
         if (b.name === this.target) {
-          b.cps *= this.multiplier;
+          b.cps = parseFloat((b.cps*this.multiplier).toFixed(1))
         }
       });
     }
@@ -43,8 +50,12 @@ export class Upgrade {
     button.textContent = `${this.name} (Level: ${this.level})`;
     button.addEventListener("click", () => this.buy());
 
-    if (this.one_time && this.level > 0) {
+    if (this.game.cookies < this.cost){
       button.disabled = true;
+      button.dataset.disabledReason = 'Not Enough Cookies'
+    } else if( this.max_level <= this.level) {
+      button.disabled = true;
+      button.dataset.disabledReason = `Max Level: ${this.max_level}`
     }
 
     // Use data attributes for tooltip information

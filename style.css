@@ -1,3 +1,8 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+
 /* General Styles */
 body {
   font-family: 'Poppins', sans-serif;
@@ -475,6 +480,17 @@ html {
   position: relative;
   border: 2px solid #e6bb88;
   z-index: 1;
+  width: 100%;
+}
+
+.building:disabled {
+  background: linear-gradient(135deg, #a38e6d, #7f7259);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border: 2px solid #6d6149;
+  color: #41382a;
+  opacity: 0.7;
 }
 
 /* Subtle pattern overlay */
@@ -494,13 +510,13 @@ html {
   border-radius: 8px;
 }
 
-.building:hover {
+.building:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.3);
   background: linear-gradient(to right, #b6855a, #dea975);
 }
 
-.building:active {
+.building:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
