@@ -9,20 +9,25 @@ export class Upgrade {
     this.type = upgrades[index].type;
     this.multiplier = upgrades[index].multiplier || 1;
     this.target = upgrades[index].target || null;
+    this.one_time = upgrades[index].one_time || false;
+    this.is_purchased = false;
   }
 
   buy() {
-    if (this.game.cookies >= this.cost) {
+    if (this.game.cookies >= this.cost && !this.is_purchased) {
+      if (this.one_time) {
+        this.is_purchased = true;
+      }
       this.game.cookies -= this.cost;
       this.applyEffect();
-      this.cost = Math.floor(this.cost * 1.15); // Price increases
+      this.cost = Math.floor(this.cost * 5);
       this.game.updateUI(); // Refresh UI after buying
     }
   }
 
   applyEffect() {
     if (this.type === "clickMultiplier") {
-      this.game.cookiesPerClick *= 2;
+      this.game.cookiesPerClick *= this.multiplier;
     } else if (this.type === "buildingBoost" && this.target) {
       this.game.buildings.forEach(b => {
         if (b.name === this.target) {
@@ -37,6 +42,11 @@ export class Upgrade {
     button.classList.add("upgrade-btn");
     button.textContent = this.name;
     button.addEventListener("click", () => this.buy());
+
+    if (this.is_purchased) {
+      button.disabled = true;
+      button.textContent += " (Purchased)";
+    }
 
     let tooltip = document.createElement("span");
     tooltip.classList.add("tooltip");

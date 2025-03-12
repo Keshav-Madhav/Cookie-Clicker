@@ -13,12 +13,14 @@ export class Building {
   buy() {
     if (this.game.cookies >= this.cost) {
       this.game.cookies -= this.cost;
+      this.game.cookies = parseFloat(this.game.cookies.toFixed(1));
       this.count++;
-      this.cost = Math.floor(this.cost * 1.15); // Price increases
-      this.game.calculateCPS(); // Recalculate CPS after buying
-      this.game.updateUI();
+      this.cost = Math.floor(this.cost * 1.15);
+      
+      document.getElementById("cookie-count").textContent = this.game.cookies;
+      document.getElementById("cps-count").textContent = this.game.calculateCPS(); // Only update CPS
     }
-  }
+  }  
 
   getButton(index) {
     let div = document.createElement("div");
@@ -31,7 +33,6 @@ export class Building {
     button.textContent = `Buy (${this.cost})`;
     button.addEventListener("click", () => {
       this.buy();
-      progressBar.style.width = `${Math.min(this.count * 10, 100)}%`;
     });
 
     div.appendChild(span);

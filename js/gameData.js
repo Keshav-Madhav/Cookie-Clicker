@@ -10,10 +10,10 @@ export const buildings = [
 ];
 
 export const upgrades = [
-  { name: "Double Click", cost: 50, effect: "Doubles click power", type: "clickMultiplier" },
+  { name: "Better Click", cost: 50, effect: "Increase clicking power by 50%", type: "clickMultiplier", multiplier: 1.5 },
   { name: "Efficient Grandmas", cost: 500, effect: "Grandmas produce twice as much", type: "buildingBoost", target: "Grandma", multiplier: 2 },
   { name: "Farm Expansion", cost: 5000, effect: "Farms produce 50% more", type: "buildingBoost", target: "Farm", multiplier: 1.5 },
-  { name: "Golden Touch", cost: 10000, effect: "Clicking gives 5x cookies", type: "clickMultiplier", multiplier: 5 },
+  { name: "Golden Touch", cost: 10000, effect: "Clicking gives 5x cookies", type: "clickMultiplier", multiplier: 5 , one_time: true},
   { name: "Factory Overdrive", cost: 100000, effect: "Factories are twice as efficient", type: "buildingBoost", target: "Factory", multiplier: 2 },
   { name: "Mine Boost", cost: 1000000, effect: "Mines produce 50% more", type: "buildingBoost", target: "Mine", multiplier: 1.5 },
   { name: "Shipment Upgrade", cost: 10000000, effect: "Shipments are twice as efficient", type: "buildingBoost", target: "Shipment", multiplier: 2 },

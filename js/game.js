@@ -18,17 +18,21 @@ export class Game {
 
   start() {
     document.getElementById("cookie-button").addEventListener("click", () => this.clickCookie());
+  
     setInterval(() => {
       this.cookies += this.cookiesPerSecond;
-      this.updateUI();
+      this.cookies = parseFloat(this.cookies.toFixed(1));
+      document.getElementById("cookie-count").textContent = this.cookies; // Only update cookies
     }, 1000);
+  
     setInterval(() => this.saveGame(), 5000);
-  }
+  }  
 
   clickCookie() {
     this.cookies += this.cookiesPerClick;
-    this.updateUI();
-  }
+    this.cookies = parseFloat(this.cookies.toFixed(1));
+    document.getElementById("cookie-count").textContent = this.cookies;
+  }  
 
   updateUI() {
     document.getElementById("cookie-count").textContent = this.cookies;
@@ -55,6 +59,7 @@ export class Game {
 
   calculateCPS() {
     this.cookiesPerSecond = this.buildings.reduce((total, b) => total + (b.count * b.cps), 0);
+    return this.cookiesPerSecond; // Return updated CPS
   }
 
   saveGame() {
