@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cookie Clicker Clone</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie Clicker Clone</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+  <body>
     <div id="game-container">
-        <div id="click-area">
-            <h1>Cookies: <span id="cookie-count">0</span></h1>
-            <h2>Cookies per second: <span id="cps-count">0</span></h2>
-            <div id="cookie-button"></div>
-        </div>
+      <!-- Left: Cookie Clicker -->
+      <div id="click-area">
+        <h1>Cookies: <span id="cookie-count">0</span></h1>
+        <h2>Cookies per second: <span id="cps-count">0</span></h2>
+        <div id="cookie-button"></div>
+      </div>
 
-        <div id="shop">
-            <h2>Upgrades</h2>
-            <button class="upgrade-btn" onclick="buyUpgrade(0)">+1 per Click (Cost: <span id="upgrade-cost-0">10</span>)</button>
-            
-            <h2>Auto-Bakers</h2>
-            <div id="buildings"></div>
-        </div>
+      <!-- Right: Upgrades & Buildings -->
+      <div id="shop">
+        <h2>Upgrades</h2>
+        <div id="upgrade-list"></div>
+        
+        <h2>Auto-Bakers</h2>
+        <div id="building-list"></div>
+      </div>
     </div>
-    <script src="script.js"></script>
-</body>
+  </body>
+  <script src="main.js" type="module"></script>
 </html>
