@@ -2,12 +2,13 @@
 body {
   font-family: 'Poppins', sans-serif;
   text-align: center;
-  background: linear-gradient(to right, #f8e8d0, #f5d6c6);
-  color: #333;
+  background: linear-gradient(135deg, #f6f9fc, #e2eeff);
+  color: #2c3e50;
   margin: 0;
   padding: 0;
   height: 100%;
   overflow: hidden;
+  line-height: 1.6;
 }
 
 html {
@@ -16,9 +17,9 @@ html {
 
 #game-container {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: flex-start;
-  gap: 30px;
+  gap: 20px;
   padding: 20px;
   height: 100dvh;
   width: 100vw;
@@ -27,143 +28,392 @@ html {
 
 /* Clicker Area (Left) */
 #click-area {
-  width: 35%;
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+  width: 25%;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  height: calc(100dvh - 90px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-#cookie-container{
-  width: 20rem;
-  height: 20rem;
+#click-area h1, #click-area h2 {
+  color: #34495e;
+  margin-bottom: 15px;
+}
+
+#click-area h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+#click-area h2 {
+  font-size: 1.4rem;
+  border-bottom: none;
+  color: #7f8c8d;
+}
+
+#cookie-container {
+  width: 100%;
+  flex-grow: 1;
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 0 auto;
+  position: relative;
 }
 
 #cookie-button {
   width: 180px;
   height: 180px;
-  background: radial-gradient(circle, #d2691e, #b8581b);
+  background: radial-gradient(circle, #e9a16c, #d2691e);
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.05s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 15px rgba(185, 95, 33, 0.4);
+  position: relative;
+}
+
+#cookie-button::before {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, #8b4513 25%, transparent 25%),
+              radial-gradient(circle, #8b4513 25%, transparent 25%),
+              radial-gradient(circle, #8b4513 25%, transparent 25%),
+              radial-gradient(circle, #8b4513 25%, transparent 25%),
+              radial-gradient(circle, #8b4513 25%, transparent 25%),
+              radial-gradient(circle, #8b4513 25%, transparent 25%);
+  background-size: 50px 50px;
+  background-position: 0 0, 50px 25px, 25px 50px, 100px 75px, 75px 100px, 125px 50px;
+  border-radius: 50%;
+  top: 10px;
+  left: 10px;
+  opacity: 0.4;
 }
 
 #cookie-button:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
+  box-shadow: 0 8px 20px rgba(185, 95, 33, 0.6);
 }
 
 #cookie-button:active {
   transform: scale(0.95);
-  box-shadow: none;
+  box-shadow: 0 3px 8px rgba(185, 95, 33, 0.3);
+}
+
+/* Stats Area (Middle) */
+#stats {
+  width: 45%;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  height: calc(100dvh - 90px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+#stats h2 {
+  border-bottom: 2px solid #e5e5e5;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  margin: 0;
+  color: #34495e;
+  font-size: 1.8rem;
+  text-align: left;
+}
+
+#stats p {
+  font-size: 1.2rem;
+  color: #2c3e50;
+  margin: 8px 0;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+#stats p span {
+  font-weight: bold;
+  color: #e67e22;
+}
+
+/* Building Visualization in Stats */
+#building-list {
+  overflow-y: auto;
+  height: calc(100% - 240px);
+}
+
+#building-stats {
+  margin-top: 30px;
+  text-align: left;
+}
+
+#building-stats h3 {
+  margin-bottom: 15px;
+  color: #34495e;
+  font-size: 1.4rem;
+}
+
+.building-visual {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.building-icon {
+  width: 30px;
+  height: 30px;
+  background-color: #f7d794;
+  border-radius: 4px;
+  margin-right: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  color: #8a5226;
+}
+
+.building-name {
+  flex-grow: 1;
+  font-size: 1rem;
+}
+
+.building-count {
+  font-weight: bold;
+  color: #e67e22;
+  font-size: 1.2rem;
+}
+
+.building-bar {
+  height: 10px;
+  background-color: #ecf0f1;
+  width: 100%;
+  border-radius: 5px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.building-bar-fill {
+  height: 100%;
+  background-color: #f7d794;
+  border-radius: 5px;
+  transition: width 0.5s ease;
 }
 
 /* Shop (Right Side) */
 #shop {
-  width: 55%;
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-  overflow-y: auto;
-  height: calc(100dvh - 80px);
+  width: 30%;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  height: calc(100dvh - 90px);
 }
 
-h2 {
-  border-bottom: 2px solid #ddd;
-  padding-bottom: 5px;
-  color: #444;
+#shop h2 {
+  border-bottom: 2px solid #e5e5e5;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  color: #34495e;
+  margin: 0;
+  font-size: 1.8rem;
 }
 
 /* Upgrade Buttons */
-#upgrade-list{
+#upgrade-list {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  height: 5rem;
+  padding: 5px 5px 20px 5px; /* Add more padding at the bottom to accommodate tooltips */
+  gap: 15px;
   margin-top: 20px;
+  margin-bottom: 30px;
+  position: relative; /* Create a positioning context */
 }
 
 .upgrade-btn {
   position: relative;
-  width: 80px;
-  height: 40px;
+  min-width: 110px;
+  height: 65px;
   font-size: 14px;
-  padding: 5px;
+  padding: 8px 15px;
   cursor: pointer;
-  border-radius: 6px;
-  background: linear-gradient(to right, #ff9966, #ff5e62);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
   font-weight: bold;
   border: none;
-  transition: 0.2s;
+  transition: all 0.3s ease;
   text-align: center;
   display: inline-block;
+  box-shadow: 0 4px 6px rgba(41, 128, 185, 0.3);
+  overflow: visible; /* Allow the tooltip to be visible outside the button */
 }
 
 .upgrade-btn:hover {
-  transform: scale(1.1);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(41, 128, 185, 0.4);
 }
 
-/* Tooltip on Hover */
-.tooltip {
-  visibility: hidden;
-  width: 150px;
-  background: rgba(0, 0, 0, 0.75);
+.upgrade-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 3px rgba(41, 128, 185, 0.4);
+}
+
+.upgrade-btn:disabled {
+  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Add these rules to your style.css file */
+#global-tooltip {
+  position: fixed;
+  background: rgba(52, 73, 94, 0.9);
   color: white;
-  text-align: center;
-  padding: 5px;
-  border-radius: 5px;
-  position: absolute;
-  bottom: 45px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 10000;
+  pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  max-width: 220px;
+  text-align: center;
 }
-
-.upgrade-btn:hover .tooltip {
-  visibility: visible;
-  opacity: 1;
-}
-
 
 /* Buildings */
 .building {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f9f9f9;
-  padding: 10px;
-  border-radius: 8px;
-  margin: 5px 0;
-  transition: 0.3s;
+  background: linear-gradient(to right, #f7d794, #f5cd79);
+  padding: 14px 20px;
+  border-radius: 10px;
+  margin: 8px 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(184, 137, 32, 0.25);
+  position: relative;
+}
+
+/* Subtle pattern overlay */
+.building::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.15) 25%, transparent 25%, 
+                    transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, 
+                    transparent 75%, transparent);
+  background-size: 20px 20px;
+  opacity: 0.6;
+  z-index: 0;
 }
 
 .building:hover {
-  background: #eaeaea;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(184, 137, 32, 0.3);
 }
 
-.building span {
+.building:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 3px rgba(184, 137, 32, 0.2);
+}
+
+.building p {
+  padding: 0;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.building div {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.building .name_p {
+  font-size: 20px;
+  font-weight: bold;
+  color: #6a3807;
+  text-shadow: 0px 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.building .name_p span {
   font-size: 16px;
-  font-weight: bold;
+  color: #8a5d20;
+  font-weight: normal;
+  margin-left: 5px;
 }
 
-.building button {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: none;
-  background: linear-gradient(to right, #56ab2f, #a8e063);
+.building .price_p {
+  color: #8a5226;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.building .quantity_p {
+  font-size: 24px;
+  font-weight: bold;
   color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.2s;
+  background: rgba(139, 69, 19, 0.85);
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
-.building button:hover {
-  transform: scale(1.1);
+/* Responsiveness */
+@media (max-width: 1200px) {
+  #game-container {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  
+  #click-area, #stats, #shop {
+    width: 90%;
+    margin: 0 auto 20px;
+    height: auto;
+  }
+  
+  #click-area {
+    min-height: 400px;
+  }
+  
+  #stats {
+    min-height: 500px;
+  }
+  
+  #shop {
+    min-height: 600px;
+  }
 }

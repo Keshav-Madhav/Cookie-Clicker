@@ -16,28 +16,33 @@ export class Building {
       this.game.cookies = parseFloat(this.game.cookies.toFixed(1));
       this.count++;
       this.cost = Math.floor(this.cost * 1.15);
-      
-      document.getElementById("cookie-count").textContent = this.game.cookies;
-      document.getElementById("cps-count").textContent = this.game.calculateCPS(); // Only update CPS
+      this.game.updateUI(); // Refresh UI after buying
     }
   }  
 
   getButton(index) {
     let div = document.createElement("div");
+    div.addEventListener("click", () => this.buy());
     div.classList.add("building");
 
-    let span = document.createElement("span");
-    span.textContent = `${this.name} (x${this.count}) - ${this.cps} CPS`;
+    let name_p = document.createElement("p");
+    name_p.classList.add("name_p")
+    name_p.innerHTML = `${this.name} <span>(${this.cps}/sec)</span>`;
 
-    let button = document.createElement("button");
-    button.textContent = `Buy (${this.cost})`;
-    button.addEventListener("click", () => {
-      this.buy();
-    });
+    let price_p = document.createElement("p");
+    price_p.classList.add("price_p")
+    price_p.textContent = `Cost: ${this.cost}`;
 
-    div.appendChild(span);
-    div.appendChild(button);
+    let subDiv = document.createElement("div");
+    subDiv.appendChild(name_p);
+    subDiv.appendChild(price_p);
+    div.appendChild(subDiv);
 
+    let quantity_p = document.createElement("p");
+    quantity_p.classList.add("quantity_p")
+    quantity_p.textContent = `${this.count}`;
+
+    div.appendChild(quantity_p);
     return div;
   }
 }

@@ -12,32 +12,35 @@ export class Game {
     this.upgrades = upgrades.map((_, index) => new Upgrade(index, this));
     this.buildings = buildings.map((_, index) => new Building(index, this));
 
-    this.loadGame();
+    this.loadGame(); // Load saved game data
     this.updateUI();
   }
 
   start() {
     document.getElementById("cookie-button").addEventListener("click", () => this.clickCookie());
-  
+
     setInterval(() => {
       this.cookies += this.cookiesPerSecond;
       this.cookies = parseFloat(this.cookies.toFixed(1));
-      document.getElementById("cookie-count").textContent = this.cookies; // Only update cookies
+      this.updateCookieCount();
     }, 1000);
-  
+
     setInterval(() => this.saveGame(), 5000);
-  }  
+  }
 
   clickCookie() {
     this.cookies += this.cookiesPerClick;
     this.cookies = parseFloat(this.cookies.toFixed(1));
-    document.getElementById("cookie-count").textContent = this.cookies;
-  }  
+    this.updateCookieCount();
+  }
 
-  updateUI() {
+  updateCookieCount() {
     document.getElementById("cookie-count").textContent = this.cookies;
     document.getElementById("cps-count").textContent = this.cookiesPerSecond;
+    document.getElementById("cpc-count").textContent = this.cookiesPerClick;
+  }
 
+  updateUI() {
     // Update Upgrades
     let upgradeList = document.getElementById("upgrade-list");
     upgradeList.innerHTML = "";
@@ -55,19 +58,20 @@ export class Game {
     });
 
     this.calculateCPS();
+    this.updateCookieCount();
   }
 
   calculateCPS() {
-    this.cookiesPerSecond = this.buildings.reduce((total, b) => total + (b.count * b.cps), 0);
-    return this.cookiesPerSecond; // Return updated CPS
+    this.cookiesPerSecond = parseFloat(this.buildings.reduce((acc, b) => acc + b.count * b.cps, 0).toFixed(1));
+    return this.cookiesPerSecond;
   }
 
   saveGame() {
     let saveData = {
       cookies: this.cookies,
-      cookiesPerClick: this.cookiesPerClick,
       cookiesPerSecond: this.cookiesPerSecond,
-      buildings: this.buildings.map(b => ({ count: b.count, cost: b.cost })),
+      buildings: this.buildings.map(b => ({ count: b.count })),
+      upgrades: this.upgrades.map(u => ({ level: u.level }))
     };
     localStorage.setItem("cookieClickerSave", JSON.stringify(saveData));
   }
@@ -76,13 +80,28 @@ export class Game {
     let savedGame = localStorage.getItem("cookieClickerSave");
     if (savedGame) {
       let data = JSON.parse(savedGame);
-      this.cookies = data.cookies;
-      this.cookiesPerClick = data.cookiesPerClick;
-      this.cookiesPerSecond = data.cookiesPerSecond;
+      this.cookies = data.cookies || 0;
+      this.cookiesPerSecond = data.cookiesPerSecond || 0;
+
+      // Load Buildings
       this.buildings.forEach((b, i) => {
         b.count = data.buildings[i]?.count || 0;
-        b.cost = data.buildings[i]?.cost || buildings[i].cost;
+        b.cost = Math.floor(b.cost * Math.pow(1.15, b.count)); // Scale cost based on count
       });
+
+      // Load Upgrades
+      this.upgrades.forEach((u, i) => {
+        u.level = data.upgrades[i]?.level || 0;
+        u.cost = Math.floor(u.cost * Math.pow(3, u.level)); // Scale cost based on level
+
+        // Apply the effect for each level
+        for (let j = 0; j < u.level; j++) {
+          u.applyEffect();
+        }
+      });
+
+      this.calculateCPS();
+      this.updateUI();
     }
   }
 }
