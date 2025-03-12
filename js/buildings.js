@@ -24,11 +24,23 @@ export class Building {
     let span = document.createElement("span");
     span.textContent = `${this.name} (x${this.count}) - ${this.cps} CPS`;
 
+    let progressBarContainer = document.createElement("div");
+    progressBarContainer.classList.add("building-progress");
+
+    let progressBar = document.createElement("div");
+    progressBar.style.width = `${Math.min(this.count * 10, 100)}%`; // Adjusts progress
+
+    progressBarContainer.appendChild(progressBar);
+
     let button = document.createElement("button");
     button.textContent = `Buy (${this.cost})`;
-    button.addEventListener("click", () => this.buy()); // ✅ Event listener instead of `onclick`
+    button.addEventListener("click", () => {
+        this.buy();
+        progressBar.style.width = `${Math.min(this.count * 10, 100)}%`;
+    });
 
     div.appendChild(span);
+    div.appendChild(progressBarContainer);
     div.appendChild(button);
 
     return div;

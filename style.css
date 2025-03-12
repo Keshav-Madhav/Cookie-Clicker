@@ -1,52 +1,135 @@
+/* General Styles */
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
   text-align: center;
-  background-color: #f8f1e5;
+  background: linear-gradient(to right, #f8e8d0, #f5d6c6);
+  color: #333;
+  margin: 0;
+  padding: 0;
 }
 
 #game-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
   padding: 20px;
 }
 
+/* Clicker Area (Left) */
 #click-area {
-  width: 50%;
+  width: 35%;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
 }
 
 #cookie-button {
-  width: 150px;
-  height: 150px;
-  background-color: #d2691e;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, #d2691e, #b8581b);
   border-radius: 50%;
-  margin: 20px auto;
   cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  margin: 0 auto;
 }
 
 #cookie-button:hover {
-  background-color: #b8581b;
+  transform: scale(1.05);
 }
 
+#cookie-button:active {
+  transform: scale(0.95);
+  box-shadow: none;
+}
+
+/* Shop (Right Side) */
 #shop {
-  width: 45%;
-  padding: 10px;
-  border-left: 2px solid #ccc;
+  width: 55%;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
 }
 
+h2 {
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 5px;
+  color: #444;
+}
+
+/* Upgrade Buttons */
 .upgrade-btn {
   display: block;
+  width: 90%;
   margin: 10px auto;
-  padding: 10px;
+  padding: 12px;
   font-size: 16px;
   cursor: pointer;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(to right, #ff9966, #ff5e62);
+  color: white;
+  font-weight: bold;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.upgrade-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Buildings */
 .building {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 8px;
   margin: 5px 0;
+  transition: 0.3s;
 }
 
-button {
-  padding: 5px;
+.building:hover {
+  background: #eaeaea;
+}
+
+.building span {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.building button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: linear-gradient(to right, #56ab2f, #a8e063);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.building button:hover {
+  transform: scale(1.1);
+}
+
+/* Building Progress Bar */
+.building-progress {
+  width: 100px;
+  height: 8px;
+  background: #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-left: 10px;
+}
+
+.building-progress div {
+  height: 100%;
+  background: #4caf50;
+  width: 0%;
+  transition: width 0.3s ease-in-out;
 }
