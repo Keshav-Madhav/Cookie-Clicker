@@ -1,6 +1,7 @@
 import { Building } from "./buildings.js";
 import { Upgrade } from "./upgrades.js";
 import { buildings, upgrades } from "./gameData.js";
+import { formatNumberInWords } from "./utils.js";
 
 export class Game {
   constructor() {
@@ -17,7 +18,7 @@ export class Game {
   }
 
   start() {
-    document.getElementById("cookie-button").addEventListener("click", () => this.clickCookie());
+    document.getElementById("cookie-button").addEventListener("click", (event) => this.clickCookie(event));
 
     setInterval(() => {
       this.cookies += this.cookiesPerSecond;
@@ -28,16 +29,39 @@ export class Game {
     setInterval(() => this.saveGame(), 5000);
   }
 
-  clickCookie() {
-    this.cookies += this.cookiesPerClick;
+  clickCookie(event) {
+    const clickAmount = this.cookiesPerClick;
+    this.cookies += clickAmount;
     this.cookies = parseFloat(this.cookies.toFixed(1));
     this.updateCookieCount();
+    
+    this.createFloatingText(event, `+${formatNumberInWords(clickAmount)} cookies`);
   }
+  
+  createFloatingText(event, text) {
+    const floatingText = document.createElement("span");
+    floatingText.textContent = text;
+    floatingText.classList.add("cookie-text");
+  
+    const cookieButton = document.getElementById("cookie-button");
+    const rect = cookieButton.getBoundingClientRect();
+  
+    // Position the text at the click location relative to the button
+    floatingText.style.left = `${event.clientX - rect.left}px`;
+    floatingText.style.top = `${event.clientY - rect.top}px`;
+  
+    cookieButton.appendChild(floatingText);
+  
+    // Remove the text after animation ends
+    setTimeout(() => {
+      floatingText.remove();
+    }, 1500);
+  }  
 
   updateCookieCount() {
-    document.getElementById("cookie-count").textContent = this.cookies;
-    document.getElementById("cps-count").textContent = this.cookiesPerSecond;
-    document.getElementById("cpc-count").textContent = this.cookiesPerClick;
+    document.getElementById("cookie-count").textContent = formatNumberInWords(this.cookies);
+    document.getElementById("cps-count").textContent = formatNumberInWords(this.cookiesPerSecond);
+    document.getElementById("cpc-count").textContent = formatNumberInWords(this.cookiesPerClick);
   }
 
   updateUI() {

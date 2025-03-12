@@ -1,4 +1,5 @@
 import { Game } from "./js/game.js";
+import { formatNumberInWords } from "./js/utils.js";
 
 document.addEventListener('DOMContentLoaded', function() {
   // Create a single global tooltip element
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const cost = button.dataset.tooltipCost;
       
       if (effect && cost) {
-        globalTooltip.textContent = `${effect} (Cost: ${cost})`;
+        globalTooltip.textContent = `${effect} (Cost: ${formatNumberInWords(cost)})`;
         globalTooltip.style.opacity = '1';
         
         // Position the tooltip above the button

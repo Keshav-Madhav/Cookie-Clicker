@@ -1,4 +1,5 @@
 import { buildings } from "./gameData.js";
+import { formatNumberInWords } from "./utils.js";
 
 export class Building {
   constructor(index, game) {
@@ -31,7 +32,7 @@ export class Building {
 
     let price_p = document.createElement("p");
     price_p.classList.add("price_p")
-    price_p.textContent = `Cost: ${this.cost}`;
+    price_p.textContent = `Cost: ${formatNumberInWords(this.cost)}`;
 
     let subDiv = document.createElement("div");
     subDiv.appendChild(name_p);
