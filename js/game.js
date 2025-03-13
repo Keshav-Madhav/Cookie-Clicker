@@ -6,12 +6,12 @@ import { formatNumberInWords } from "./utils.js";
 export class Game {
   constructor() {
     this.cookies = 0;
-    this.cookiesPerClick = 1;
+    this.cookiesPerClick = 1; // Base value
     this.cookiesPerSecond = 0;
 
     // Load buildings & upgrades from gameData.js
-    this.upgrades = upgrades.map((_, index) => new Upgrade(index, this));
     this.buildings = buildings.map((_, index) => new Building(index, this));
+    this.upgrades = upgrades.map((_, index) => new Upgrade(index, this));
 
     this.loadGame(); // Load saved game data
     this.updateUI();
@@ -69,26 +69,66 @@ export class Game {
   updateButtonsState() {
     // Update Upgrades
     document.querySelectorAll(".upgrade-btn").forEach((button, index) => {
-      let upgrade = this.upgrades[index];
-      if (this.cookies < upgrade.cost) {
-        button.disabled = true;
-        button.dataset.disabledReason = "Not Enough Cookies";
-      } else if (upgrade.level >= upgrade.max_level) {
-        button.disabled = true;
-        button.dataset.disabledReason = `Max Level: ${upgrade.max_level}`;
+      const upgrade = this.upgrades[index];
+      
+      if (upgrade.type === "tieredUpgrade") {
+        if (this.cookies < upgrade.cost) {
+          button.disabled = true;
+          button.dataset.disabledReason = "Not Enough Cookies";
+        } else if (upgrade.level > 0 && !upgrade.canUpgradeTier()) {
+          button.disabled = true;
+          
+          // Show buildings required for next tier
+          if (upgrade.currentTier < upgrade.tiers.length - 1) {
+            const nextTier = upgrade.tiers[upgrade.currentTier + 1];
+            const totalBuildings = this.getTotalBuildingCount();
+            button.dataset.disabledReason = `Need ${nextTier.buildingsRequired} buildings (have ${totalBuildings})`;
+          } else {
+            button.dataset.disabledReason = 'Maximum Tier Reached';
+          }
+        } else if (upgrade.currentTier >= upgrade.tiers.length - 1 && upgrade.level > 0) {
+          button.disabled = true;
+          button.dataset.disabledReason = 'Maximum Tier Reached';
+        } else {
+          button.disabled = false;
+          delete button.dataset.disabledReason;
+        }
       } else {
-        button.disabled = false;
-        delete button.dataset.disabledReason;
+        // Regular upgrades
+        if (this.cookies < upgrade.cost) {
+          button.disabled = true;
+          button.dataset.disabledReason = "Not Enough Cookies";
+        } else if (upgrade.level >= upgrade.max_level) {
+          button.disabled = true;
+          button.dataset.disabledReason = `Max Level: ${upgrade.max_level}`;
+        } else {
+          button.disabled = false;
+          delete button.dataset.disabledReason;
+        }
       }
     });
   
     // Update Buildings
     document.querySelectorAll(".building").forEach((button, index) => {
-      let building = this.buildings[index];
+      const building = this.buildings[index];
       button.disabled = this.cookies < building.cost;
     });
   }
   
+  updateTierProgressIndicators() {
+    document.querySelectorAll('.upgrade-btn[data-tooltip-requirement]').forEach(button => {
+      const requirementText = button.dataset.tooltipRequirement;
+      if (requirementText) {
+        const matches = requirementText.match(/Requires (\d+) buildings \(have (\d+)\)/);
+        if (matches && matches.length === 3) {
+          const required = parseInt(matches[1]);
+          const current = parseInt(matches[2]);
+          const progress = Math.min(100, Math.floor((current / required) * 100));
+          button.style.setProperty('--progress-width', `${progress}%`);
+        }
+      }
+    });
+  }
 
   updateUI() {
     // Update Upgrades
@@ -109,6 +149,7 @@ export class Game {
 
     this.calculateCPS();
     this.updateCookieCount();
+    this.updateTierProgressIndicators();
   }
 
   calculateCPS() {
@@ -116,51 +157,102 @@ export class Game {
     return this.cookiesPerSecond;
   }
 
+  getTotalBuildingCount() {
+    return this.buildings.reduce((total, building) => total + building.count, 0);
+  }
+
   saveGame() {
     let saveData = {
       cookies: this.cookies,
-      cookiesPerSecond: this.cookiesPerSecond,
-      buildings: this.buildings.map(b => ({ count: b.count })),
-      upgrades: this.upgrades.map(u => ({ level: u.level })),
+      cookiesPerClick: this.cookiesPerClick,
+      // Save each building with its current properties
+      buildings: this.buildings.map(b => ({
+        count: b.count,
+        cost: b.cost,
+      })),
+      // Save each upgrade with its current properties
+      upgrades: this.upgrades.map(u => {
+        if (u.type === "tieredUpgrade") {
+          return { 
+            level: u.level,
+            currentTier: u.currentTier,
+            cost: u.cost,
+            multiplier: u.multiplier
+          };
+        }
+        return { 
+          level: u.level,
+          cost: u.cost
+        };
+      }),
       lastSavedTime: Date.now() // Store current timestamp
     };
     localStorage.setItem("cookieClickerSave", JSON.stringify(saveData));
   }
-  
+
   loadGame() {
     let savedGame = localStorage.getItem("cookieClickerSave");
     if (savedGame) {
       let data = JSON.parse(savedGame);
-      this.cookies = data.cookies || 0;
-      this.cookiesPerSecond = data.cookiesPerSecond || 0;
+      
+      // First, load basic game state
+      this.cookies = parseFloat(data.cookies || 0);
+      
+      // Reset to base values before applying upgrades
+      this.cookiesPerClick = 1;
+      
+      // Load Buildings with their saved properties
+      if (data.buildings && data.buildings.length === this.buildings.length) {
+        this.buildings.forEach((building, index) => {
+          const savedBuilding = data.buildings[index];
+          building.count = savedBuilding.count || 0;
+          building.cost = savedBuilding.cost || building.cost;
+        });
+      }
+      
+      // Load Upgrades with their saved properties
+      if (data.upgrades && data.upgrades.length === this.upgrades.length) {
+        this.upgrades.forEach((upgrade, index) => {
+          const savedUpgrade = data.upgrades[index];
+          upgrade.level = savedUpgrade.level || 0;
+          upgrade.cost = savedUpgrade.cost || upgrade.cost;
+          
+          // Handle tiered upgrades
+          if (upgrade.type === "tieredUpgrade" && upgrade.tiers) {
+            upgrade.currentTier = savedUpgrade.currentTier || 0;
+            upgrade.updateTierProperties();
+            upgrade.multiplier = savedUpgrade.multiplier || upgrade.multiplier;
+          }
+          
+          // Apply each upgrade's effect
+          if (upgrade.level > 0) {
+            for (let i = 0; i < upgrade.level; i++) {
+              upgrade.applyEffect();
+            }
+          }
+        });
+      }
+      
+      // After loading both buildings and upgrades, set the cookiesPerClick from saved value
+      // This ensures we maintain the exact value from the saved game
+      this.cookiesPerClick = parseFloat(data.cookiesPerClick || 1);
       
       // Calculate offline earnings
       if (data.lastSavedTime) {
-        let elapsedTime = Math.floor((Date.now() - data.lastSavedTime) / 1000); // Convert ms to seconds
-        let offlineEarnings = elapsedTime * this.cookiesPerSecond;
-        this.cookies += offlineEarnings;
-        console.log(`Offline earnings: ${offlineEarnings} cookies (${elapsedTime} seconds offline)`);
-      }
-  
-      // Load Buildings
-      this.buildings.forEach((b, i) => {
-        b.count = data.buildings[i]?.count || 0;
-        b.cost = Math.floor(b.cost * Math.pow(1.15, b.count)); // Scale cost based on count
-      });
-  
-      // Load Upgrades
-      this.upgrades.forEach((u, i) => {
-        u.level = data.upgrades[i]?.level || 0;
-        u.cost = Math.floor(u.cost * Math.pow(u.cost_multiplier || 3, u.level)); // Scale cost based on level
+        const now = Date.now();
+        const elapsedTime = Math.floor((now - data.lastSavedTime) / 1000); // Convert ms to seconds
         
-        // Apply the effect for each level
-        for (let j = 0; j < u.level; j++) {
-          u.applyEffect();
+        // Only calculate offline earnings if reasonable time has passed (avoid negative times)
+        if (elapsedTime > 0) {
+          this.calculateCPS(); // Ensure CPS is calculated before offline earnings
+          const offlineEarnings = elapsedTime * this.cookiesPerSecond;
+          this.cookies += offlineEarnings;
+          this.cookies = parseFloat(this.cookies.toFixed(1));
+          console.log(`Offline earnings: ${offlineEarnings} cookies (${elapsedTime} seconds offline)`);
         }
-      });
-  
+      }
+      
       this.calculateCPS();
-      this.updateUI();
     }
-  }  
+  }
 }

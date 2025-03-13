@@ -362,7 +362,7 @@ html {
   filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.7));
 }
 
-/* Upgrade Buttons */
+/* Upgrade Buttons - Base Styles (Existing) */
 #upgrade-list {
   display: flex;
   overflow-x: auto;
@@ -430,6 +430,125 @@ html {
   border: 2px solid #6d6149;
   color: #41382a;
   opacity: 0.7;
+}
+
+/* Upgrade Buttons - Base Styles */
+#upgrade-list {
+  display: flex;
+  overflow-x: auto;
+  height: 5rem;
+  padding: 5px 5px 20px 5px;
+  gap: 15px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.upgrade-btn {
+  position: relative;
+  min-width: 110px;
+  height: 65px;
+  font-size: 14px;
+  padding: 8px 15px;
+  cursor: pointer;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8c471, #e67e22);
+  color: #41280f;
+  font-weight: bold;
+  border: none;
+  transition: all 0.3s ease;
+  text-align: center;
+  display: inline-block;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  overflow: visible;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 2px solid #d35400;
+}
+
+.upgrade-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 25%, transparent 25%, 
+                  transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, 
+                  transparent 75%, transparent);
+  background-size: 10px 10px;
+  opacity: 0.3;
+  border-radius: 6px;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #f9d58b, #f39c12);
+}
+
+.upgrade-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.upgrade-btn:disabled {
+  background: linear-gradient(135deg, #a38e6d, #7f7259);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border: 2px solid #6d6149;
+  color: #41382a;
+  opacity: 0.7;
+}
+
+/* Tiered Upgrade Styles - Based on tier level */
+/* Level 1 - First tier */
+.upgrade-btn[data-tier-level="1"] {
+  background: linear-gradient(135deg, #a8a9ad, #7d7e80);
+  border: 2px solid #5a5b5c;
+  color: #333;
+}
+
+.upgrade-btn[data-tier-level="1"]:hover {
+  background: linear-gradient(135deg, #b8b9bd, #8d8e90);
+}
+
+/* Level 2 - Second tier */
+.upgrade-btn[data-tier-level="2"] {
+  background: linear-gradient(135deg, #e5e5e5, #c0c0c0);
+  border: 2px solid #a9a9a9;
+  color: #333;
+}
+
+.upgrade-btn[data-tier-level="2"]:hover {
+  background: linear-gradient(135deg, #f0f0f0, #d0d0d0);
+}
+
+/* Level 3 - Third tier */
+.upgrade-btn[data-tier-level="3"] {
+  background: linear-gradient(135deg, #ffd700, #daa520);
+  border: 2px solid #b8860b;
+  color: #5f4c0b;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.upgrade-btn[data-tier-level="3"]:hover {
+  background: linear-gradient(135deg, #ffdf40, #eab530);
+}
+
+/* Level 4 - Fourth tier */
+.upgrade-btn[data-tier-level="4"] {
+  background: linear-gradient(135deg, #e5e4e2, #bbb8b5);
+  border: 2px solid #86898c;
+  color: #333;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.upgrade-btn[data-tier-level="4"]:hover {
+  background: linear-gradient(135deg, #f0f0ee, #c5c5c2);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.8);
 }
 
 /* Global tooltip */
