@@ -5,7 +5,7 @@ import { formatNumberInWords } from "./utils.js";
 
 export class Game {
   constructor() {
-    this.cookies = 1500000;
+    this.cookies = 15;
     this.cookiesPerClick = 1; // Base value
     this.cookiesPerSecond = 0;
 
