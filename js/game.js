@@ -151,6 +151,7 @@ export class Game {
         let div = building.getButton(index);
         buildingList.appendChild(div);
       });
+      this.updateButtonsState(); 
     } else {
       this.updateButtonsState(); 
     }
