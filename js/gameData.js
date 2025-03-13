@@ -57,6 +57,7 @@ export const upgrades = [
     type: "clickMultiplier", 
     multiplier: 1.5,
     max_level: 20,
+    cost_multiplier: 1.5
   },
   { 
     name: "Efficient Grandmas", 
@@ -66,6 +67,7 @@ export const upgrades = [
     target: "Grandma", 
     multiplier: 2,
     max_level: 15,
+    cost_multiplier: 2
   },
   { 
     name: "Farm Expansion", 
@@ -75,6 +77,7 @@ export const upgrades = [
     target: "Farm", 
     multiplier: 1.75,
     max_level: 10,
+    cost_multiplier: 3
   },
   {
     type: "tieredUpgrade",
