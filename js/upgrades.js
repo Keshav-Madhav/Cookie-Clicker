@@ -101,19 +101,14 @@ export class Upgrade {
         // First purchase or regular click multiplier
         this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
       }
-      
-      // Apply to cursors as well
-      this.game.buildings.forEach(b => {
-        if(b.name === 'Cursor') {
-          if (this.type === "tieredUpgrade" && this.level > 1) {
-            const previousTier = this.tiers[this.currentTier - 1];
-            b.cps /= previousTier.multiplier;
-            b.cps *= this.multiplier;
-          } else {
+
+      if(this.type === 'clickMultiplier'){
+        this.game.buildings.forEach(b => {
+          if(b.name === 'Cursor'){
             b.cps = parseFloat((b.cps * this.multiplier).toFixed(1));
           }
-        }
-      });
+        });
+      }
     } else if (this.type === "buildingBoost" && this.target) {
       this.game.buildings.forEach(b => {
         if (b.name === this.target) {

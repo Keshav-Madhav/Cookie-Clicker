@@ -5,7 +5,7 @@ import { formatNumberInWords } from "./utils.js";
 
 export class Game {
   constructor() {
-    this.cookies = 15;
+    this.cookies = 1500000;
     this.cookiesPerClick = 1; // Base value
     this.cookiesPerSecond = 0;
 
@@ -13,12 +13,16 @@ export class Game {
     this.buildings = buildings.map((_, index) => new Building(index, this));
     this.upgrades = upgrades.map((_, index) => new Upgrade(index, this));
 
+    this.purchaseAmount = 1;
+
     this.loadGame(); // Load saved game data
     this.updateUI();
   }
 
   start() {
     document.getElementById("cookie-button").addEventListener("click", (event) => this.clickCookie(event));
+
+    this.createPurchaseAmountButtons();
 
     setInterval(() => {
       this.cookies += this.cookiesPerSecond;
@@ -36,6 +40,67 @@ export class Game {
     this.updateCookieCount();
     
     this.createFloatingText(event, `+${formatNumberInWords(clickAmount)} cookies`);
+  }
+
+  // Add this method to Game class
+  setPurchaseAmount(amount) {
+    this.purchaseAmount = amount;
+    this.updatePurchaseButtons();
+    this.updateUI();
+  }
+
+  // Add this method to Game class
+  updatePurchaseButtons() {
+    const buttons = document.querySelectorAll('.purchase-amount-btn');
+    buttons.forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.amount === this.purchaseAmount.toString()) {
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  createPurchaseAmountButtons() {
+    const container = document.getElementById('purchase-amount-container');
+    if (!container) {
+      const shopDiv = document.getElementById('shop');
+      const buildingList = document.getElementById('building-list');
+      
+      // Create container for purchase amount buttons
+      const purchaseContainer = document.createElement('div');
+      purchaseContainer.id = 'purchase-amount-container';
+      purchaseContainer.classList.add('purchase-amount-container');
+      
+      // Add a label
+      const label = document.createElement('span');
+      label.textContent = 'Buy Amount:';
+      label.classList.add('purchase-amount-label');
+      purchaseContainer.appendChild(label);
+      
+      // Add buttons
+      const amounts = [1, 10, 20, 50, 'Max'];
+      amounts.forEach(amount => {
+        const btn = document.createElement('button');
+        btn.textContent = amount.toString();
+        btn.classList.add('purchase-amount-btn');
+        btn.dataset.amount = amount;
+        
+        if ((amount === 1 && this.purchaseAmount === 1) || 
+            (amount === 'Max' && this.purchaseAmount === 'Max') ||
+            (amount === this.purchaseAmount)) {
+          btn.classList.add('active');
+        }
+        
+        btn.addEventListener('click', () => {
+          this.setPurchaseAmount(amount);
+        });
+        
+        purchaseContainer.appendChild(btn);
+      });
+      
+      // Insert after the "Auto-Bakers" heading and before the building list
+      shopDiv.insertBefore(purchaseContainer, buildingList);
+    }
   }
   
   createFloatingText(event, text) {
@@ -124,10 +189,26 @@ export class Game {
       }
     });
   
-    // Update Buildings
+    // Update Buildings - Now with bulk purchase cost check
     document.querySelectorAll(".building").forEach((button, index) => {
       const building = this.buildings[index];
-      button.disabled = this.cookies < building.cost;
+      const purchaseAmount = this.purchaseAmount;
+      
+      if (purchaseAmount === 'Max') {
+        // For 'Max', disable if we can't buy even one
+        button.disabled = this.cookies < building.cost;
+      } else {
+        // For bulk purchase, calculate the total cost for the amount
+        let totalCost = 0;
+        const currentCount = building.count;
+        
+        for (let i = 0; i < purchaseAmount; i++) {
+          const cost = Math.floor(building.baseCost * Math.pow(building.cost_multiplier, currentCount + i));
+          totalCost += cost;
+        }
+        
+        button.disabled = this.cookies < totalCost;
+      }
     });
   }
   

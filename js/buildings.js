@@ -15,14 +15,67 @@ export class Building {
   }
 
   buy() {
-    if (this.game.cookies >= this.cost) {
-      this.game.cookies -= this.cost;
+    const amount = this.game.purchaseAmount;
+    
+    if (amount === 'Max') {
+      return this.buyMax();
+    } else {
+      return this.bulkBuy(amount);
+    }
+  }
+  
+  // Calculate cost for buying a specific amount of buildings
+  calculateBulkCost(amount) {
+    let totalCost = 0;
+    const currentCount = this.count;
+    
+    for (let i = 0; i < amount; i++) {
+      const cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, currentCount + i));
+      totalCost += cost;
+    }
+    
+    return totalCost;
+  }
+  
+  // Calculate how many buildings can be bought with current cookies
+  calculateMaxBuyable() {
+    let count = 0;
+    let tempCost = this.cost;
+    let tempCookies = this.game.cookies;
+    
+    while (tempCookies >= tempCost) {
+      tempCookies -= tempCost;
+      count++;
+      tempCost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count + count));
+    }
+    
+    return count;
+  }
+  
+  // Add these methods to Building class
+  bulkBuy(amount) {
+    // Calculate total cost for buying 'amount' buildings
+    const totalCost = this.calculateBulkCost(amount);
+    
+    // Check if player has enough cookies
+    if (this.game.cookies >= totalCost) {
+      this.game.cookies -= totalCost;
       this.game.cookies = parseFloat(this.game.cookies.toFixed(1));
-      this.count++;
+      this.count += parseInt(amount);
       this.cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count));
       this.game.calculateCPS();
       this.game.updateUI();
       return true;
+    }
+    return false;
+  }
+  
+  buyMax() {
+    // Calculate how many buildings can be bought with current cookies
+    const maxBuyable = this.calculateMaxBuyable();
+    
+    if (maxBuyable > 0) {
+      return this.bulkBuy(maxBuyable);
     }
     return false;
   }
@@ -48,7 +101,23 @@ export class Building {
 
     let price_p = document.createElement("p");
     price_p.classList.add("price_p");
-    price_p.textContent = `Cost: ${formatNumberInWords(this.cost)}`;
+    
+    // Calculate price and amount based on purchase amount
+    const purchaseAmount = this.game.purchaseAmount;
+    let displayCost, displayAmount;
+    let canAfford = false;
+    
+    if (purchaseAmount === 'Max') {
+      const maxBuyable = this.calculateMaxBuyable();
+      displayCost = maxBuyable > 0 ? this.calculateBulkCost(maxBuyable) : this.cost;
+      displayAmount = maxBuyable > 0 ? maxBuyable : 0;
+      price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${displayAmount})`;
+      canAfford = maxBuyable > 0;
+    } else {
+      displayCost = this.calculateBulkCost(purchaseAmount);
+      price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${purchaseAmount})`;
+      canAfford = this.game.cookies >= displayCost;
+    }
 
     let subDiv = document.createElement("div");
     subDiv.appendChild(name_p);
@@ -59,9 +128,9 @@ export class Building {
     quantity_p.classList.add("quantity_p");
     quantity_p.textContent = `${this.count}`;
 
-    if(this.cost > this.game.cookies){
-      button.disabled = true;
-    }
+    // FIXED: Ensure the button is disabled if the player can't afford the purchase
+    button.disabled = !canAfford;
+    console.log(this.game.cookies, displayCost, canAfford, !canAfford, button.disabled);
 
     button.appendChild(quantity_p);
     return button;
