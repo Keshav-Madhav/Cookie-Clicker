@@ -56,7 +56,7 @@ export const upgrades = [
     effect: "Increase clicking power by 50%", 
     type: "clickMultiplier", 
     multiplier: 1.5,
-    max_level: 20,
+    max_level: 10,
     cost_multiplier: 3
   },
   { 
