@@ -144,7 +144,16 @@ export class Game {
     document.getElementById("cps-count").textContent = formatNumberInWords(this.cookiesPerSecond);
     document.getElementById("cpc-count").textContent = formatNumberInWords(this.cookiesPerClick);
     
-    this.updateButtonsState(); 
+    if(this.purchaseAmount === 'Max'){
+      let buildingList = document.getElementById("building-list");
+      buildingList.innerHTML = "";
+      this.buildings.forEach((building, index) => {
+        let div = building.getButton(index);
+        buildingList.appendChild(div);
+      });
+    } else {
+      this.updateButtonsState(); 
+    }
   }
   
   updateButtonsState() {
