@@ -57,7 +57,7 @@ export const upgrades = [
     type: "clickMultiplier", 
     multiplier: 1.5,
     max_level: 20,
-    cost_multiplier: 1.5
+    cost_multiplier: 3
   },
   { 
     name: "Efficient Grandmas", 
