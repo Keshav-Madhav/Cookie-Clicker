@@ -52,7 +52,7 @@ export const buildings = [
 export const upgrades = [
   { 
     name: "Better Click", 
-    cost: 15, 
+    cost: 50, 
     effect: "Increase clicking power by 50%", 
     type: "clickMultiplier", 
     multiplier: 1.5,
