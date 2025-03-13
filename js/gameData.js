@@ -91,23 +91,23 @@ export const upgrades = [
       },
       {
         name: "Silver Touch",
-        effect: "Clicking gives 4x cookies",
-        multiplier: 4,
-        cost: 100000,
+        effect: "Clicking gives 2x cookies",
+        multiplier: 2,
+        cost: 300000,
         buildingsRequired: 50
       },
       {
         name: "Golden Touch",
-        effect: "Clicking gives 8x cookies",
-        multiplier: 8,
-        cost: 1500000,
+        effect: "Clicking gives 2x cookies",
+        multiplier: 2,
+        cost: 2500000,
         buildingsRequired: 100
       },
       {
         name: "Platinum Touch",
-        effect: "Clicking gives 16x cookies",
-        multiplier: 16,
-        cost: 25000000,
+        effect: "Clicking gives 2x cookies",
+        multiplier: 2,
+        cost: 27500000,
         buildingsRequired: 250
       }, 
     ]
