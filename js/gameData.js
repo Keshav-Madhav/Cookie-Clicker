@@ -56,17 +56,17 @@ export const upgrades = [
     effect: "Increase clicking power by 50%", 
     type: "clickMultiplier", 
     multiplier: 1.5,
-    max_level: 10,
+    max_level: 15,
     cost_multiplier: 3
   },
   { 
     name: "Efficient Grandmas", 
-    cost: 500, 
+    cost: 500,
     effect: "Grandmas produce twice as much", 
     type: "buildingBoost", 
     target: "Grandma", 
     multiplier: 2,
-    max_level: 15,
+    max_level: 10,
     cost_multiplier: 2
   },
   { 
@@ -119,8 +119,8 @@ export const upgrades = [
     type: "buildingBoost", 
     target: "Factory", 
     multiplier: 3,
-    max_level: 10,
-    cost_multiplier: 5
+    max_level: 7,
+    cost_multiplier: 6
   },
   { 
     name: "Mine Boost", 
