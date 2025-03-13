@@ -344,7 +344,7 @@ export class Game {
           this.calculateCPS(); // Ensure CPS is calculated before offline earnings
           
           // Apply offline multiplier if the player has purchased the upgrade
-          let offlineMultiplier = 1;
+          let offlineMultiplier = 0.5;
           this.upgrades.forEach(upgrade => {
             if (upgrade.name === "Offline Production" && upgrade.level > 0) {
               offlineMultiplier = upgrade.multiplier;

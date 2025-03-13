@@ -3,25 +3,25 @@ export const buildings = [
     name: "Cursor", 
     cost: 15, 
     cps: 0.1, 
-    cost_multiplier: 1.25 
+    cost_multiplier: 1.15 
   },
   { 
     name: "Grandma", 
     cost: 100, 
     cps: 1, 
-    cost_multiplier: 1.2 
+    cost_multiplier: 1.15 
   },
   { 
     name: "Farm", 
     cost: 1100, 
     cps: 8,
-    cost_multiplier: 1.15
+    cost_multiplier: 1.135
   },
   { 
     name: "Factory", 
     cost: 11000,
     cps: 47,
-    cost_multiplier: 1.15
+    cost_multiplier: 1.225
   },
   { 
     name: "Mine", 
@@ -77,7 +77,7 @@ export const upgrades = [
     target: "Farm", 
     multiplier: 1.75,
     max_level: 10,
-    cost_multiplier: 3
+    cost_multiplier: 2
   },
   {
     type: "tieredUpgrade",
@@ -125,7 +125,7 @@ export const upgrades = [
   { 
     name: "Mine Boost", 
     cost: 750000,
-    effect: "Mines produce 2x as much", 
+    effect: "Mines produce 2x as much",
     type: "buildingBoost", 
     target: "Mine", 
     multiplier: 2, // Increased from 1.5
@@ -168,24 +168,37 @@ export const upgrades = [
     tiers: [
       {
         name: "Offline Production I",
-        effect: "Increase offline cookie production by 25%",
-        multiplier: 1.25,
+        effect: "Increase offline cookie production 0.5x -> 0.75x",
+        multiplier: 0.75,
         cost: 15000,
         buildingsRequired: 30
       },
       {
         name: "Offline Production II",
-        effect: "Increase offline cookie production by 50%",
-        multiplier: 1.5,
+        effect: "Increase offline cookie production 0.75x -> 1x",
+        multiplier: 1,
         cost: 275000,
         buildingsRequired: 60
       },
       {
         name: "Offline Production III",
-        effect: "Double offline cookie production",
-        multiplier: 2,
+        effect: "Increase offline cookie production 1x -> 1.5x",
+        multiplier: 1.5,
         cost: 2500000,
         buildingsRequired: 120
+      },
+      {
+        name: "Offline Production IV",
+        effect: "Increase offline cookie production 1.5x -> 2x",
+        multiplier: 2,
+        cost: 20000000,
+        buildingsRequired: 200
+      }, {
+        name: "Offline Production V",
+        effect: "Increase offline cookie production 2x -> 3x",
+        multiplier: 3,
+        cost: 100000000,
+        buildingsRequired: 300
       }
     ]
   },
