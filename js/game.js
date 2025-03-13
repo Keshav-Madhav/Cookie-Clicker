@@ -43,20 +43,36 @@ export class Game {
     floatingText.textContent = text;
     floatingText.classList.add("cookie-text");
   
-    const cookieButton = document.getElementById("cookie-button");
-    const rect = cookieButton.getBoundingClientRect();
+    // Position the text relative to the window
+    floatingText.style.left = `${event.clientX}px`;
+    floatingText.style.top = `${event.clientY}px`;
   
-    // Position the text at the click location relative to the button
-    floatingText.style.left = `${event.clientX - rect.left}px`;
-    floatingText.style.top = `${event.clientY - rect.top}px`;
-  
-    cookieButton.appendChild(floatingText);
+    document.body.appendChild(floatingText);
   
     // Remove the text after animation ends
     setTimeout(() => {
       floatingText.remove();
     }, 1500);
-  }  
+  }
+  
+  showOfflineEarningsText(earnings) {
+    const floatingText = document.createElement("span");
+    floatingText.textContent = `+${formatNumberInWords(earnings)} cookies while offline!`;
+    floatingText.classList.add("cookie-text", "offline-earnings");
+  
+    // Position it at the top center of the screen
+    floatingText.style.left = "50%";
+    floatingText.style.top = "10%";
+    floatingText.style.transform = "translateX(-50%)";
+  
+    document.body.appendChild(floatingText);
+  
+    // Remove after 3 seconds
+    setTimeout(() => {
+      floatingText.remove();
+    }, 3000);
+  }
+  
 
   updateCookieCount() {
     document.getElementById("cookie-count").textContent = formatNumberInWords(this.cookies);
@@ -242,13 +258,28 @@ export class Game {
         const now = Date.now();
         const elapsedTime = Math.floor((now - data.lastSavedTime) / 1000); // Convert ms to seconds
         
-        // Only calculate offline earnings if reasonable time has passed (avoid negative times)
+        // Only calculate offline earnings if reasonable time has passed
         if (elapsedTime > 0) {
           this.calculateCPS(); // Ensure CPS is calculated before offline earnings
-          const offlineEarnings = elapsedTime * this.cookiesPerSecond;
+          
+          // Apply offline multiplier if the player has purchased the upgrade
+          let offlineMultiplier = 1;
+          this.upgrades.forEach(upgrade => {
+            if (upgrade.name === "Offline Production" && upgrade.level > 0) {
+              offlineMultiplier = upgrade.multiplier;
+            }
+          });
+          
+          const offlineEarnings = elapsedTime * this.cookiesPerSecond * offlineMultiplier;
           this.cookies += offlineEarnings;
           this.cookies = parseFloat(this.cookies.toFixed(1));
+          
+          // Show notification about offline earnings when game loads
           console.log(`Offline earnings: ${offlineEarnings} cookies (${elapsedTime} seconds offline)`);
+          
+          if(offlineEarnings > 0) {
+            this.showOfflineEarningsText(offlineEarnings);
+          }
         }
       }
       

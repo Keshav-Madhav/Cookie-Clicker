@@ -27,7 +27,7 @@ export class Upgrade {
   updateTierProperties() {
     if (!this.tiers || this.currentTier >= this.tiers.length) return;
     
-    const tier = this.tiers[this.currentTier];
+    const tier = this.tiers[this.currentTier] || this.tiers[this.tiers.length - 1]; 
     this.name = tier.name;
     this.effect = tier.effect;
     this.multiplier = tier.multiplier;
@@ -44,12 +44,14 @@ export class Upgrade {
     return totalBuildings >= nextTier.buildingsRequired;
   }
   
-  // Attempt to upgrade to next tier
   upgradeTier() {
     if (!this.canUpgradeTier()) return false;
     
-    this.currentTier++;
-    this.updateTierProperties();
+    this.currentTier++; // Move tier up
+    this.updateTierProperties(); // Apply new tier properties immediately
+
+    // Apply the new multiplier correctly
+    this.applyEffect();
     return true;
   }
 

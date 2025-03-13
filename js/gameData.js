@@ -14,32 +14,38 @@ export const buildings = [
   { 
     name: "Farm", 
     cost: 1100, 
-    cps: 8 
+    cps: 8,
+    cost_multiplier: 1.15
   },
   { 
     name: "Factory", 
-    cost: 12000, 
-    cps: 47 
+    cost: 11000,
+    cps: 47,
+    cost_multiplier: 1.15
   },
   { 
     name: "Mine", 
-    cost: 130000, 
-    cps: 260 
+    cost: 120000,
+    cps: 260,
+    cost_multiplier: 1.15
   },
   { 
     name: "Shipment", 
-    cost: 1400000,
-    cps: 1400 
+    cost: 1300000,
+    cps: 1400,
+    cost_multiplier: 1.15
   },
   { 
     name: "Alchemy Lab", 
-    cost: 20000000, 
-    cps: 7800 
+    cost: 14000000,
+    cps: 7800,
+    cost_multiplier: 1.2
   },
   { 
     name: "Portal", 
-    cost: 330000000,  
-    cps: 44000 
+    cost: 170000000,
+    cps: 44000,
+    cost_multiplier: 1.2
   },
 ];
 
@@ -49,7 +55,8 @@ export const upgrades = [
     cost: 50, 
     effect: "Increase clicking power by 50%", 
     type: "clickMultiplier", 
-    multiplier: 1.5 
+    multiplier: 1.5,
+    max_level: 20,
   },
   { 
     name: "Efficient Grandmas", 
@@ -57,7 +64,8 @@ export const upgrades = [
     effect: "Grandmas produce twice as much", 
     type: "buildingBoost", 
     target: "Grandma", 
-    multiplier: 2 
+    multiplier: 2,
+    max_level: 15,
   },
   { 
     name: "Farm Expansion", 
@@ -66,85 +74,116 @@ export const upgrades = [
     type: "buildingBoost", 
     target: "Farm", 
     multiplier: 1.75,
-    cost_multiplier: 1.5
+    max_level: 10,
   },
   {
-    name: "Iron Touch", 
-    cost: 10000, 
-    effect: "Clicking gives 2x cookies", 
     type: "tieredUpgrade",
-    multiplier: 2,
     tiers: [
       {
         name: "Iron Touch",
-        effect: "Clicking gives 5x cookies",
-        multiplier: 5,
-        cost: 25000,
-        buildingsRequired: 0
+        effect: "Clicking gives 2x cookies",
+        multiplier: 2,
+        cost: 10000,
+        buildingsRequired: 20
       },
       {
         name: "Silver Touch",
-        effect: "Clicking gives 5x cookies",
-        multiplier: 5,
-        cost: 500000,
+        effect: "Clicking gives 4x cookies",
+        multiplier: 4,
+        cost: 100000,
         buildingsRequired: 50
       },
       {
         name: "Golden Touch",
-        effect: "Clicking gives 10x cookies",
-        multiplier: 10,
-        cost: 35000000,
-        buildingsRequired: 120
+        effect: "Clicking gives 8x cookies",
+        multiplier: 8,
+        cost: 1500000,
+        buildingsRequired: 100
       },
       {
         name: "Platinum Touch",
-        effect: "Clicking gives 20x cookies",
-        multiplier: 30,
-        cost: 125000000,
+        effect: "Clicking gives 16x cookies",
+        multiplier: 16,
+        cost: 25000000,
         buildingsRequired: 250
       }, 
     ]
   },
   { 
     name: "Factory Overdrive", 
-    cost: 100000, 
+    cost: 75000,
     effect: "Factories are 3 times as efficient", 
     type: "buildingBoost", 
     target: "Factory", 
-    multiplier: 3 
+    multiplier: 3,
+    max_level: 10,
+    cost_multiplier: 5
   },
   { 
     name: "Mine Boost", 
-    cost: 1000000, 
-    effect: "Mines produce 50% more", 
+    cost: 750000,
+    effect: "Mines produce 2x as much", 
     type: "buildingBoost", 
     target: "Mine", 
-    multiplier: 1.5, 
-    cost_multiplier: 1.5 
+    multiplier: 2, // Increased from 1.5
+    max_level: 5,
+    cost_multiplier: 4
   },
   { 
     name: "Shipment Upgrade", 
-    cost: 10000000, 
+    cost: 7500000,
     effect: "Shipments are twice as efficient", 
     type: "buildingBoost", 
     target: "Shipment", 
-    multiplier: 2 
+    multiplier: 2,
+    max_level: 5,
+    cost_multiplier: 4
   },
   { 
     name: "Alchemy Lab Boost", 
-    cost: 100000000, 
-    effect: "Alchemy Labs produce 50% more", 
+    cost: 50000000,
+    effect: "Alchemy Labs produce 2x as much", 
     type: "buildingBoost", 
     target: "Alchemy Lab", 
-    multiplier: 1.5, 
-    cost_multiplier: 1.35 
+    multiplier: 2, // Increased from 1.5
+    max_level: 5,
+    cost_multiplier: 4
   },
   { 
     name: "Portal Boost",
-    cost: 1000000000, 
+    cost: 500000000,
     effect: "Portals are twice as efficient", 
     type: "buildingBoost", 
     target: "Portal", 
-    multiplier: 2 
+    multiplier: 2,
+    max_level: 5,
+    cost_multiplier: 4
+  },
+
+  {
+    type: "tieredUpgrade",
+    tiers: [
+      {
+        name: "Offline Production I",
+        effect: "Increase offline cookie production by 25%",
+        multiplier: 1.25,
+        cost: 15000,
+        buildingsRequired: 30
+      },
+      {
+        name: "Offline Production II",
+        effect: "Increase offline cookie production by 50%",
+        multiplier: 1.5,
+        cost: 275000,
+        buildingsRequired: 60
+      },
+      {
+        name: "Offline Production III",
+        effect: "Double offline cookie production",
+        multiplier: 2,
+        cost: 2500000,
+        buildingsRequired: 120
+      }
+    ]
   },
 ];
