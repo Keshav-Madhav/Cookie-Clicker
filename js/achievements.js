@@ -80,6 +80,11 @@ export class AchievementManager {
     while (this.newlyUnlocked.length > 0) {
       const a = this.newlyUnlocked.shift();
       this.showNotification(a);
+
+      // Tutorial: first achievement event
+      if (this.game.tutorial) {
+        this.game.tutorial.triggerEvent('firstAchievement');
+      }
     }
   }
 

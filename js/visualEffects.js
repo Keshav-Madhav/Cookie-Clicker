@@ -303,6 +303,9 @@ export class VisualEffects {
     el.classList.remove("hidden");
     el.classList.add("golden-appear");
 
+    // Tutorial: golden cookie appeared
+    if (this.game.tutorial) this.game.tutorial.triggerEvent('goldenCookie');
+
     // Disappear after 12 seconds if not clicked
     this._goldenTimeout = setTimeout(() => {
       el.classList.add("golden-fade");
@@ -425,6 +428,11 @@ export class VisualEffects {
     // Milk rises from 0% to max 45% of panel height
     const milkHeight = Math.min(45, pct * 0.65);
     el.style.height = milkHeight + "%";
+
+    // Tutorial: milk rising event (once when milk first appears)
+    if (pct > 0 && this.game.tutorial) {
+      this.game.tutorial.triggerEvent('milkRising');
+    }
 
     // Milk color shifts — solid, no transparency fade
     const wavePath = document.querySelector("#milk-wave path");

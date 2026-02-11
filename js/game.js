@@ -3,6 +3,7 @@ import { Upgrade } from "./upgrades.js";
 import { AchievementManager } from "./achievements.js";
 import { PrestigeManager } from "./prestige.js";
 import { VisualEffects } from "./visualEffects.js";
+import { Tutorial } from "./tutorial.js";
 import { buildings, upgrades } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
 
@@ -46,6 +47,7 @@ export class Game {
     this.achievementManager = new AchievementManager(this);
     this.prestige = new PrestigeManager(this);
     this.visualEffects = new VisualEffects(this);
+    this.tutorial = new Tutorial(this);
 
     this.purchaseAmount = 1;
 
@@ -62,6 +64,7 @@ export class Game {
     this.setupMenu();
     this.initParticles();
     this.visualEffects.init();
+    this.tutorial.init();
 
     // Main game loop - 1 second tick
     setInterval(() => {
@@ -148,6 +151,11 @@ export class Game {
     if (this.stats.totalClicks % 10 === 0) {
       this.achievementManager.check();
     }
+
+    // Tutorial: check if this was the first click (for waitFor)
+    if (this.stats.totalClicks === 1) {
+      // First click registered — tutorial may wait for this
+    }
   }
 
   checkLuckyClick(event) {
@@ -155,6 +163,9 @@ export class Game {
     
     if (Math.random() < this.luckyClickChance) {
       this.stats.luckyClicks++;
+
+      // Tutorial: lucky click event
+      if (this.tutorial) this.tutorial.triggerEvent('luckyClick');
       
       // Random bonus type
       const roll = Math.random();
@@ -184,6 +195,9 @@ export class Game {
     this.frenzyEndTime = Date.now() + duration;
     this.stats.frenziesTriggered++;
     this.updateFrenzyIndicator();
+
+    // Tutorial: frenzy event
+    if (this.tutorial) this.tutorial.triggerEvent('frenzy');
   }
 
   endFrenzy() {
@@ -363,6 +377,15 @@ export class Game {
     if (overlay) {
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) overlay.classList.add("hidden");
+      });
+    }
+
+    // Replay Tutorial button
+    const replayBtn = document.getElementById("replay-tutorial-btn");
+    if (replayBtn) {
+      replayBtn.addEventListener("click", () => {
+        overlay.classList.add("hidden");
+        this.tutorial.replayTutorial();
       });
     }
   }
@@ -666,6 +689,7 @@ export class Game {
   }
   
   updateButtonsState() {
+    let anyUpgradeAffordable = false;
     document.querySelectorAll(".upgrade-btn").forEach((button) => {
       const index = parseInt(button.dataset.index, 10);
       const upgrade = this.upgrades[index];
@@ -699,6 +723,7 @@ export class Game {
         } else {
           button.disabled = false;
           delete button.dataset.disabledReason;
+          anyUpgradeAffordable = true;
         }
       } else {
         if (this.cookies < upgrade.cost) {
@@ -710,9 +735,15 @@ export class Game {
         } else {
           button.disabled = false;
           delete button.dataset.disabledReason;
+          anyUpgradeAffordable = true;
         }
       }
     });
+
+    // Tutorial: first time an upgrade becomes affordable
+    if (anyUpgradeAffordable) {
+      this.tutorial.triggerEvent('firstUpgradeBuyable');
+    }
   
     document.querySelectorAll(".building").forEach((button) => {
       const index = parseInt(button.dataset.buildingIndex, 10);
@@ -944,6 +975,8 @@ export class Game {
         btn.disabled = !this.prestige.canPrestige();
         if (this.prestige.canPrestige()) {
           btn.textContent = `Ascend (+${formatNumberInWords(potentialChips)} HC)`;
+          // Tutorial: prestige available event
+          if (this.tutorial) this.tutorial.triggerEvent('prestigeAvailable');
         } else {
           btn.textContent = `Ascend (need more cookies)`;
         }
@@ -977,6 +1010,7 @@ export class Game {
       stats: this.stats,
       achievements: this.achievementManager.getSaveData(),
       prestige: this.prestige.getSaveData(),
+      tutorial: this.tutorial.getSaveData(),
       lastSavedTime: Date.now(),
     };
     localStorage.setItem("cookieClickerSave", JSON.stringify(saveData));
@@ -998,6 +1032,11 @@ export class Game {
 
       // Load achievements
       this.achievementManager.loadSaveData(data.achievements);
+
+      // Load tutorial state
+      if (data.tutorial) {
+        this.tutorial.loadSaveData(data.tutorial);
+      }
 
       // Load stats
       if (data.stats) {

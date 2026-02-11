@@ -136,6 +136,7 @@ export class Upgrade {
           this.level = 1;
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
+          this._triggerTutorialEvent();
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
@@ -144,6 +145,7 @@ export class Upgrade {
           this.upgradeTier();
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
+          this._triggerTutorialEvent();
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
@@ -157,6 +159,7 @@ export class Upgrade {
           const costMult = this.level > this.base_max_level ? this.prestige_cost_multiplier : this.cost_multiplier;
           this.cost = Math.floor(this.cost * costMult);
           this.game.stats.totalUpgradesPurchased++;
+          this._triggerTutorialEvent();
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
@@ -164,6 +167,34 @@ export class Upgrade {
       }
     }
     return false;
+  }
+
+  /** Fire a tutorial event based on the upgrade type */
+  _triggerTutorialEvent() {
+    if (!this.game.tutorial) return;
+    const t = this.game.tutorial;
+    switch (this.type) {
+      case "tieredUpgrade":
+        // Check if it's a touch upgrade or offline upgrade by name
+        if (this.name && this.name.includes("Touch")) {
+          t.triggerEvent('touchUpgrade');
+        } else if (this.name && this.name.includes("Offline")) {
+          t.triggerEvent('offlineUpgrade');
+        }
+        break;
+      case "globalCpsMultiplier":
+        t.triggerEvent('powerMultiplier');
+        break;
+      case "synergy":
+        t.triggerEvent('synergyUpgrade');
+        break;
+      case "cursorScaling":
+        t.triggerEvent('cursorScaling');
+        break;
+      case "frenzyDuration":
+        t.triggerEvent('frenzyDuration');
+        break;
+    }
   }
 
   applyEffect() {
