@@ -1,4 +1,5 @@
 import { upgrades } from "./gameData.js";
+import { formatNumberInWords } from "./utils.js";
 
 export class Upgrade {
   constructor(index, game) {
@@ -15,6 +16,7 @@ export class Upgrade {
     this.chance = this.upgrade.chance || 0;
     this.max_level = this.upgrade.max_level || Infinity;
     this.cost_multiplier = this.upgrade.cost_multiplier || 3;
+    this.requires = this.upgrade.requires || null;
     this.level = 0;
     
     this.tiers = this.upgrade.tiers || null;
@@ -50,7 +52,74 @@ export class Upgrade {
     return true;
   }
 
+  /** Check a single requirement condition */
+  _checkCondition(cond) {
+    switch (cond.type) {
+      case "totalBuildings":
+        return this.game.getTotalBuildingCount() >= cond.min;
+      case "building": {
+        const b = this.game.buildings.find(b => b.name === cond.name);
+        return b ? b.count >= cond.min : false;
+      }
+      case "cps":
+        return this.game.cookiesPerSecond >= cond.min;
+      case "totalCookies":
+        return this.game.stats.totalCookiesBaked >= cond.min;
+      case "totalClicks":
+        return this.game.stats.totalClicks >= cond.min;
+      case "achievements":
+        return this.game.achievementManager
+          ? this.game.achievementManager.getUnlockedCount() >= cond.min
+          : false;
+      case "prestige":
+        return this.game.stats.timesPrestiged >= cond.min;
+      case "totalUpgradesPurchased":
+        return this.game.stats.totalUpgradesPurchased >= cond.min;
+      default:
+        return true;
+    }
+  }
+
+  /** Check if all requirements are met */
+  meetsRequirements() {
+    if (!this.requires) return true;
+    const conditions = Array.isArray(this.requires) ? this.requires : [this.requires];
+    return conditions.every(c => this._checkCondition(c));
+  }
+
+  /** Get human-readable unmet requirement text */
+  getRequirementText() {
+    if (!this.requires) return '';
+    const conditions = Array.isArray(this.requires) ? this.requires : [this.requires];
+    const unmet = conditions.filter(c => !this._checkCondition(c));
+    return unmet.map(cond => {
+      switch (cond.type) {
+        case "totalBuildings":
+          return `Need ${cond.min} total buildings`;
+        case "building": {
+          const b = this.game.buildings.find(b => b.name === cond.name);
+          return `Need ${cond.min} ${cond.name}s (have ${b ? b.count : 0})`;
+        }
+        case "cps":
+          return `Need ${formatNumberInWords(cond.min)} CPS`;
+        case "totalCookies":
+          return `Need ${formatNumberInWords(cond.min)} total cookies`;
+        case "totalClicks":
+          return `Need ${cond.min} clicks`;
+        case "achievements":
+          return `Need ${cond.min} achievements`;
+        case "prestige":
+          return `Need ${cond.min} prestige`;
+        case "totalUpgradesPurchased":
+          return `Need ${cond.min} upgrades purchased`;
+        default:
+          return 'Unknown requirement';
+      }
+    }).join(' • ');
+  }
+
   buy() {
+    if (!this.meetsRequirements()) return false;
     if (this.game.cookies >= this.cost) {
       if (this.type === "tieredUpgrade") {
         if (this.level === 0) {
@@ -58,6 +127,7 @@ export class Upgrade {
           this.level = 1;
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
+          this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
         } else if (this.canUpgradeTier()) {
@@ -65,6 +135,7 @@ export class Upgrade {
           this.upgradeTier();
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
+          this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
         }
@@ -76,6 +147,7 @@ export class Upgrade {
           this.applyEffect();
           this.cost = Math.floor(this.cost * this.cost_multiplier);
           this.game.stats.totalUpgradesPurchased++;
+          this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
         }
@@ -178,8 +250,13 @@ export class Upgrade {
     
     button.addEventListener("click", () => this.buy());
 
-    // Disable logic
-    if (this.type === "tieredUpgrade") {
+    // Requirements check — takes highest priority
+    if (!this.meetsRequirements()) {
+      button.disabled = true;
+      button.classList.add('upgrade-locked');
+      button.dataset.disabledReason = `🔒 ${this.getRequirementText()}`;
+    } else if (this.type === "tieredUpgrade") {
+      // Disable logic for tiered
       if (this.game.cookies < this.cost) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';

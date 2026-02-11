@@ -11,10 +11,52 @@ export class Building {
     this.cost = this.building.cost;
     this.cps = this.building.cps;
     this.cost_multiplier = this.building.cost_multiplier || 1.15;
+    this.requires = this.building.requires || null;
     this.count = 0;
   }
 
+  /** Check a single requirement condition */
+  _checkCondition(cond) {
+    switch (cond.type) {
+      case "totalBuildings":
+        return this.game.getTotalBuildingCount() >= cond.min;
+      case "cps":
+        return this.game.cookiesPerSecond >= cond.min;
+      case "totalCookies":
+        return this.game.stats.totalCookiesBaked >= cond.min;
+      default:
+        return true;
+    }
+  }
+
+  /** Check if all special requirements are met */
+  meetsRequirements() {
+    if (!this.requires) return true;
+    const conditions = Array.isArray(this.requires) ? this.requires : [this.requires];
+    return conditions.every(c => this._checkCondition(c));
+  }
+
+  /** Get human-readable text for unmet requirements */
+  getRequirementText() {
+    if (!this.requires) return '';
+    const conditions = Array.isArray(this.requires) ? this.requires : [this.requires];
+    const unmet = conditions.filter(c => !this._checkCondition(c));
+    return unmet.map(cond => {
+      switch (cond.type) {
+        case "totalBuildings":
+          return `Need ${cond.min} total bakers (have ${this.game.getTotalBuildingCount()})`;
+        case "cps":
+          return `Need ${formatNumberInWords(cond.min)} CPS`;
+        case "totalCookies":
+          return `Need ${formatNumberInWords(cond.min)} total cookies baked`;
+        default:
+          return 'Unknown requirement';
+      }
+    }).join(' • ');
+  }
+
   buy() {
+    if (!this.meetsRequirements()) return false;
     const amount = this.game.purchaseAmount;
     
     if (amount === 'Max') {
@@ -130,7 +172,13 @@ export class Building {
     quantity_p.textContent = `${this.count}`;
 
     // FIXED: Ensure the button is disabled if the player can't afford the purchase
-    button.disabled = !canAfford;
+    if (!this.meetsRequirements()) {
+      button.disabled = true;
+      button.classList.add('building-locked');
+      price_p.textContent = `🔒 ${this.getRequirementText()}`;
+    } else {
+      button.disabled = !canAfford;
+    }
 
     button.appendChild(quantity_p);
     return button;

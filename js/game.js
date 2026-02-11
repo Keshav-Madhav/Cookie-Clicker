@@ -2,6 +2,7 @@ import { Building } from "./buildings.js";
 import { Upgrade } from "./upgrades.js";
 import { AchievementManager } from "./achievements.js";
 import { PrestigeManager } from "./prestige.js";
+import { VisualEffects } from "./visualEffects.js";
 import { buildings, upgrades } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
 
@@ -15,6 +16,8 @@ export class Game {
     this.frenzyDurationMultiplier = 1;
     this._particles = [];
     this._upgradePage = 0;
+    this._upgradeOrder = []; // sorted indices for upgrade display
+    this._upgradeSortTimer = null;
     this._buildingSort = 'default'; // default, price, cps, efficiency, owned
 
     // Frenzy state
@@ -42,6 +45,7 @@ export class Game {
     // Achievement & Prestige systems
     this.achievementManager = new AchievementManager(this);
     this.prestige = new PrestigeManager(this);
+    this.visualEffects = new VisualEffects(this);
 
     this.purchaseAmount = 1;
 
@@ -57,6 +61,7 @@ export class Game {
     this.setupUpgradeNav();
     this.setupMenu();
     this.initParticles();
+    this.visualEffects.init();
 
     // Main game loop - 1 second tick
     setInterval(() => {
@@ -73,6 +78,7 @@ export class Game {
       this.achievementManager.check();
       this.updateCookieCount();
       this.updateLeftPanel();
+      this.visualEffects.update();
     }, 1000);
 
     // Save every 5 seconds
@@ -335,7 +341,7 @@ export class Game {
       if (this._upgradePage > 0) { this._upgradePage--; this._upgradeNavDir = 'left'; this.renderUpgradePage(true); this.updateButtonsState(); }
     });
     if (next) next.addEventListener("click", () => {
-      const totalPages = Math.ceil(this.upgrades.length / this.upgradePageSize);
+      const totalPages = Math.ceil((this._upgradeOrder || this.upgrades).length / this.upgradePageSize);
       if (this._upgradePage < totalPages - 1) { this._upgradePage++; this._upgradeNavDir = 'right'; this.renderUpgradePage(true); this.updateButtonsState(); }
     });
   }
@@ -613,6 +619,7 @@ export class Game {
     this.saveGame();
     this.updateUI();
     this.updateLeftPanel();
+    this.visualEffects.update();
   }
   
   createFloatingText(event, text, isSpecial = false) {
@@ -664,6 +671,15 @@ export class Game {
       const upgrade = this.upgrades[index];
       if (!upgrade) return;
       
+      // Requirements check first
+      if (!upgrade.meetsRequirements()) {
+        button.disabled = true;
+        button.classList.add('upgrade-locked');
+        button.dataset.disabledReason = `🔒 ${upgrade.getRequirementText()}`;
+        return;
+      }
+      button.classList.remove('upgrade-locked');
+
       if (upgrade.type === "tieredUpgrade") {
         if (this.cookies < upgrade.cost) {
           button.disabled = true;
@@ -750,19 +766,25 @@ export class Game {
 
   renderUpgradePage(animated = false) {
     if (this._upgradePage === undefined) this._upgradePage = 0;
+    // Initialize sort order if not set
+    if (!this._upgradeOrder || this._upgradeOrder.length !== this.upgrades.length) {
+      this._upgradeOrder = this.upgrades.map((_, i) => i);
+      this._upgradeOrder.sort((a, b) => this.upgrades[a].cost - this.upgrades[b].cost);
+    }
     const pageSize = this.upgradePageSize;
-    const totalPages = Math.max(1, Math.ceil(this.upgrades.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil(this._upgradeOrder.length / pageSize));
     if (this._upgradePage >= totalPages) this._upgradePage = totalPages - 1;
 
     const start = this._upgradePage * pageSize;
-    const pageUpgrades = this.upgrades.slice(start, start + pageSize);
+    const pageIndices = this._upgradeOrder.slice(start, start + pageSize);
 
     const list = document.getElementById("upgrade-list");
 
     const populate = () => {
       list.innerHTML = "";
-      pageUpgrades.forEach((upgrade, i) => {
-        const btn = upgrade.getButton(start + i);
+      pageIndices.forEach((upgradeIdx, i) => {
+        const upgrade = this.upgrades[upgradeIdx];
+        const btn = upgrade.getButton(upgradeIdx);
         if (animated) {
           btn.classList.add('upgrade-enter');
           btn.style.animationDelay = `${i * 25}ms`;
@@ -798,6 +820,34 @@ export class Game {
     if (prev) prev.disabled = this._upgradePage <= 0;
     if (next) next.disabled = this._upgradePage >= totalPages - 1;
     if (info) info.textContent = `${this._upgradePage + 1} / ${totalPages}`;
+  }
+
+  // === Upgrade sorting by cost ===
+  sortUpgradesByCost() {
+    this._upgradeOrder = this.upgrades.map((_, i) => i);
+    this._upgradeOrder.sort((a, b) => {
+      const upA = this.upgrades[a];
+      const upB = this.upgrades[b];
+      // Maxed upgrades go to the end
+      const maxedA = upA.type === 'tieredUpgrade'
+        ? (upA.level > 0 && upA.currentTier >= upA.tiers.length - 1)
+        : (upA.level >= upA.max_level);
+      const maxedB = upB.type === 'tieredUpgrade'
+        ? (upB.level > 0 && upB.currentTier >= upB.tiers.length - 1)
+        : (upB.level >= upB.max_level);
+      if (maxedA !== maxedB) return maxedA ? 1 : -1;
+      return upA.cost - upB.cost;
+    });
+    this._upgradePage = 0;
+    this.renderUpgradePage(true);
+  }
+
+  scheduleUpgradeSort() {
+    if (this._upgradeSortTimer) clearTimeout(this._upgradeSortTimer);
+    this._upgradeSortTimer = setTimeout(() => {
+      this._upgradeSortTimer = null;
+      this.sortUpgradesByCost();
+    }, 10000);
   }
 
   calculateCPS() {

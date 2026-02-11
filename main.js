@@ -29,12 +29,14 @@ document.addEventListener('DOMContentLoaded', function() {
       const disabledReason = button.dataset.disabledReason || '';
       const nextTier = button.dataset.tooltipNextTier || '';
       const requirement = button.dataset.tooltipRequirement || '';
+      const condition = button.dataset.tooltipCondition || '';
       
       if (effect && cost) {
         let html = `<p>${effect}</p><p>Cost: ${formatNumberInWords(cost)}</p>`;
+        if (condition) html += `<p style="color:#f0c040;font-size:11px">🔒 Requires: ${condition}</p>`;
         if (nextTier) html += `<p style="color:#f8c471;font-size:11px">${nextTier}</p>`;
         if (requirement) html += `<p style="color:#d5c4a1;font-size:11px">${requirement}</p>`;
-        if (disabledReason) html += `<p style="color:#e74c3c;font-size:11px">${disabledReason}</p>`;
+        if (disabledReason && !condition) html += `<p style="color:#e74c3c;font-size:11px">${disabledReason}</p>`;
         
         globalTooltip.innerHTML = html;
         globalTooltip.style.opacity = '1';

@@ -16,6 +16,11 @@ export class AchievementManager {
     return this.achievements.filter(a => a.unlocked).length;
   }
 
+  isUnlocked(id) {
+    const a = this.achievements.find(a => a.id === id);
+    return a ? a.unlocked : false;
+  }
+
   getTotalCount() {
     return this.achievements.length;
   }
