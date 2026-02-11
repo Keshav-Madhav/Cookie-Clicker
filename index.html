@@ -8,24 +8,80 @@
 </head>
   <body>
     <div id="game-container">
-      <!-- Left: Cookie Clicker -->
+      <!-- Floating settings button -->
+      <button id="menu-btn" title="Stats & Achievements">&#9881;</button>
+      <!-- Left: Cookie Clicker + Info -->
       <div id="click-area">
         <h1>Cookies: <span id="cookie-count">0</span></h1>
-        <h3>Cookies per second: <span id="cps-count">0</span></h3>
-        <h3>Cookies per click: <span id="cpc-count">1</span></h3>
+        <h3>per second: <span id="cps-count">0</span></h3>
+        <h3>per click: <span id="cpc-count">1</span></h3>
+
+        <div id="frenzy-indicator"></div>
+
         <div id="cookie-container">
+          <canvas id="cookie-particles"></canvas>
           <div id="cookie-button"></div>
+        </div>
+
+        <div id="left-panel-info">
+          <!-- Multiplier bars -->
+          <div class="left-section">
+            <h4>⚡ Power</h4>
+            <div id="left-multipliers"></div>
+          </div>
+          <!-- Prestige -->
+          <div class="left-section">
+            <h4>✨ Prestige</h4>
+            <div id="left-prestige"></div>
+            <button id="prestige-btn" disabled>Ascend (need more cookies)</button>
+          </div>
         </div>
       </div>
 
-      <!-- Middle: Stats -->
+      <!-- Settings / Menu Overlay -->
+      <div id="menu-overlay" class="menu-overlay hidden">
+        <div class="menu-panel">
+          <div class="menu-header">
+            <h2>📋 Menu</h2>
+            <button id="menu-close" class="menu-close-btn">✕</button>
+          </div>
+          <div class="menu-content">
+            <!-- Stats section -->
+            <div class="menu-section">
+              <h3>📊 Statistics</h3>
+              <div id="menu-stats" class="menu-stats-grid"></div>
+            </div>
+            <!-- Achievements section -->
+            <div class="menu-section">
+              <h3>🏆 Achievements</h3>
+              <div id="menu-achv-bar-container">
+                <div class="menu-achv-header">
+                  <span id="menu-achv-count">0 / 0</span>
+                  <span id="menu-achv-pct">0%</span>
+                </div>
+                <div class="menu-achv-bar"><div class="menu-achv-bar-fill" id="menu-achv-fill"></div></div>
+              </div>
+              <div id="menu-achievements-list" class="menu-achievements-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle: Empty for now -->
       <div id="stats">
       </div>
 
       <!-- Right: Upgrades & Buildings -->
       <div id="shop">
         <h2>Upgrades</h2>
-        <div id="upgrade-list"></div>
+        <div class="upgrade-section">
+          <div class="upgrade-nav">
+            <button class="upgrade-nav-btn" id="upgrade-prev" disabled>◀</button>
+            <span class="upgrade-page-info" id="upgrade-page-info">1 / 1</span>
+            <button class="upgrade-nav-btn" id="upgrade-next">▶</button>
+          </div>
+          <div id="upgrade-list"></div>
+        </div>
         
         <h2>Auto-Bakers</h2>
         <div id="building-list"></div>

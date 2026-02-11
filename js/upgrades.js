@@ -10,6 +10,9 @@ export class Upgrade {
     this.type = this.upgrade.type;
     this.multiplier = this.upgrade.multiplier || 1;
     this.target = this.upgrade.target || null;
+    this.source = this.upgrade.source || null;
+    this.bonus = this.upgrade.bonus || 0;
+    this.chance = this.upgrade.chance || 0;
     this.max_level = this.upgrade.max_level || Infinity;
     this.cost_multiplier = this.upgrade.cost_multiplier || 3;
     this.level = 0;
@@ -23,10 +26,8 @@ export class Upgrade {
     }
   }
   
-  // Update properties based on current tier
   updateTierProperties() {
     if (!this.tiers || this.currentTier >= this.tiers.length) return;
-    
     const tier = this.tiers[this.currentTier] || this.tiers[this.tiers.length - 1]; 
     this.name = tier.name;
     this.effect = tier.effect;
@@ -34,23 +35,17 @@ export class Upgrade {
     this.cost = tier.cost;
   }
   
-  // Check if next tier is available
   canUpgradeTier() {
     if (!this.tiers || this.currentTier >= this.tiers.length - 1) return false;
-    
     const nextTier = this.tiers[this.currentTier + 1];
     const totalBuildings = this.game.getTotalBuildingCount();
-    
     return totalBuildings >= nextTier.buildingsRequired;
   }
   
   upgradeTier() {
     if (!this.canUpgradeTier()) return false;
-    
-    this.currentTier++; // Move tier up
-    this.updateTierProperties(); // Apply new tier properties immediately
-
-    // Apply the new multiplier correctly
+    this.currentTier++;
+    this.updateTierProperties();
     this.applyEffect();
     return true;
   }
@@ -58,19 +53,18 @@ export class Upgrade {
   buy() {
     if (this.game.cookies >= this.cost) {
       if (this.type === "tieredUpgrade") {
-        // For tiered upgrades, we check if this is an initial purchase or tier upgrade
         if (this.level === 0) {
-          // First purchase
           this.game.cookies -= this.cost;
           this.level = 1;
           this.applyEffect();
+          this.game.stats.totalUpgradesPurchased++;
           this.game.updateUI();
           return true;
         } else if (this.canUpgradeTier()) {
-          // Upgrade to next tier
           this.game.cookies -= this.cost;
           this.upgradeTier();
           this.applyEffect();
+          this.game.stats.totalUpgradesPurchased++;
           this.game.updateUI();
           return true;
         }
@@ -81,6 +75,7 @@ export class Upgrade {
           this.level += 1;
           this.applyEffect();
           this.cost = Math.floor(this.cost * this.cost_multiplier);
+          this.game.stats.totalUpgradesPurchased++;
           this.game.updateUI();
           return true;
         }
@@ -90,42 +85,74 @@ export class Upgrade {
   }
 
   applyEffect() {
-    if (this.type === "clickMultiplier" || this.type === "tieredUpgrade") {
-      // This prevents multiplier stacking when upgrading tiers
-      if (this.type === "tieredUpgrade" && this.level > 1) {
-        // For tier upgrades after first purchase, we reset and apply new multiplier
-        const previousTier = this.tiers[this.currentTier - 1];
-        this.game.cookiesPerClick /= previousTier.multiplier;
-        this.game.cookiesPerClick *= this.multiplier;
-      } else {
-        // First purchase or regular click multiplier
+    switch (this.type) {
+      case "clickMultiplier":
         this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
-      }
-
-      if(this.type === 'clickMultiplier'){
         this.game.buildings.forEach(b => {
-          if(b.name === 'Cursor'){
+          if (b.name === 'Cursor') {
             b.cps = parseFloat((b.cps * this.multiplier).toFixed(1));
           }
         });
-      }
-    } else if (this.type === "buildingBoost" && this.target) {
-      this.game.buildings.forEach(b => {
-        if (b.name === this.target) {
-          b.cps = parseFloat((b.cps * this.multiplier).toFixed(1));
+        break;
+
+      case "tieredUpgrade":
+        if (this.level > 1) {
+          const previousTier = this.tiers[this.currentTier - 1];
+          this.game.cookiesPerClick /= previousTier.multiplier;
+          this.game.cookiesPerClick *= this.multiplier;
+        } else {
+          this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
         }
-      });
+        break;
+
+      case "buildingBoost":
+        if (this.target) {
+          this.game.buildings.forEach(b => {
+            if (b.name === this.target) {
+              b.cps = parseFloat((b.cps * this.multiplier).toFixed(1));
+            }
+          });
+        }
+        break;
+
+      case "globalCpsMultiplier":
+        this.game.globalCpsMultiplier = parseFloat((this.game.globalCpsMultiplier * this.multiplier).toFixed(4));
+        break;
+
+      case "synergy":
+        // Synergies are recalculated dynamically in game.calculateCPS()
+        // Just mark as purchased; the bonus is applied during CPS calc
+        break;
+
+      case "cursorScaling":
+        // Cursor scaling is recalculated dynamically in game.calculateCPS()
+        break;
+
+      case "luckyChance":
+        this.game.luckyClickChance += this.chance;
+        break;
+
+      case "frenzyDuration":
+        this.game.frenzyDurationMultiplier *= this.bonus;
+        break;
     }
-    this.game.calculateCPS(); // Recalculate CPS after applying an upgrade
+
+    this.game.calculateCPS();
+  }
+
+  // Reapply effect from save (without stacking issues)
+  reapplyFromSave() {
+    for (let i = 0; i < this.level; i++) {
+      this.applyEffect();
+    }
   }
 
   getButton(index) {
     let button = document.createElement("button");
     button.classList.add("upgrade-btn");
+    button.dataset.index = index;
     
-    // For tiered upgrades, show different text
     if (this.type === "tieredUpgrade") {
-      // Set the tier level as a data attribute for CSS styling
       if (this.level > 0) {
         button.dataset.tierLevel = String(this.currentTier + 1);
       }
@@ -142,21 +169,22 @@ export class Upgrade {
         }
       }
     } else {
-      // Regular upgrades display as before
-      button.textContent = `${this.name} (Level: ${this.level})`;
+      if (this.level >= this.max_level) {
+        button.textContent = `${this.name} (MAX)`;
+      } else {
+        button.textContent = `${this.name} (Lv ${this.level})`;
+      }
     }
     
     button.addEventListener("click", () => this.buy());
 
-    // Handle button state for tiered upgrades
+    // Disable logic
     if (this.type === "tieredUpgrade") {
       if (this.game.cookies < this.cost) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
       } else if (this.level > 0 && !this.canUpgradeTier()) {
         button.disabled = true;
-        
-        // Show buildings required for next tier
         if (this.currentTier < this.tiers.length - 1) {
           const nextTier = this.tiers[this.currentTier + 1];
           const totalBuildings = this.game.getTotalBuildingCount();
@@ -169,7 +197,6 @@ export class Upgrade {
         button.dataset.disabledReason = 'Maximum Tier Reached';
       }
     } else {
-      // Regular upgrade handling
       if (this.game.cookies < this.cost) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
@@ -179,21 +206,15 @@ export class Upgrade {
       }
     }
 
-    // Tooltip for tiered upgrades shows current and next tier info
-    if (this.type === "tieredUpgrade") {
-      button.dataset.tooltipEffect = this.effect;
-      button.dataset.tooltipCost = this.cost;
-      
-      if (this.level > 0 && this.currentTier < this.tiers.length - 1) {
-        const nextTier = this.tiers[this.currentTier + 1];
-        const totalBuildings = this.game.getTotalBuildingCount();
-        button.dataset.tooltipNextTier = `Next: ${nextTier.name} (${nextTier.effect})`;
-        button.dataset.tooltipRequirement = `Requires ${nextTier.buildingsRequired} buildings (have ${totalBuildings})`;
-      }
-    } else {
-      // Regular tooltip
-      button.dataset.tooltipEffect = this.effect;
-      button.dataset.tooltipCost = this.cost;
+    // Tooltip data
+    button.dataset.tooltipEffect = this.effect;
+    button.dataset.tooltipCost = this.cost;
+    
+    if (this.type === "tieredUpgrade" && this.level > 0 && this.currentTier < this.tiers.length - 1) {
+      const nextTier = this.tiers[this.currentTier + 1];
+      const totalBuildings = this.game.getTotalBuildingCount();
+      button.dataset.tooltipNextTier = `Next: ${nextTier.name} (${nextTier.effect})`;
+      button.dataset.tooltipRequirement = `Requires ${nextTier.buildingsRequired} buildings (have ${totalBuildings})`;
     }
     
     return button;

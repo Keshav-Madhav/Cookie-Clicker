@@ -2,7 +2,6 @@ import { Game } from "./js/game.js";
 import { formatNumberInWords } from "./js/utils.js";
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Create a single global tooltip element
   const globalTooltip = document.createElement('div');
   globalTooltip.id = 'global-tooltip';
   globalTooltip.style.cssText = `
@@ -17,28 +16,44 @@ document.addEventListener('DOMContentLoaded', function() {
     opacity: 0;
     transition: opacity 0.3s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    max-width: 220px;
+    max-width: 250px;
     text-align: center;
   `;
   document.body.appendChild(globalTooltip);
 
-  // Use event delegation instead of direct event listeners
   document.body.addEventListener('mouseover', function(e) {
-    // Check if the target is an upgrade button
-    if (e.target.classList.contains('upgrade-btn')) {
-      const button = e.target;
-      
-      // Get tooltip data from attributes
+    const button = e.target.closest('.upgrade-btn');
+    if (button) {
       const effect = button.dataset.tooltipEffect;
       const cost = button.dataset.tooltipCost;
-			const disabled_reason = button.dataset.disabledReason || '';
+      const disabledReason = button.dataset.disabledReason || '';
+      const nextTier = button.dataset.tooltipNextTier || '';
+      const requirement = button.dataset.tooltipRequirement || '';
       
       if (effect && cost) {
-        globalTooltip.innerHTML = `<p>${effect}</p> <p>(Cost: ${formatNumberInWords(cost)})</p> <p>${disabled_reason}</p>`;
+        let html = `<p>${effect}</p><p>Cost: ${formatNumberInWords(cost)}</p>`;
+        if (nextTier) html += `<p style="color:#f8c471;font-size:11px">${nextTier}</p>`;
+        if (requirement) html += `<p style="color:#d5c4a1;font-size:11px">${requirement}</p>`;
+        if (disabledReason) html += `<p style="color:#e74c3c;font-size:11px">${disabledReason}</p>`;
+        
+        globalTooltip.innerHTML = html;
         globalTooltip.style.opacity = '1';
         
-        // Position the tooltip above the button
         const rect = button.getBoundingClientRect();
+        globalTooltip.style.left = rect.left + (rect.width / 2) - (globalTooltip.offsetWidth / 2) + 'px';
+        globalTooltip.style.top = rect.top - globalTooltip.offsetHeight - 10 + 'px';
+      }
+    }
+
+    // Building tooltips
+    const building = e.target.closest('.building');
+    if (building) {
+      const nameP = building.querySelector('.name_p');
+      const priceP = building.querySelector('.price_p');
+      if (nameP && priceP) {
+        globalTooltip.innerHTML = `<p>${nameP.textContent}</p><p>${priceP.textContent}</p>`;
+        globalTooltip.style.opacity = '1';
+        const rect = building.getBoundingClientRect();
         globalTooltip.style.left = rect.left + (rect.width / 2) - (globalTooltip.offsetWidth / 2) + 'px';
         globalTooltip.style.top = rect.top - globalTooltip.offsetHeight - 10 + 'px';
       }
@@ -46,8 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.body.addEventListener('mouseout', function(e) {
-    // Check if the target is an upgrade button
-    if (e.target.classList.contains('upgrade-btn')) {
+    if (e.target.closest('.upgrade-btn') || e.target.closest('.building')) {
       globalTooltip.style.opacity = '0';
     }
   });

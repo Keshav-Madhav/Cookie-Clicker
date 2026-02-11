@@ -94,6 +94,7 @@ export class Building {
     let button = document.createElement("button");
     button.addEventListener("click", () => this.buy());
     button.classList.add("building");
+    button.dataset.buildingIndex = index;
 
     let name_p = document.createElement("p");
     name_p.classList.add("name_p");
@@ -130,7 +131,6 @@ export class Building {
 
     // FIXED: Ensure the button is disabled if the player can't afford the purchase
     button.disabled = !canAfford;
-    console.log(this.game.cookies, displayCost, canAfford, !canAfford, button.disabled);
 
     button.appendChild(quantity_p);
     return button;
