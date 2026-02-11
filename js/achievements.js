@@ -81,6 +81,11 @@ export class AchievementManager {
       const a = this.newlyUnlocked.shift();
       this.showNotification(a);
 
+      // Cookie rain burst on achievement unlock
+      if (this.game.visualEffects) {
+        this.game.visualEffects.triggerCookieBurst(15, 2);
+      }
+
       // Tutorial: first achievement event
       if (this.game.tutorial) {
         this.game.tutorial.triggerEvent('firstAchievement');

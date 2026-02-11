@@ -241,6 +241,15 @@ export class Game {
     // Tutorial: frenzy event
     if (this.tutorial) this.tutorial.triggerEvent('frenzy');
 
+    // Cookie rain burst on frenzy start
+    if (this.visualEffects) {
+      if (type === 'click') {
+        this.visualEffects.triggerCookieBurst(35, 3.5);   // big burst for click frenzy
+      } else {
+        this.visualEffects.triggerCookieBurst(25, 2.5);   // medium burst for CPS frenzy
+      }
+    }
+
     // Easter egg: double frenzy (new frenzy while one was already running)
     if (wasAlreadyActive && this.tutorial) {
       this.tutorial.triggerEvent('doubleFrenzy');
@@ -693,6 +702,12 @@ export class Game {
 
     if (confirm(`Prestige now to earn ${newChips} Heavenly Chips?\n\nYou'll reset all cookies and buildings but keep your Heavenly Chips which give +${newChips}% permanent CPS bonus.\n\nTotal HC after: ${this.prestige.heavenlyChips + newChips}`)) {
       this.prestige.performPrestige();
+
+      // Massive cookie rain burst on prestige
+      if (this.visualEffects) {
+        this.visualEffects.triggerCookieBurst(50, 4);
+      }
+
       // Easter egg: first prestige
       if (this.tutorial) this.tutorial.triggerEvent('firstPrestige');
     }
@@ -766,7 +781,7 @@ export class Game {
     // Easter egg: nice numbers
     if (this.tutorial) {
       const c = Math.floor(this.cookies);
-      const niceNumbers = [69, 420, 666, 1337, 6969, 69420, 80085, 42069, 1234567];
+      const niceNumbers = [69, 6969, 69420, 80085, 1234567];
       for (const n of niceNumbers) {
         if (c >= n && c < n + this.getEffectiveCPS() + this.getEffectiveCPC() + 2) {
           this.tutorial.triggerEvent('niceNumber');

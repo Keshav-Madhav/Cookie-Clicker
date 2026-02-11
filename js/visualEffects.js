@@ -18,6 +18,13 @@ export class VisualEffects {
     this.newsTimer = null;
     this._animFrame = null;
 
+    // Dynamic rain intensity state
+    this._rainSpeedMult = 1;
+    this._rainTargetCount = 40;
+    this._rainBaseCount = 40;
+    this._burstDrops = [];          // temporary burst cookies
+    this._lastIntensityUpdate = 0;
+
     this.buildingIcons = [
       { name: "Cursor",     icon: "🖱️" },
       { name: "Grandma",    icon: "👵" },
@@ -159,6 +166,82 @@ export class VisualEffects {
     }
   }
 
+  /* ─── dynamic rain intensity ─── */
+
+  /**
+   * Recalculates how many cookies should be raining and how fast,
+   * based on the current game state.  Called every ~500 ms.
+   *
+   * Scaling rules
+   * ─────────────
+   * CPS tier        extra drops   speed mult
+   * ────────────    ───────────   ──────────
+   *    0 – 10            0          1.0×
+   *   10 – 100          +8          1.1×
+   *  100 – 1 k         +14          1.2×
+   *   1 k – 10 k       +20          1.3×
+   *  10 k – 100 k      +26          1.5×
+   * 100 k+             +32          1.7×
+   *
+   * Frenzy (CPS 7×)    +25          2.0×
+   * Click Frenzy 777×  +40          2.5×
+   */
+  _updateRainIntensity() {
+    const g = this.game;
+    const cps = g.getEffectiveCPS();
+
+    // --- CPS-based scaling ---
+    let extraDrops = 0;
+    let speedMult  = 1;
+    if      (cps >= 100000) { extraDrops = 32; speedMult = 1.7; }
+    else if (cps >= 10000)  { extraDrops = 26; speedMult = 1.5; }
+    else if (cps >= 1000)   { extraDrops = 20; speedMult = 1.3; }
+    else if (cps >= 100)    { extraDrops = 14; speedMult = 1.2; }
+    else if (cps >= 10)     { extraDrops = 8;  speedMult = 1.1; }
+
+    // --- Frenzy overlay ---
+    if (g.frenzyActive) {
+      if (g.frenzyType === 'click') {
+        extraDrops += 40;
+        speedMult  *= 2.5;
+      } else {
+        extraDrops += 25;
+        speedMult  *= 2.0;
+      }
+    }
+
+    this._rainTargetCount = this._rainBaseCount + extraDrops;
+    this._rainSpeedMult   = speedMult;
+
+    // Grow / shrink the raindrop pool to match the target
+    while (this.raindrops.length < this._rainTargetCount) {
+      this.raindrops.push(this._makeRaindrop(true));
+    }
+    while (this.raindrops.length > this._rainTargetCount) {
+      this.raindrops.pop();
+    }
+  }
+
+  /**
+   * Trigger a short burst of extra fast cookies.
+   * Used for one-off events (golden cookie, achievement, building purchase, prestige).
+   *
+   * @param {number} count      how many burst cookies to spawn
+   * @param {number} speedMult  speed multiplier for the burst (e.g. 2 = twice default)
+   */
+  triggerCookieBurst(count = 20, speedMult = 2.5) {
+    for (let i = 0; i < count; i++) {
+      const drop = this._makeRaindrop(false);
+      // Start spread across the top so they don't clump
+      drop.y = -(Math.random() * 60);
+      drop.speed *= speedMult;
+      drop.opacity = Math.random() * 0.5 + 0.3;    // a bit brighter
+      drop.size = Math.random() * 16 + 10;          // slightly bigger
+      drop._burst = true;                            // mark as burst (auto-remove)
+      this._burstDrops.push(drop);
+    }
+  }
+
   _makeRaindrop(randomY = false) {
     const w = this.canvas ? this.canvas.width : 600;
     const h = this.canvas ? this.canvas.height : 400;
@@ -219,17 +302,47 @@ export class VisualEffects {
       const { width: W, height: H } = this.canvas;
       this.ctx.clearRect(0, 0, W, H);
 
+      /* update rain intensity every ~500 ms */
+      if (timestamp - this._lastIntensityUpdate > 500) {
+        this._lastIntensityUpdate = timestamp;
+        this._updateRainIntensity();
+      }
+
+      const sMult = this._rainSpeedMult;
+
       /* cookie rain — use cached bitmap */
       const cache = this._cookieCache;
       for (let i = 0; i < this.raindrops.length; i++) {
         const d = this.raindrops[i];
-        d.y += d.speed;
+        d.y += d.speed * sMult;
         d.wobblePhase += d.wobbleSpeed;
         d.x += Math.sin(d.wobblePhase) * d.wobbleAmp;
         d.rotation += d.rotSpeed;
 
         if (d.y > H + 30) {
           this.raindrops[i] = this._makeRaindrop(false);
+          continue;
+        }
+
+        this.ctx.globalAlpha = d.opacity;
+        this.ctx.save();
+        this.ctx.translate(d.x, d.y);
+        this.ctx.rotate(d.rotation);
+        const s = d.size / 28;
+        this.ctx.drawImage(cache, -16 * s, -16 * s, 32 * s, 32 * s);
+        this.ctx.restore();
+      }
+
+      /* burst cookies — temporary, auto-removed when off-screen */
+      for (let i = this._burstDrops.length - 1; i >= 0; i--) {
+        const d = this._burstDrops[i];
+        d.y += d.speed;
+        d.wobblePhase += d.wobbleSpeed;
+        d.x += Math.sin(d.wobblePhase) * d.wobbleAmp;
+        d.rotation += d.rotSpeed;
+
+        if (d.y > H + 30) {
+          this._burstDrops.splice(i, 1);
           continue;
         }
 
@@ -424,6 +537,9 @@ export class VisualEffects {
       }
       g.stats.luckyClicks++;
       g.updateCookieCount();
+
+      // Cookie rain burst when golden cookie is clicked
+      this.triggerCookieBurst(30, 3);
 
       // Burst particles
       this._goldenBurst(el);

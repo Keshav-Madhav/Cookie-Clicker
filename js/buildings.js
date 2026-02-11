@@ -118,6 +118,12 @@ export class Building {
       this.game.calculateCPS();
       this.game.updateUI();
 
+      // Cookie rain burst on building purchase (scales with amount bought)
+      if (this.game.visualEffects) {
+        const burstCount = Math.min(30, 5 + parseInt(amount) * 2);
+        this.game.visualEffects.triggerCookieBurst(burstCount, 2);
+      }
+
       // Easter eggs: building milestones
       if (this.game.tutorial) {
         if (this.name === "Cursor" && this.count >= 100) {
