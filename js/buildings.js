@@ -60,9 +60,19 @@ export class Building {
     const amount = this.game.purchaseAmount;
     
     if (amount === 'Max') {
-      return this.buyMax();
+      const result = this.buyMax();
+      // Easter egg: efficient buyer (used Max purchase)
+      if (result && this.game.tutorial) {
+        this.game.tutorial.triggerEvent('efficientBuyer');
+      }
+      return result;
     } else {
-      return this.bulkBuy(amount);
+      const result = this.bulkBuy(amount);
+      // Easter egg: bulk buyer (bought 100 at once)
+      if (result && amount >= 100 && this.game.tutorial) {
+        this.game.tutorial.triggerEvent('bulkBuyer');
+      }
+      return result;
     }
   }
   
@@ -107,6 +117,17 @@ export class Building {
       this.cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count));
       this.game.calculateCPS();
       this.game.updateUI();
+
+      // Easter eggs: building milestones
+      if (this.game.tutorial) {
+        if (this.name === "Cursor" && this.count >= 100) {
+          this.game.tutorial.triggerEvent('hundredCursors');
+        }
+        if (this.name === "Grandma" && this.count >= 50) {
+          this.game.tutorial.triggerEvent('grandmaArmy');
+        }
+      }
+
       return true;
     }
     return false;

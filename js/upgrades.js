@@ -137,6 +137,10 @@ export class Upgrade {
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
+          // Easter egg: maxed out (single-tier or last tier)
+          if (this.currentTier >= this.tiers.length - 1 && this.game.tutorial) {
+            this.game.tutorial.triggerEvent('upgradeMaxedOut');
+          }
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
@@ -146,6 +150,10 @@ export class Upgrade {
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
+          // Easter egg: maxed out (reached final tier)
+          if (this.currentTier >= this.tiers.length - 1 && this.game.tutorial) {
+            this.game.tutorial.triggerEvent('upgradeMaxedOut');
+          }
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;
@@ -160,6 +168,10 @@ export class Upgrade {
           this.cost = Math.floor(this.cost * costMult);
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
+          // Easter egg: maxed out
+          if (this.level >= this.getEffectiveMaxLevel() && this.game.tutorial) {
+            this.game.tutorial.triggerEvent('upgradeMaxedOut');
+          }
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
           return true;

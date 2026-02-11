@@ -37,44 +37,44 @@ export class Tutorial {
     this.onboardingSteps = [
       {
         title: "Welcome to Cookie Clicker!",
-        text: "Click the big cookie to start earning cookies. Every click adds to your total — the more you click, the faster you grow!",
+        text: "Click the big cookie to start earning cookies. Every click adds to your total, and the more you click, the faster you grow!",
         target: "#cookie-button",
         position: "right",
       },
       {
         title: "Cookie Counter",
-        text: "This is your cookie count — the total cookies you currently have to spend. Earn enough and you can buy buildings and upgrades to automate production.",
+        text: "This is your cookie count, the total cookies you currently have to spend. Earn enough and you can buy buildings and upgrades to automate production.",
         target: "#click-area h1",
         position: "right",
       },
       {
         title: "Cookies Per Second",
-        text: "This displays your CPS — cookies earned automatically each second from buildings you own. The higher this number, the faster your empire grows without clicking.",
+        text: "This displays your CPS, cookies earned automatically each second from buildings you own. The higher this number, the faster your empire grows without clicking.",
         target: "#cps-count",
         position: "right",
       },
       {
         title: "Buy a Cursor",
-        text: "The Cursor is your first auto-baker — it automatically clicks for you, producing 0.1 cookies per second. Purchase one as soon as you can afford it!",
+        text: "The Cursor is your first auto-baker. It automatically clicks for you, producing 0.1 cookies per second. Purchase one as soon as you can afford it!",
         target: () => document.querySelector('#building-list .building'),
         position: "left",
         waitFor: "buildingPurchased",
       },
       {
         title: "Auto-Bakers",
-        text: "Buildings are the backbone of your cookie empire. Each type produces cookies every second automatically. More expensive buildings generate far more CPS — keep buying to unlock new ones!",
+        text: "Buildings are the backbone of your cookie empire. Each type produces cookies every second automatically. More expensive buildings generate far more CPS, so keep buying to unlock new ones!",
         target: "#building-list",
         position: "left",
       },
       {
         title: "Upgrades",
-        text: "Upgrades give powerful permanent bonuses — they can multiply your click power, boost specific buildings, or unlock special abilities. Always buy upgrades when you can afford them!",
+        text: "Upgrades give powerful permanent bonuses. They can multiply your click power, boost specific buildings, or unlock special abilities. Always buy upgrades when you can afford them!",
         target: "#upgrade-list",
         position: "left",
       },
       {
         title: "The Viewport",
-        text: "This is your bakery overview. Watch the cookie rain, read the news ticker for fun messages, and keep an eye out for golden cookies — they give massive temporary bonuses when clicked!",
+        text: "This is your bakery overview. Watch the cookie rain, read the news ticker for fun messages, and keep an eye out for golden cookies. They give massive temporary bonuses when clicked!",
         target: "#stats",
         position: "left",
       },
@@ -92,7 +92,7 @@ export class Tutorial {
       },
       {
         title: "You're all set!",
-        text: "That covers the basics — keep clicking, buy buildings to automate, grab upgrades for multipliers, and click golden cookies when they appear. Good luck, baker!",
+        text: "That covers the basics! Keep clicking, buy buildings to automate, grab upgrades for multipliers, and click golden cookies when they appear. Good luck, baker!",
         target: "#cookie-button",
         position: "right",
         isLast: true,
@@ -105,7 +105,7 @@ export class Tutorial {
     this.eventTips = {
       firstUpgradeBuyable: {
         title: "Upgrade Available!",
-        text: "You can now afford your first upgrade! Upgrades give powerful permanent bonuses — click one in the shop to purchase it. Check the tooltip for details on what each upgrade does.",
+        text: "You can now afford your first upgrade! Upgrades give powerful permanent bonuses, so click one in the shop to purchase it. Check the tooltip for details on what each upgrade does.",
         target: "#upgrade-list",
         position: "left",
       },
@@ -117,7 +117,7 @@ export class Tutorial {
       },
       goldenCookie: {
         title: "Golden Cookie!",
-        text: "A golden cookie just appeared in the viewport! Click it quickly before it disappears — it can reward you with a huge pile of bonus cookies, a CPS frenzy (7x production), or a click frenzy (777x click power)!",
+        text: "A golden cookie just appeared in the viewport! Click it quickly before it disappears. It can reward you with a huge pile of bonus cookies, a CPS frenzy (7x production), or a click frenzy (777x click power)!",
         target: "#golden-cookie",
         position: "left",
       },
@@ -129,49 +129,49 @@ export class Tutorial {
       },
       milkRising: {
         title: "Milk is Rising!",
-        text: "As you unlock achievements, milk gradually fills the viewport. The milk changes color at higher achievement thresholds — from plain white, to caramel, lavender, and eventually golden milk. It's a visual badge of your progress!",
+        text: "As you unlock achievements, milk gradually fills the viewport. The milk changes color at higher achievement thresholds, going from plain white, to caramel, lavender, and eventually golden milk. It's a visual badge of your progress!",
         target: "#milk-layer",
         position: "top",
       },
       prestigeAvailable: {
         title: "Prestige Available!",
-        text: "You've baked enough cookies to Ascend! Prestiging will reset ALL your cookies, buildings, and upgrades — but in return you earn permanent Heavenly Chips. Each chip gives +1% CPS forever, and they stack across all future runs. It's the key to long-term exponential growth!",
+        text: "You've baked enough cookies to Ascend! Prestiging will reset ALL your cookies, buildings, and upgrades, but in return you earn permanent Heavenly Chips. Each chip gives +1% CPS forever, and they stack across all future runs. It's the key to long-term exponential growth!",
         target: "#prestige-btn",
         position: "right",
       },
       touchUpgrade: {
         title: "Touch Upgrade!",
-        text: "Touch upgrades (Iron Touch, Silver Touch, Golden Touch, etc.) each double your clicking power. They unlock at building count milestones — the more buildings you own across all types, the stronger your clicks become!",
+        text: "Touch upgrades (Iron Touch, Silver Touch, Golden Touch, etc.) each double your clicking power. They unlock at building count milestones, so the more buildings you own across all types, the stronger your clicks become!",
         target: null,
         position: "left",
       },
       offlineUpgrade: {
         title: "Offline Production!",
-        text: "Offline Production upgrades let you earn cookies even when you close the game! Each tier increases the offline multiplier — at the highest tier you can earn 3x your normal CPS while away. Great for overnight gains!",
+        text: "Offline Production upgrades let you earn cookies even when you close the game! Each tier increases the offline multiplier, and at the highest tier you can earn 3x your normal CPS while away. Great for overnight gains!",
         target: null,
         position: "left",
       },
       luckyClick: {
         title: "Lucky Click!",
-        text: "You just triggered a Lucky Click — a random bonus event! These can give you 10 minutes worth of CPS instantly, start a 7x CPS frenzy, or even a 777x Click Frenzy. Buy Lucky Cookies upgrades to increase your luck chance!",
+        text: "You just triggered a Lucky Click, a random bonus event! These can give you 10 minutes worth of CPS instantly, start a 7x CPS frenzy, or even a 777x Click Frenzy. Buy Lucky Cookies upgrades to increase your luck chance!",
         target: "#cookie-button",
         position: "right",
       },
       powerMultiplier: {
         title: "Power Growing!",
-        text: "Your Global CPS Multiplier just increased! This multiplier applies to ALL cookie production from every building. It stacks multiplicatively with your Achievement and Prestige multipliers — visible in the Power panel on the left.",
+        text: "Your Global CPS Multiplier just increased! This multiplier applies to ALL cookie production from every building. It stacks multiplicatively with your Achievement and Prestige multipliers, visible in the Power panel on the left.",
         target: "#left-multipliers",
         position: "right",
       },
       synergyUpgrade: {
         title: "Synergy Unlocked!",
-        text: "Synergy upgrades create a link between two building types — each unit of the source building adds bonus CPS to the target building. For example, each Grandma can boost your Farms. The more of both you own, the bigger the bonus!",
+        text: "Synergy upgrades create a link between two building types. Each unit of the source building adds bonus CPS to the target building. For example, each Grandma can boost your Farms. The more of both you own, the bigger the bonus!",
         target: null,
         position: "left",
       },
       cursorScaling: {
         title: "Thousand Fingers!",
-        text: "Cursor scaling upgrades make every Cursor more powerful based on how many OTHER buildings you own. The more diverse your empire, the stronger each Cursor becomes — they scale with your entire operation!",
+        text: "Cursor scaling upgrades make every Cursor more powerful based on how many OTHER buildings you own. The more diverse your empire, the stronger each Cursor becomes. They scale with your entire operation!",
         target: null,
         position: "left",
       },
@@ -181,7 +181,155 @@ export class Tutorial {
         target: null,
         position: "left",
       },
+
+      /* ─────────────── EASTER EGGS / FUN TIPS ─────────────── */
+
+      settingsOpened: {
+        title: "Snooping Around?",
+        text: "Welcome to the settings! Here you'll find your full stats, every achievement you've earned (and haven't), and the button to replay this very tutorial. Consider it your cookie scrapbook.",
+        target: "#menu-panel",
+        position: "left",
+      },
+      achievementScrollBottom: {
+        title: "The Completionist",
+        text: "You scrolled ALL the way to the bottom of the achievement list. That's either dedication or procrastination. Either way, respect. There are secrets hiding in every corner of this bakery...",
+        target: null,
+        position: "left",
+      },
+      upgradeMaxedOut: {
+        title: "Maxed Out!",
+        text: "You pushed an upgrade to its absolute limit. There's a special kind of satisfaction in seeing 'Maximum Level Reached', like filling the last page of a notebook. What will you max next?",
+        target: null,
+        position: "left",
+      },
+      niceMilk: {
+        title: "Nice.",
+        text: "Your achievement completion just hit the magic number. Perfectly balanced, as all things should be. The milk gods smile upon you today.",
+        target: "#milk-layer",
+        position: "top",
+      },
+      niceNumber: {
+        title: "Nice Number!",
+        text: "Your cookie count just passed through a legendary number. Some say these numbers carry special luck. Others say you're just easily amused. We say: why not both?",
+        target: "#click-area h1",
+        position: "right",
+      },
+      rareNews: {
+        title: "Did You Catch That?",
+        text: "A rare news article just scrolled by! The news ticker occasionally broadcasts ultra-rare messages. Blink and you'll miss them. Consider yourself a true connoisseur of cookie journalism.",
+        target: "#news-ticker",
+        position: "bottom",
+      },
+      clickFrenzy777: {
+        title: "JACKPOT!",
+        text: "777x Click Frenzy! Every. Single. Click. Is worth 777 times more right now. Stop reading this and CLICK THAT COOKIE! This is the rarest and most powerful frenzy in the game!",
+        target: "#cookie-button",
+        position: "right",
+      },
+      hundredCursors: {
+        title: "Cursor Army",
+        text: "One hundred cursors, all clicking in perfect unison. If you squint at the screen you can almost see them. Imagine the sound: a hundred tiny mouse clicks, forever. You've built a clicking empire.",
+        target: "#building-list",
+        position: "left",
+      },
+      grandmaArmy: {
+        title: "Grandma Battalion",
+        text: "50 grandmas and counting. That's not a bakery, that's an army. They whisper cookie recipes to each other when you're not looking. Some say if you own enough grandmas, they start baking on their own...",
+        target: "#building-list",
+        position: "left",
+      },
+      cookieStorm: {
+        title: "Cookie Storm!",
+        text: "You just triggered the rarest golden cookie reward, a full Cookie Storm! That's a one-hour bonus of CPS dumped into your jar in an instant. The cookie gods have chosen you.",
+        target: "#cookie-button",
+        position: "right",
+      },
+      speedrunner: {
+        title: "Speedrunner!",
+        text: "1,000 CPS within five minutes of starting? You either know exactly what you're doing, or you got incredibly lucky. Either way, the cookie speedrunning community salutes you.",
+        target: "#cps-count",
+        position: "right",
+      },
+      nightOwl: {
+        title: "Night Owl Baker",
+        text: "Baking cookies past midnight? The cookies taste better when nobody's watching. Night shifts at the bakery hit different. Just don't let the grandmas catch you snacking.",
+        target: "#cookie-button",
+        position: "right",
+      },
+      devotedClicker: {
+        title: "Devoted Clicker",
+        text: "10,000 clicks in a single session! Your mouse is filing for workers' compensation. Fun fact: at this pace, you've clicked roughly once every 3 seconds since you started. That's commitment.",
+        target: "#cookie-button",
+        position: "right",
+      },
+      allBuildingTypes: {
+        title: "Full Collection!",
+        text: "You own at least one of every building type in the game! From humble Cursors to reality-bending Fractal Engines, your bakery portfolio is truly diversified. A cookie empire for the ages.",
+        target: "#building-showcase",
+        position: "top",
+      },
+      efficientBuyer: {
+        title: "Efficient Buyer",
+        text: "Using 'Max' to buy buildings? A true min-maxer. Why click ten times when one click empties the entire wallet? Your accountant would be proud. Or horrified. Probably both.",
+        target: "#building-list",
+        position: "left",
+      },
+      ocdSorter: {
+        title: "Look At You, OCD Sorter",
+        text: "You've tried every single sort option for the building list. Price, CPS, Efficiency, Owned, and back to Default. Everything in its right place. Marie Kondo would approve of your bakery.",
+        target: "#purchase-amount-container",
+        position: "left",
+      },
+      oooShiny: {
+        title: "Ooo, Shiny!",
+        text: "You clicked the prestige diamond! It IS very pretty, isn't it? Those Heavenly Chips sparkle with the weight of every cookie you've ever sacrificed. Can't. Stop. Staring.",
+        target: "#left-prestige",
+        position: "right",
+      },
+      rapidClicker: {
+        title: "Carpal Tunnel Incoming",
+        text: "15 clicks in under 2 seconds?! Your fingers are a blur. At this rate you should consider competitive cookie clicking. Yes, that's a thing now. You just invented it.",
+        target: "#cookie-button",
+        position: "right",
+      },
+      brokeBaker: {
+        title: "Broke Baker",
+        text: "Zero cookies. Not a single crumb to your name. This is either a bold financial strategy or you just bought something expensive. We've all been there. The cookie jar echoes with emptiness.",
+        target: "#click-area h1",
+        position: "right",
+      },
+      bulkBuyer: {
+        title: "Bulk Buyer",
+        text: "Buying buildings 100 at a time? That's not shopping, that's a hostile takeover. Somewhere, a cookie accountant just fainted. Your dedication to scaling is truly terrifying.",
+        target: "#building-list",
+        position: "left",
+      },
+      indecisiveClicker: {
+        title: "The Indecisive Baker",
+        text: "You've changed the purchase amount 6 times now. 1... no wait, 10... actually 25... hmm, Max? You know what, back to 1. Decision-making is hard when every cookie counts.",
+        target: "#purchase-amount-container",
+        position: "left",
+      },
+      firstPrestige: {
+        title: "The Great Reset",
+        text: "You actually did it. You sacrificed everything: every cookie, every building, every upgrade, all for a handful of shiny chips. Was it worth it? Ask yourself again in an hour when you're back on top, but stronger.",
+        target: "#left-prestige",
+        position: "right",
+      },
+      doubleFrenzy: {
+        title: "Double Frenzy!",
+        text: "A frenzy triggered DURING another frenzy? The cookie matrix is glitching. Your production just went absolutely nuclear. This is what peak cookie performance looks like.",
+        target: "#frenzy-indicator",
+        position: "right",
+      },
     };
+
+    /* ── rapid-click tracking ── */
+    this._clickTimestamps = [];
+    /* ── sort tracking ── */
+    this._usedSorts = new Set();
+    /* ── purchase amount change tracking ── */
+    this._purchaseChanges = 0;
   }
 
   /* ═══════════════════════════════════════════════════

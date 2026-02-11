@@ -82,6 +82,23 @@ export class Game {
       this.updateCookieCount();
       this.updateLeftPanel();
       this.visualEffects.update();
+
+      // Easter egg: night owl (playing between 1am and 5am)
+      const hr = new Date().getHours();
+      if (hr >= 1 && hr < 5 && this.tutorial) {
+        this.tutorial.triggerEvent('nightOwl');
+      }
+
+      // Easter egg: speedrunner (1000 CPS within 5 minutes)
+      const sessionSeconds = (Date.now() - this.stats.startTime) / 1000;
+      if (sessionSeconds < 300 && this.getEffectiveCPS() >= 1000 && this.tutorial) {
+        this.tutorial.triggerEvent('speedrunner');
+      }
+
+      // Easter egg: all building types owned
+      if (this.tutorial && this.buildings.length > 0 && this.buildings.every(b => b.count > 0)) {
+        this.tutorial.triggerEvent('allBuildingTypes');
+      }
     }, 1000);
 
     // Save every 5 seconds
@@ -118,6 +135,28 @@ export class Game {
     this.stats.totalCookiesBaked += clickAmount;
     this.stats.handmadeCookies += clickAmount;
     this.stats.totalClicks++;
+
+    // Easter egg: devoted clicker (10k clicks this session)
+    if (this.stats.totalClicks === 10000 && this.tutorial) {
+      this.tutorial.triggerEvent('devotedClicker');
+    }
+
+    // Easter egg: rapid clicker (15 clicks in 2 seconds)
+    if (this.tutorial) {
+      const now = Date.now();
+      this.tutorial._clickTimestamps = this.tutorial._clickTimestamps || [];
+      this.tutorial._clickTimestamps.push(now);
+      // Keep only last 15 timestamps
+      if (this.tutorial._clickTimestamps.length > 15) {
+        this.tutorial._clickTimestamps.shift();
+      }
+      if (this.tutorial._clickTimestamps.length >= 15) {
+        const elapsed = now - this.tutorial._clickTimestamps[0];
+        if (elapsed <= 2000) {
+          this.tutorial.triggerEvent('rapidClicker');
+        }
+      }
+    }
 
     this.updateCookieCount();
     this.createFloatingText(event, `+${formatNumberInWords(clickAmount)}`);
@@ -183,11 +222,14 @@ export class Game {
         // Click frenzy: 777x clicks for 15 seconds
         this.startFrenzy('click', 777, 15);
         this.createFloatingText(event, `⚡ CLICK FRENZY! 777x!`, true);
+        // Easter egg: 777x click frenzy
+        if (this.tutorial) this.tutorial.triggerEvent('clickFrenzy777');
       }
     }
   }
 
   startFrenzy(type, multiplier, durationSec) {
+    const wasAlreadyActive = this.frenzyActive;
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier;
     this.frenzyActive = true;
     this.frenzyType = type;
@@ -198,6 +240,11 @@ export class Game {
 
     // Tutorial: frenzy event
     if (this.tutorial) this.tutorial.triggerEvent('frenzy');
+
+    // Easter egg: double frenzy (new frenzy while one was already running)
+    if (wasAlreadyActive && this.tutorial) {
+      this.tutorial.triggerEvent('doubleFrenzy');
+    }
   }
 
   endFrenzy() {
@@ -230,6 +277,14 @@ export class Game {
     this.purchaseAmount = amount;
     this.updatePurchaseButtons();
     this.updateUI();
+
+    // Easter egg: indecisive clicker (changed amount 6+ times)
+    if (this.tutorial) {
+      this.tutorial._purchaseChanges = (this.tutorial._purchaseChanges || 0) + 1;
+      if (this.tutorial._purchaseChanges >= 6) {
+        this.tutorial.triggerEvent('indecisiveClicker');
+      }
+    }
   }
 
   setBuildingSort(sortKey) {
@@ -239,6 +294,15 @@ export class Game {
     });
     this._animateBuildings = true;
     this.updateUI();
+
+    // Easter egg: tried every sort option
+    if (this.tutorial) {
+      this.tutorial._usedSorts = this.tutorial._usedSorts || new Set();
+      this.tutorial._usedSorts.add(sortKey);
+      if (this.tutorial._usedSorts.size >= 5) {
+        this.tutorial.triggerEvent('ocdSorter');
+      }
+    }
   }
 
   getSortedBuildingIndices() {
@@ -346,6 +410,17 @@ export class Game {
     if (btn) {
       btn.addEventListener("click", () => this.handlePrestige());
     }
+
+    // Easter egg: clicking the prestige diamond
+    const prestEl = document.getElementById("left-prestige");
+    if (prestEl) {
+      prestEl.addEventListener("click", (e) => {
+        // Only trigger if clicking the diamond icon itself, not the button
+        if (e.target.classList.contains('chip-icon') || e.target.closest('.prestige-chips')) {
+          if (this.tutorial) this.tutorial.triggerEvent('oooShiny');
+        }
+      });
+    }
   }
 
   setupUpgradeNav() {
@@ -369,6 +444,8 @@ export class Game {
       menuBtn.addEventListener("click", () => {
         this.updateMenu();
         overlay.classList.remove("hidden");
+        // Easter egg: first time opening settings
+        if (this.tutorial) this.tutorial.triggerEvent('settingsOpened');
       });
     }
     if (closeBtn && overlay) {
@@ -472,6 +549,16 @@ export class Game {
         `;
         listEl.appendChild(item);
       });
+
+      // Easter egg: scroll to bottom of achievement list
+      if (!listEl._tutorialScrollBound) {
+        listEl._tutorialScrollBound = true;
+        listEl.addEventListener('scroll', () => {
+          if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 10) {
+            if (this.tutorial) this.tutorial.triggerEvent('achievementScrollBottom');
+          }
+        });
+      }
     }
   }
 
@@ -606,6 +693,8 @@ export class Game {
 
     if (confirm(`Prestige now to earn ${newChips} Heavenly Chips?\n\nYou'll reset all cookies and buildings but keep your Heavenly Chips which give +${newChips}% permanent CPS bonus.\n\nTotal HC after: ${this.prestige.heavenlyChips + newChips}`)) {
       this.prestige.performPrestige();
+      // Easter egg: first prestige
+      if (this.tutorial) this.tutorial.triggerEvent('firstPrestige');
     }
   }
 
@@ -673,7 +762,24 @@ export class Game {
     document.getElementById("cookie-count").textContent = formatNumberInWords(this.cookies);
     document.getElementById("cps-count").textContent = formatNumberInWords(this.getEffectiveCPS());
     document.getElementById("cpc-count").textContent = formatNumberInWords(this.getEffectiveCPC());
-    
+
+    // Easter egg: nice numbers
+    if (this.tutorial) {
+      const c = Math.floor(this.cookies);
+      const niceNumbers = [69, 420, 666, 1337, 6969, 69420, 80085, 42069, 1234567];
+      for (const n of niceNumbers) {
+        if (c >= n && c < n + this.getEffectiveCPS() + this.getEffectiveCPC() + 2) {
+          this.tutorial.triggerEvent('niceNumber');
+          break;
+        }
+      }
+
+      // Easter egg: broke baker (exactly 0 cookies)
+      if (c === 0 && this.stats.totalCookiesBaked > 100) {
+        this.tutorial.triggerEvent('brokeBaker');
+      }
+    }
+
     if (this.purchaseAmount === 'Max') {
       this.renderBuildingList(false);
       this.renderUpgradePage();

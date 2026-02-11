@@ -55,6 +55,36 @@ export class VisualEffects {
       "Experts warn: too many cookies may cause happiness.",
       "Portal technology now powered entirely by cookies.",
       "Time travelers confirm: cookies are eternal.",
+      "Breaking: world's largest cookie measured at 40 feet across.",
+      "Grandma just unlocked a new recipe. She won't share it.",
+      "Cookie dough futures hit record high on the stock exchange.",
+      "Tip: upgrades stack multiplicatively. Buy them early!",
+      "Scientists confirm: the universe smells faintly of vanilla.",
+      "Local cursor union demands shorter clicking hours.",
+      "New flavor discovered: quantum chocolate chip.",
+      "Warning: cookie output exceeds local storage capacity.",
+      "Grandma's advice: never trust a cookie that doesn't crumble.",
+      "Shipment of cookies intercepted by hungry delivery drivers.",
+      "Mining operation uncovers vast underground cookie vein.",
+      "Factory workers report cookies are baking themselves now.",
+      "Alchemy lab successfully turns lead into cookie dough.",
+      "Portal malfunction sends cookies to parallel universe.",
+      "Time machine retrieves cookies from the far future. They're still fresh.",
+      "Antimatter condenser creates cookies from pure energy.",
+      "Prism refracts sunlight into rainbow-flavored cookies.",
+      "Chancemaker rolls a natural 20. Double cookie output!",
+      "Fractal engine generates infinite cookie recursion. Delicious.",
+      "Survey: 9 out of 10 grandmas recommend more grandmas.",
+      "Cookie-based cryptocurrency launches. Somehow less volatile than Bitcoin.",
+      "Motivational poster in factory reads: 'Every cookie counts.'",
+      "Fun fact: if you stacked all your cookies, they'd reach the moon. Twice.",
+      "Intern accidentally eats prototype cookie. Gains temporary omniscience.",
+      "New law requires all buildings to be made of at least 30% cookie.",
+      "Cookies per second now classified as a unit of measurement.",
+      "Your cursor has filed a restraining order against your mouse.",
+      "Grandma's book club is now just a cookie exchange ring.",
+      "R&D team invents self-clicking cookie. Patent pending.",
+      "Local news: residents complain about constant cookie smell. Secretly love it.",
     ];
   }
 
@@ -255,6 +285,45 @@ export class VisualEffects {
       // mix in dynamic messages
       const dynamic = this._getDynamicNews();
       const pool = [...this.newsMessages, ...dynamic];
+
+      // 1-in-50 chance of a rare news article
+      if (Math.random() < 0.02) {
+        const rarePool = [
+          "BREAKING: Cookie discovered on Mars. NASA denies involvement.",
+          "Grandma spotted bench-pressing a rolling pin. Authorities baffled.",
+          "Time travelers warn: do NOT eat the cookie from 3024.",
+          "Local man claims cookie talked to him. Cookie declines interview.",
+          "Scientists prove cookies are 4th-dimensional objects. Nobody understands the paper.",
+          "Cookie rain reported in downtown area. Citizens advised to bring plates.",
+          "Philosopher asks: if a cookie crumbles and no one is around, does it make a sound?",
+          "Aliens make first contact. They want the cookie recipe.",
+          "Underground cookie fight club exposed. First rule: always share crumbs.",
+          "Researchers find that 99.7% of the universe is made of cookies. The rest is milk.",
+          "Portal to cookie dimension discovered in grandma's basement.",
+          "EXCLUSIVE: Cookie monster reveals he's actually a cookie all along.",
+          "Ancient prophecy foretold: 'When the cookies number as the stars, the baker shall ascend.'",
+          "Quantum physicist bakes Schrodinger's Cookie. It's both delicious and stale.",
+          "Cookie-powered spacecraft achieves light speed. Tastes slightly burnt.",
+          "Breaking: the moon is actually a giant cookie. Always has been.",
+          "Stock exchange replaced by cookie exchange. Economy thrives.",
+          "Grandma achieves enlightenment through baking. Opens monastery.",
+          "ERROR: Reality.js line 42: too many cookies. Wrapping to negative infinity.",
+          "The simulation theory is true and we're all inside a cookie clicker game.",
+        ];
+        const rareMsg = rarePool[Math.floor(Math.random() * rarePool.length)];
+        this.newsIndex = pool.length; // doesn't matter, we override
+        el.classList.add("news-exit");
+        setTimeout(() => {
+          el.textContent = rareMsg;
+          el.classList.remove("news-exit");
+          el.classList.add("news-enter");
+          setTimeout(() => el.classList.remove("news-enter"), 500);
+        }, 400);
+        // Easter egg: rare news spotted
+        if (this.game.tutorial) this.game.tutorial.triggerEvent('rareNews');
+        return;
+      }
+
       this.newsIndex = (this.newsIndex + 1) % pool.length;
 
       el.classList.add("news-exit");
@@ -296,10 +365,15 @@ export class VisualEffects {
     if (!el) return;
 
     const wrap = document.getElementById("viewport-wrap");
-    const maxX = wrap.clientWidth - 70;
-    const maxY = wrap.clientHeight - 120;
-    el.style.left = (Math.random() * maxX + 10) + "px";
-    el.style.top  = (Math.random() * maxY + 40) + "px";
+    // Constrain golden cookie to the center region of the viewport
+    const wW = wrap.clientWidth;
+    const wH = wrap.clientHeight;
+    const marginX = wW * 0.25;
+    const marginY = wH * 0.25;
+    const rangeX = wW * 0.5 - 70;
+    const rangeY = wH * 0.5 - 70;
+    el.style.left = (marginX + Math.random() * Math.max(rangeX, 40)) + "px";
+    el.style.top  = (marginY + Math.random() * Math.max(rangeY, 40)) + "px";
     el.classList.remove("hidden");
     el.classList.add("golden-appear");
 
@@ -345,6 +419,8 @@ export class VisualEffects {
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `💎 Cookie Storm! +${formatNumberInWords(bonus)}`;
+        // Easter egg: cookie storm (rarest golden reward)
+        if (this.game.tutorial) this.game.tutorial.triggerEvent('cookieStorm');
       }
       g.stats.luckyClicks++;
       g.updateCookieCount();
@@ -434,6 +510,11 @@ export class VisualEffects {
       this.game.tutorial.triggerEvent('milkRising');
     }
 
+    // Easter egg: milk at 69%
+    if (Math.floor(pct) >= 69 && Math.floor(pct) <= 70 && this.game.tutorial) {
+      this.game.tutorial.triggerEvent('niceMilk');
+    }
+
     // Milk color shifts — solid, no transparency fade
     const wavePath = document.querySelector("#milk-wave path");
     if (pct > 80) {
@@ -458,7 +539,7 @@ export class VisualEffects {
     if (label) {
       if (pct > 0) {
         const milkName = pct > 80 ? "Golden Milk" : pct > 50 ? "Lavender Milk" : pct > 25 ? "Caramel Milk" : "Plain Milk";
-        label.textContent = `🥛 ${milkName} — ${Math.floor(pct)}% achievements`;
+        label.textContent = `🥛 ${milkName} | ${Math.floor(pct)}% achievements`;
         label.classList.add("visible");
       } else {
         label.textContent = "";
