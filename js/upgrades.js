@@ -18,6 +18,9 @@ export class Upgrade {
     this.cost_multiplier = this.upgrade.cost_multiplier || 3;
     this.requires = this.upgrade.requires || null;
     this.level = 0;
+    this.base_max_level = this.max_level;
+    this.prestige_bonus_levels = this.upgrade.prestige_bonus_levels || 0;
+    this.prestige_cost_multiplier = this.upgrade.prestige_cost_multiplier || this.cost_multiplier;
     
     this.tiers = this.upgrade.tiers || null;
     this.currentTier = 0;
@@ -50,6 +53,12 @@ export class Upgrade {
     this.updateTierProperties();
     this.applyEffect();
     return true;
+  }
+
+  getEffectiveMaxLevel() {
+    if (!this.prestige_bonus_levels || !isFinite(this.base_max_level)) return this.base_max_level;
+    const prestigeCount = this.game.prestige ? this.game.prestige.timesPrestiged : 0;
+    return this.base_max_level + (this.prestige_bonus_levels * prestigeCount);
   }
 
   /** Check a single requirement condition */
@@ -141,11 +150,12 @@ export class Upgrade {
         }
         return false;
       } else {
-        if (this.max_level > this.level) {
+        if (this.getEffectiveMaxLevel() > this.level) {
           this.game.cookies -= this.cost;
           this.level += 1;
           this.applyEffect();
-          this.cost = Math.floor(this.cost * this.cost_multiplier);
+          const costMult = this.level > this.base_max_level ? this.prestige_cost_multiplier : this.cost_multiplier;
+          this.cost = Math.floor(this.cost * costMult);
           this.game.stats.totalUpgradesPurchased++;
           this.game.scheduleUpgradeSort();
           this.game.updateUI();
@@ -241,8 +251,13 @@ export class Upgrade {
         }
       }
     } else {
-      if (this.level >= this.max_level) {
-        button.textContent = `${this.name} (MAX)`;
+      const effectiveMax = this.getEffectiveMaxLevel();
+      if (this.level >= effectiveMax) {
+        button.textContent = this.prestige_bonus_levels > 0
+          ? `${this.name} (MAX ✦)`
+          : `${this.name} (MAX)`;
+      } else if (this.level > this.base_max_level) {
+        button.textContent = `${this.name} (Lv ${this.level} ✦)`;
       } else {
         button.textContent = `${this.name} (Lv ${this.level})`;
       }
@@ -277,9 +292,11 @@ export class Upgrade {
       if (this.game.cookies < this.cost) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
-      } else if (this.max_level <= this.level) {
+      } else if (this.getEffectiveMaxLevel() <= this.level) {
         button.disabled = true;
-        button.dataset.disabledReason = `Max Level: ${this.max_level}`;
+        button.dataset.disabledReason = this.prestige_bonus_levels > 0
+          ? `Max Level: ${this.getEffectiveMaxLevel()} (Prestige to unlock more!)`
+          : `Max Level: ${this.getEffectiveMaxLevel()}`;
       }
     }
 
