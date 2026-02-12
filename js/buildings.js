@@ -68,9 +68,9 @@ export class Building {
       return result;
     } else {
       const result = this.bulkBuy(amount);
-      // Easter egg: bulk buyer (bought 100 at once)
-      if (result && amount >= 100 && this.game.tutorial) {
-        this.game.tutorial.triggerEvent('bulkBuyer');
+      // Track bulk buying for achievement
+      if (result && amount >= 100) {
+        this.game.stats.bulkBuyerTriggered = true;
       }
       return result;
     }
@@ -124,15 +124,7 @@ export class Building {
         this.game.visualEffects.triggerCookieBurst(burstCount, 2);
       }
 
-      // Easter eggs: building milestones
-      if (this.game.tutorial) {
-        if (this.name === "Cursor" && this.count >= 100) {
-          this.game.tutorial.triggerEvent('hundredCursors');
-        }
-        if (this.name === "Grandma" && this.count >= 50) {
-          this.game.tutorial.triggerEvent('grandmaArmy');
-        }
-      }
+
 
       return true;
     }
@@ -167,7 +159,12 @@ export class Building {
 
     let name_p = document.createElement("p");
     name_p.classList.add("name_p");
-    name_p.innerHTML = `${this.name} <span>(${this.cps}/sec)</span>`;
+    const totalBuildingCps = parseFloat((this.count * this.cps).toFixed(1));
+    if (this.count > 0) {
+      name_p.innerHTML = `${this.name} <span>(${this.cps}/s each · <strong class="building-total-cps">${formatNumberInWords(totalBuildingCps)}/s</strong>)</span>`;
+    } else {
+      name_p.innerHTML = `${this.name} <span>(${this.cps}/s each)</span>`;
+    }
 
     let price_p = document.createElement("p");
     price_p.classList.add("price_p");

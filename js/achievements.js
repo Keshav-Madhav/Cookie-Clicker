@@ -67,6 +67,22 @@ export class AchievementManager {
         case "totalUpgradesPurchased":
           met = stats.totalUpgradesPurchased >= achievement.requirement;
           break;
+        case "buildingCount":
+          met = this.game.buildings[achievement.buildingIndex] &&
+                this.game.buildings[achievement.buildingIndex].count >= achievement.requirement;
+          break;
+        case "speedrunner": {
+          const sessionSec = (Date.now() - stats.startTime) / 1000;
+          met = sessionSec < 300 && this.game.getEffectiveCPS() >= achievement.requirement;
+          break;
+        }
+        case "bulkBuyer":
+          met = !!stats.bulkBuyerTriggered;
+          break;
+        case "miniGamesWon":
+          met = Array.isArray(stats.miniGamesWon) &&
+                stats.miniGamesWon.length >= achievement.requirement;
+          break;
       }
 
       if (met) {

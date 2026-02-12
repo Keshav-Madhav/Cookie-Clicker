@@ -1,4 +1,5 @@
 import { formatNumberInWords } from "./utils.js";
+import { MiniGames } from "./miniGames.js";
 
 /**
  * VisualEffects — manages the middle-panel "viewport" with
@@ -102,11 +103,37 @@ export class VisualEffects {
 
     panel.innerHTML = `
       <div id="viewport-wrap">
-        <!-- news ticker -->
-        <div id="news-ticker">
-          <span id="news-icon">📰</span>
-          <span id="news-text">Welcome to Cookie Clicker!</span>
+        <!-- news broadcast bar -->
+        <div id="news-broadcast">
+          <div id="news-tv">
+            <div id="news-tv-screen">
+              <div id="news-anchor">
+                <div class="anchor-head">
+                  <div class="anchor-hair"></div>
+                  <div class="anchor-face">
+                    <div class="anchor-eyes">
+                      <div class="anchor-eye"></div>
+                      <div class="anchor-eye"></div>
+                    </div>
+                    <div class="anchor-mouth"></div>
+                  </div>
+                </div>
+                <div class="anchor-body"></div>
+              </div>
+            </div>
+            <div id="news-tv-frame"></div>
+          </div>
+          <div id="news-content">
+            <div id="news-label">COOKIE NEWS</div>
+            <div id="news-text-wrap">
+              <span id="news-text">Welcome to Cookie Clicker!</span>
+            </div>
+            <div id="news-ticker-strip"></div>
+          </div>
+          <span id="news-play" title="Play a mini-game!"><span id="news-play-dpad"></span><span id="news-play-btns"></span></span>
         </div>
+        <!-- mini-game overlay -->
+        <div id="mini-game-overlay" class="hidden"></div>
 
         <!-- main viewport canvas (rain + shimmers) -->
         <canvas id="viewport-canvas"></canvas>
@@ -142,6 +169,8 @@ export class VisualEffects {
     this._seedShimmers(12);
     this._startAnimLoop();
     this._startNewsTicker();
+    this.miniGames = new MiniGames(this.game);
+    this.miniGames.init();
     this._scheduleGoldenCookie();
     this._setupGoldenCookieClick();
 
@@ -399,8 +428,8 @@ export class VisualEffects {
       const dynamic = this._getDynamicNews();
       const pool = [...this.newsMessages, ...dynamic];
 
-      // 1-in-50 chance of a rare news article
-      if (Math.random() < 0.02) {
+      // 1-in-100 chance of a rare news article
+      if (Math.random() < 0.01) {
         const rarePool = [
           "BREAKING: Cookie discovered on Mars. NASA denies involvement.",
           "Grandma spotted bench-pressing a rolling pin. Authorities baffled.",
@@ -426,14 +455,42 @@ export class VisualEffects {
         const rareMsg = rarePool[Math.floor(Math.random() * rarePool.length)];
         this.newsIndex = pool.length; // doesn't matter, we override
         el.classList.add("news-exit");
+
+        // Anchor reacts to rare news + TV static effect
+        const anchor = document.getElementById("news-anchor");
+        const broadcast = document.getElementById("news-broadcast");
+        const tvScreen = document.getElementById("news-tv-screen");
+        if (anchor) { anchor.classList.add("anchor-excited"); }
+        if (broadcast) { broadcast.classList.add("broadcast-rare"); }
+        if (tvScreen) {
+          tvScreen.classList.add("tv-static");
+          setTimeout(() => {
+            tvScreen.classList.remove("tv-static");
+            tvScreen.classList.add("tv-color-bars");
+            setTimeout(() => tvScreen.classList.remove("tv-color-bars"), 1600);
+          }, 400);
+        }
+
         setTimeout(() => {
-          el.textContent = rareMsg;
+          el.textContent = "✨ " + rareMsg;
           el.classList.remove("news-exit");
-          el.classList.add("news-enter");
+          el.classList.add("news-enter", "news-rare");
+          if (broadcast) { broadcast.classList.remove("broadcast-speak"); void broadcast.offsetWidth; broadcast.classList.add("broadcast-speak"); }
           setTimeout(() => el.classList.remove("news-enter"), 500);
+          // Keep rare styling longer, then fade it out
+          setTimeout(() => {
+            el.classList.remove("news-rare");
+            if (anchor) anchor.classList.remove("anchor-excited");
+            if (broadcast) broadcast.classList.remove("broadcast-rare");
+          }, 14000);
         }, 400);
         // Easter egg: rare news spotted
         if (this.game.tutorial) this.game.tutorial.triggerEvent('rareNews');
+        // Rare headlines stay visible longer — skip the next 2 rotations
+        clearInterval(this.newsTimer);
+        setTimeout(() => {
+          this.newsTimer = setInterval(rotate, 9000);
+        }, 15000);
         return;
       }
 
@@ -444,11 +501,14 @@ export class VisualEffects {
         el.textContent = pool[this.newsIndex];
         el.classList.remove("news-exit");
         el.classList.add("news-enter");
+        // Broadcast speak animation
+        const broadcast = document.getElementById("news-broadcast");
+        if (broadcast) { broadcast.classList.remove("broadcast-speak"); void broadcast.offsetWidth; broadcast.classList.add("broadcast-speak"); }
         setTimeout(() => el.classList.remove("news-enter"), 500);
       }, 400);
     };
 
-    this.newsTimer = setInterval(rotate, 6000);
+    this.newsTimer = setInterval(rotate, 9000);
   }
 
   _getDynamicNews() {

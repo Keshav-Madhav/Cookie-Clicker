@@ -79,6 +79,12 @@ export class Tutorial {
         position: "left",
       },
       {
+        title: "Cookie News Broadcast",
+        text: "The news bar at the top keeps you updated with headlines about your bakery empire. Rare golden headlines appear occasionally with special messages. And see that little controller icon? Click it anytime to play a mini-game for bonus cookies!",
+        target: "#news-broadcast",
+        position: "bottom",
+      },
+      {
         title: "Power and Multipliers",
         text: "These bars show your production multipliers. Global multiplier comes from upgrades, Achievement multiplier grows as you unlock achievements (+2% each), and Prestige multiplier comes from Heavenly Chips. They all multiply together for your final output!",
         target: "#left-multipliers",
@@ -208,16 +214,10 @@ export class Tutorial {
         target: "#milk-layer",
         position: "top",
       },
-      niceNumber: {
-        title: "Nice Number!",
-        text: "Your cookie count just passed through a legendary number. Some say these numbers carry special luck. Others say you're just easily amused. We say: why not both?",
-        target: "#click-area h1",
-        position: "right",
-      },
       rareNews: {
         title: "Did You Catch That?",
         text: "A rare news article just scrolled by! The news ticker occasionally broadcasts ultra-rare messages. Blink and you'll miss them. Consider yourself a true connoisseur of cookie journalism.",
-        target: "#news-ticker",
+        target: "#news-broadcast",
         position: "bottom",
       },
       clickFrenzy777: {
@@ -226,48 +226,22 @@ export class Tutorial {
         target: "#cookie-button",
         position: "right",
       },
-      hundredCursors: {
-        title: "Cursor Army",
-        text: "One hundred cursors, all clicking in perfect unison. If you squint at the screen you can almost see them. Imagine the sound: a hundred tiny mouse clicks, forever. You've built a clicking empire.",
-        target: "#building-list",
-        position: "left",
-      },
-      grandmaArmy: {
-        title: "Grandma Battalion",
-        text: "50 grandmas and counting. That's not a bakery, that's an army. They whisper cookie recipes to each other when you're not looking. Some say if you own enough grandmas, they start baking on their own...",
-        target: "#building-list",
-        position: "left",
-      },
+
       cookieStorm: {
         title: "Cookie Storm!",
         text: "You just triggered the rarest golden cookie reward, a full Cookie Storm! That's a one-hour bonus of CPS dumped into your jar in an instant. The cookie gods have chosen you.",
         target: "#cookie-button",
         position: "right",
       },
-      speedrunner: {
-        title: "Speedrunner!",
-        text: "1,000 CPS within five minutes of starting? You either know exactly what you're doing, or you got incredibly lucky. Either way, the cookie speedrunning community salutes you.",
-        target: "#cps-count",
-        position: "right",
-      },
+
       nightOwl: {
         title: "Night Owl Baker",
         text: "Baking cookies past midnight? The cookies taste better when nobody's watching. Night shifts at the bakery hit different. Just don't let the grandmas catch you snacking.",
         target: "#cookie-button",
         position: "right",
       },
-      devotedClicker: {
-        title: "Devoted Clicker",
-        text: "10,000 clicks in a single session! Your mouse is filing for workers' compensation. Fun fact: at this pace, you've clicked roughly once every 3 seconds since you started. That's commitment.",
-        target: "#cookie-button",
-        position: "right",
-      },
-      allBuildingTypes: {
-        title: "Full Collection!",
-        text: "You own at least one of every building type in the game! From humble Cursors to reality-bending Fractal Engines, your bakery portfolio is truly diversified. A cookie empire for the ages.",
-        target: "#building-showcase",
-        position: "top",
-      },
+
+
       efficientBuyer: {
         title: "Efficient Buyer",
         text: "Using 'Max' to buy buildings? A true min-maxer. Why click ten times when one click empties the entire wallet? Your accountant would be proud. Or horrified. Probably both.",
@@ -292,18 +266,7 @@ export class Tutorial {
         target: "#cookie-button",
         position: "right",
       },
-      brokeBaker: {
-        title: "Broke Baker",
-        text: "Zero cookies. Not a single crumb to your name. This is either a bold financial strategy or you just bought something expensive. We've all been there. The cookie jar echoes with emptiness.",
-        target: "#click-area h1",
-        position: "right",
-      },
-      bulkBuyer: {
-        title: "Bulk Buyer",
-        text: "Buying buildings 100 at a time? That's not shopping, that's a hostile takeover. Somewhere, a cookie accountant just fainted. Your dedication to scaling is truly terrifying.",
-        target: "#building-list",
-        position: "left",
-      },
+
       indecisiveClicker: {
         title: "The Indecisive Baker",
         text: "You've changed the purchase amount 6 times now. 1... no wait, 10... actually 25... hmm, Max? You know what, back to 1. Decision-making is hard when every cookie counts.",

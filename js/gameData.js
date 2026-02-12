@@ -200,4 +200,17 @@ export const achievements = [
   { id: "upgrades_10", name: "Upgrader", desc: "Purchase 10 upgrades", type: "totalUpgradesPurchased", requirement: 10 },
   { id: "upgrades_25", name: "Serial Upgrader", desc: "Purchase 25 upgrades", type: "totalUpgradesPurchased", requirement: 25 },
   { id: "upgrades_50", name: "Upgrade Addict", desc: "Purchase 50 upgrades", type: "totalUpgradesPurchased", requirement: 50 },
+
+  // Building-specific milestones (moved from easter eggs)
+  { id: "cursor_100", name: "Cursor Army", desc: "Own 100 Cursors clicking in perfect unison", type: "buildingCount", requirement: 100, buildingIndex: 0 },
+  { id: "grandma_50", name: "Grandma Battalion", desc: "Own 50 Grandmas — that's not a bakery, that's an army", type: "buildingCount", requirement: 50, buildingIndex: 1 },
+
+  // Play-style milestones (moved from easter eggs)
+  { id: "speed_1k", name: "Speedrunner", desc: "Reach 1,000 CPS within 5 minutes of starting", type: "speedrunner", requirement: 1000 },
+  { id: "devoted", name: "Devoted Clicker", desc: "Click the cookie 10,000 times", type: "totalClicks", requirement: 10000 },
+  { id: "bulk_buyer", name: "Bulk Buyer", desc: "Buy 100 buildings at once — that's not shopping, that's a hostile takeover", type: "bulkBuyer", requirement: 1 },
+
+  // Mini-game achievements
+  { id: "mini_first", name: "Game Night", desc: "Win your first mini-game from the news ticker", type: "miniGamesWon", requirement: 1 },
+  { id: "mini_all", name: "Arcade Master", desc: "Win all 5 different mini-games at least once", type: "miniGamesWon", requirement: 5 },
 ]; 

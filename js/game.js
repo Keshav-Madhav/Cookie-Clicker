@@ -37,6 +37,7 @@ export class Game {
       timesPrestiged: 0,
       startTime: Date.now(),
       handmadeCookies: 0,
+      miniGamesWon: [],  // tracks which mini-games have been won
     };
 
     // Load buildings & upgrades from gameData.js
@@ -89,16 +90,7 @@ export class Game {
         this.tutorial.triggerEvent('nightOwl');
       }
 
-      // Easter egg: speedrunner (1000 CPS within 5 minutes)
-      const sessionSeconds = (Date.now() - this.stats.startTime) / 1000;
-      if (sessionSeconds < 300 && this.getEffectiveCPS() >= 1000 && this.tutorial) {
-        this.tutorial.triggerEvent('speedrunner');
-      }
 
-      // Easter egg: all building types owned
-      if (this.tutorial && this.buildings.length > 0 && this.buildings.every(b => b.count > 0)) {
-        this.tutorial.triggerEvent('allBuildingTypes');
-      }
     }, 1000);
 
     // Save every 5 seconds
@@ -136,10 +128,7 @@ export class Game {
     this.stats.handmadeCookies += clickAmount;
     this.stats.totalClicks++;
 
-    // Easter egg: devoted clicker (10k clicks this session)
-    if (this.stats.totalClicks === 10000 && this.tutorial) {
-      this.tutorial.triggerEvent('devotedClicker');
-    }
+
 
     // Easter egg: rapid clicker (15 clicks in 2 seconds)
     if (this.tutorial) {
@@ -778,22 +767,7 @@ export class Game {
     document.getElementById("cps-count").textContent = formatNumberInWords(this.getEffectiveCPS());
     document.getElementById("cpc-count").textContent = formatNumberInWords(this.getEffectiveCPC());
 
-    // Easter egg: nice numbers
-    if (this.tutorial) {
-      const c = Math.floor(this.cookies);
-      const niceNumbers = [69, 6969, 69420, 80085, 1234567];
-      for (const n of niceNumbers) {
-        if (c >= n && c < n + this.getEffectiveCPS() + this.getEffectiveCPC() + 2) {
-          this.tutorial.triggerEvent('niceNumber');
-          break;
-        }
-      }
 
-      // Easter egg: broke baker (exactly 0 cookies)
-      if (c === 0 && this.stats.totalCookiesBaked > 100) {
-        this.tutorial.triggerEvent('brokeBaker');
-      }
-    }
 
     if (this.purchaseAmount === 'Max') {
       this.renderBuildingList(false);
