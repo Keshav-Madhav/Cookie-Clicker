@@ -64,6 +64,8 @@ export class MiniGames {
     const floor = tier === "jackpot" ? 500 : tier === "great" ? 200 : 50;
 
     let reward = Math.max(cpsBonus + cookieBonus + clickBonus + empireBonus + prestigeBonus, floor);
+    // Apply mini-game bonus upgrade multiplier
+    reward *= (g.miniGameBonus || 1);
     reward = Math.floor(reward);
 
     g.cookies += reward;

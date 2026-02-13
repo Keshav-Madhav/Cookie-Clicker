@@ -14,6 +14,8 @@ export class Game {
     this.cookiesPerSecond = 0;
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
+    this.cpsClickBonus = 0;
+    this.miniGameBonus = 1;
     this.frenzyDurationMultiplier = 1;
     this._particles = [];
     this._upgradePage = 0;
@@ -111,9 +113,21 @@ export class Game {
   }
 
   getEffectiveCPC() {
-    let cpc = this.cookiesPerClick;
-    cpc *= this.prestige.getPrestigeMultiplier();
-    cpc *= this.achievementManager.getMultiplier();
+    // Base click value with multipliers
+    let baseClick = this.cookiesPerClick;
+    baseClick *= this.prestige.getPrestigeMultiplier();
+    baseClick *= this.achievementManager.getMultiplier();
+
+    // CPS-based click bonus (uses steady-state CPS, no frenzy)
+    let cpsBonus = 0;
+    if (this.cpsClickBonus > 0) {
+      let baseCps = this.cookiesPerSecond * this.globalCpsMultiplier;
+      baseCps *= this.achievementManager.getMultiplier();
+      baseCps *= this.prestige.getPrestigeMultiplier();
+      cpsBonus = baseCps * this.cpsClickBonus;
+    }
+
+    let cpc = baseClick + cpsBonus;
     if (this.frenzyActive && this.frenzyType === 'click') {
       cpc *= this.frenzyMultiplier;
     }
@@ -708,6 +722,8 @@ export class Game {
     this.cookiesPerSecond = 0;
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
+    this.cpsClickBonus = 0;
+    this.miniGameBonus = 1;
     this.frenzyDurationMultiplier = 1;
     this.frenzyActive = false;
     this.frenzyMultiplier = 1;
@@ -1089,6 +1105,8 @@ export class Game {
       cookiesPerClick: this.cookiesPerClick,
       globalCpsMultiplier: this.globalCpsMultiplier,
       luckyClickChance: this.luckyClickChance,
+      cpsClickBonus: this.cpsClickBonus,
+      miniGameBonus: this.miniGameBonus,
       frenzyDurationMultiplier: this.frenzyDurationMultiplier,
       buildings: this.buildings.map(b => ({
         count: b.count,
@@ -1120,6 +1138,8 @@ export class Game {
       this.cookiesPerClick = 1;
       this.globalCpsMultiplier = 1;
       this.luckyClickChance = 0;
+      this.cpsClickBonus = 0;
+      this.miniGameBonus = 1;
       this.frenzyDurationMultiplier = 1;
 
       // Load prestige first (affects multipliers)
@@ -1177,6 +1197,8 @@ export class Game {
       this.cookiesPerClick = parseFloat(data.cookiesPerClick || 1);
       if (data.globalCpsMultiplier) this.globalCpsMultiplier = data.globalCpsMultiplier;
       if (data.luckyClickChance) this.luckyClickChance = data.luckyClickChance;
+      if (data.cpsClickBonus) this.cpsClickBonus = data.cpsClickBonus;
+      if (data.miniGameBonus) this.miniGameBonus = data.miniGameBonus;
       if (data.frenzyDurationMultiplier) this.frenzyDurationMultiplier = data.frenzyDurationMultiplier;
       
       // Calculate offline earnings

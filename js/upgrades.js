@@ -21,7 +21,9 @@ export class Upgrade {
     this.base_max_level = this.max_level;
     this.prestige_bonus_levels = this.upgrade.prestige_bonus_levels || 0;
     this.prestige_cost_multiplier = this.upgrade.prestige_cost_multiplier || this.cost_multiplier;
-    
+    this.accel_start = this.upgrade.accel_start || null;
+    this.cost_acceleration = this.upgrade.cost_acceleration || null;
+
     this.tiers = this.upgrade.tiers || null;
     this.currentTier = 0;
     
@@ -84,6 +86,9 @@ export class Upgrade {
         return this.game.stats.timesPrestiged >= cond.min;
       case "totalUpgradesPurchased":
         return this.game.stats.totalUpgradesPurchased >= cond.min;
+      case "miniGamesWon":
+        return Array.isArray(this.game.stats.miniGamesWon) &&
+               this.game.stats.miniGamesWon.length >= cond.min;
       default:
         return true;
     }
@@ -121,6 +126,8 @@ export class Upgrade {
           return `Need ${cond.min} prestige`;
         case "totalUpgradesPurchased":
           return `Need ${cond.min} upgrades purchased`;
+        case "miniGamesWon":
+          return `Need ${cond.min} mini-game type${cond.min > 1 ? 's' : ''} won`;
         default:
           return 'Unknown requirement';
       }
@@ -146,8 +153,7 @@ export class Upgrade {
           return true;
         } else if (this.canUpgradeTier()) {
           this.game.cookies -= this.cost;
-          this.upgradeTier();
-          this.applyEffect();
+          this.upgradeTier(); // upgradeTier already calls applyEffect
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
           // Easter egg: maxed out (reached final tier)
@@ -164,7 +170,12 @@ export class Upgrade {
           this.game.cookies -= this.cost;
           this.level += 1;
           this.applyEffect();
-          const costMult = this.level > this.base_max_level ? this.prestige_cost_multiplier : this.cost_multiplier;
+          let costMult = this.level > this.base_max_level ? this.prestige_cost_multiplier : this.cost_multiplier;
+          // Cost acceleration: each level past accel_start makes the multiplier exponentially larger
+          if (this.accel_start && this.cost_acceleration && this.level >= this.accel_start) {
+            const extra = this.level - this.accel_start + 1;
+            costMult *= Math.pow(this.cost_acceleration, extra);
+          }
           this.cost = Math.floor(this.cost * costMult);
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
@@ -221,13 +232,10 @@ export class Upgrade {
         break;
 
       case "tieredUpgrade":
-        if (this.level > 1) {
-          const previousTier = this.tiers[this.currentTier - 1];
-          this.game.cookiesPerClick /= previousTier.multiplier;
-          this.game.cookiesPerClick *= this.multiplier;
-        } else {
-          this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
-        }
+        // Offline production tiers are looked up by name during load, not click power
+        if (this.name && this.name.includes("Offline")) break;
+        // Click-related tiers (Touch upgrades) multiply click power
+        this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
         break;
 
       case "buildingBoost":
@@ -259,6 +267,14 @@ export class Upgrade {
 
       case "frenzyDuration":
         this.game.frenzyDurationMultiplier *= this.bonus;
+        break;
+
+      case "cpsClick":
+        this.game.cpsClickBonus += this.bonus;
+        break;
+
+      case "miniGameBonus":
+        this.game.miniGameBonus *= this.multiplier;
         break;
     }
 
