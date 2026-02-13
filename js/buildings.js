@@ -14,6 +14,7 @@ export class Building {
     this.requires = this.building.requires || null;
     this.desc = this.building.desc || '';
     this.flavor = this.building.flavor || '';
+    this.lore = this.building.lore || '';
     this.count = 0;
   }
 
@@ -171,6 +172,164 @@ export class Building {
     return total / conditions.length;
   }
 
+  /** Scramble text into gibberish of similar length */
+  _scrambleText(text) {
+    const words = 'cookie bake flour sugar dough crumb oven whisk butter chip sprinkle glaze frost cream choco vanilla swirl batch knead rise fold drizzle caramel toffee syrup crust flaky golden crisp warm gooey melted sweet tooth crunch snap nibble morsel taste treat yummy delight'.split(' ');
+    return text.replace(/[a-zA-Z]+/g, (match) => {
+      const w = words[Math.floor(Math.random() * words.length)];
+      let result = w;
+      while (result.length < match.length) result += words[Math.floor(Math.random() * words.length)];
+      result = result.slice(0, match.length);
+      if (match[0] === match[0].toUpperCase()) result = result[0].toUpperCase() + result.slice(1);
+      return result;
+    });
+  }
+
+  /** Get total cookies spent on this building */
+  getNetCost() {
+    let total = 0;
+    for (let i = 0; i < this.count; i++) {
+      total += Math.floor(this.baseCost * Math.pow(this.cost_multiplier, i));
+    }
+    return total;
+  }
+
+  /** Find upgrades related to this building */
+  getRelatedUpgrades() {
+    if (!this.game.upgrades) return [];
+    return this.game.upgrades.filter(u => {
+      if (u.target === this.name || u.source === this.name) return true;
+      // Building-specific requirement
+      if (u.requires) {
+        const conds = Array.isArray(u.requires) ? u.requires : [u.requires];
+        return conds.some(c => c.type === 'building' && c.name === this.name);
+      }
+      return false;
+    });
+  }
+
+  /** Show the building info detail panel */
+  showInfoPanel(index) {
+    // Remove existing panel if any
+    const existing = document.getElementById('building-info-panel');
+    if (existing) existing.remove();
+
+    const locked = !this.meetsRequirements() && this.count === 0;
+    const overlay = document.createElement('div');
+    overlay.id = 'building-info-panel';
+    overlay.className = 'building-info-overlay';
+
+    const panel = document.createElement('div');
+    panel.className = 'building-info-panel';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'building-info-header';
+    header.innerHTML = `<h2>${this.name}</h2><button class="building-info-close">✕</button>`;
+    panel.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'building-info-body';
+
+    // Lore / Story
+    if (this.lore) {
+      const loreSection = document.createElement('div');
+      loreSection.className = 'building-info-section';
+      if (locked) {
+        // Scramble text to gibberish so inspect won't reveal it
+        const gibberish = this._scrambleText(this.lore);
+        loreSection.innerHTML = `<h3>📖 Story</h3><p class="building-info-lore">${this.flavor}</p><div class="building-info-story-locked"><p class="building-info-story building-info-blurred">${gibberish}</p><div class="building-info-unlock-overlay">🔒 Unlock this baker to read</div></div>`;
+      } else {
+        loreSection.innerHTML = `<h3>📖 Story</h3><p class="building-info-lore">${this.flavor}</p><p class="building-info-story">${this.lore}</p>`;
+      }
+      body.appendChild(loreSection);
+    }
+
+    // Stats
+    const statsSection = document.createElement('div');
+    statsSection.className = 'building-info-section';
+    statsSection.innerHTML = `<h3>📊 Details</h3>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'building-info-grid';
+
+    const totalCps = parseFloat((this.count * this.cps).toFixed(1));
+    const rows = [
+      ['Owned', locked ? '🔒' : `${this.count}`],
+      ['Base CPS', locked ? '???' : `${this.baseCps}/s`],
+      ['Current CPS', locked ? '???' : `${this.cps}/s each`],
+      ['Total Generation', locked ? '???' : `${formatNumberInWords(totalCps)}/s`],
+      ['Base Cost', `${formatNumberInWords(this.baseCost)}`],
+      ['Next Cost', locked ? '???' : `${formatNumberInWords(this.cost)}`],
+      ['Total Invested', locked ? '???' : `${formatNumberInWords(this.getNetCost())}`],
+    ];
+
+    if (!locked && totalCps > 0) {
+      const pct = ((totalCps / Math.max(this.game.cookiesPerSecond, 0.001)) * 100).toFixed(1);
+      rows.push(['% of Total CPS', `${pct}%`]);
+    }
+
+    rows.forEach(([label, value]) => {
+      grid.innerHTML += `<span>${label}</span><span>${value}</span>`;
+    });
+    statsSection.appendChild(grid);
+    body.appendChild(statsSection);
+
+    // Requirements (if any)
+    if (this.requires) {
+      const reqSection = document.createElement('div');
+      reqSection.className = 'building-info-section';
+      reqSection.innerHTML = `<h3>🔓 Requirements</h3>`;
+      const reqList = document.createElement('div');
+      reqList.className = 'building-info-reqs';
+      const conditions = Array.isArray(this.requires) ? this.requires : [this.requires];
+      conditions.forEach(c => {
+        const met = this._checkCondition(c);
+        let text = '';
+        switch (c.type) {
+          case 'totalBuildings': text = `${formatNumberInWords(c.min)} total bakers`; break;
+          case 'totalCookies': text = `${formatNumberInWords(c.min)} total cookies baked`; break;
+          case 'cps': text = `${formatNumberInWords(c.min)} CPS`; break;
+        }
+        reqList.innerHTML += `<span class="${met ? 'req-met' : 'req-unmet'}">${met ? '✅' : '❌'} ${text}</span>`;
+      });
+      reqSection.appendChild(reqList);
+      body.appendChild(reqSection);
+    }
+
+    // Related upgrades (hidden when locked)
+    if (!locked) {
+      const related = this.getRelatedUpgrades();
+      if (related.length > 0) {
+        const upgSection = document.createElement('div');
+        upgSection.className = 'building-info-section';
+        upgSection.innerHTML = `<h3>⬆️ Related Upgrades</h3>`;
+        const upgList = document.createElement('div');
+        upgList.className = 'building-info-upgrades';
+        related.forEach(u => {
+          const owned = u.level > 0;
+          const maxed = u.level >= u.getEffectiveMaxLevel();
+          let status = '🔲';
+          if (maxed) status = '✅';
+          else if (owned) status = `⬆ Lv.${u.level}`;
+          upgList.innerHTML += `<div class="building-info-upgrade-row"><span>${status} ${u.name}</span><span class="building-info-upgrade-effect">${u.effect}</span></div>`;
+        });
+        upgSection.appendChild(upgList);
+        body.appendChild(upgSection);
+      }
+    }
+
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    // Close handlers
+    const close = () => overlay.remove();
+    header.querySelector('.building-info-close').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  }
+
   getButton(index) {
     let button = document.createElement("button");
     button.addEventListener("click", () => this.buy());
@@ -235,10 +394,23 @@ export class Building {
     }
 
     let subDiv = document.createElement("div");
+    subDiv.classList.add("building-main");
     subDiv.appendChild(name_p);
     if (desc_p) subDiv.appendChild(desc_p);
     subDiv.appendChild(price_p);
     button.appendChild(subDiv);
+
+    // Info icon
+    let infoBtn = document.createElement("span");
+    infoBtn.className = 'building-info-icon';
+    infoBtn.textContent = 'ℹ';
+    infoBtn.title = `${this.name} details`;
+    infoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.showInfoPanel(index);
+    });
+    button.appendChild(infoBtn);
 
     let quantity_p = document.createElement("p");
     quantity_p.classList.add("quantity_p");
