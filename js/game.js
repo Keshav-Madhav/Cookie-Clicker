@@ -6,6 +6,7 @@ import { VisualEffects } from "./visualEffects.js";
 import { Tutorial } from "./tutorial.js";
 import { buildings, upgrades } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
+import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
 
 export class Game {
   constructor() {
@@ -54,7 +55,7 @@ export class Game {
 
     this.purchaseAmount = 1;
 
-    this.loadGame();
+    this._saveLoaded = this.loadGame();  // promise — resolves when save is restored
     this.updateUI();
   }
 
@@ -1118,118 +1119,134 @@ export class Game {
       tutorial: this.tutorial.getSaveData(),
       lastSavedTime: Date.now(),
     };
-    localStorage.setItem("cookieClickerSave", JSON.stringify(saveData));
+    const jsonStr = JSON.stringify(saveData);
+    encryptSave(jsonStr).then(encrypted => {
+      localStorage.setItem("cookieClickerSave", encrypted);
+    });
   }
 
   loadGame() {
-    let savedGame = localStorage.getItem("cookieClickerSave");
-    if (savedGame) {
-      let data = JSON.parse(savedGame);
-      
-      this.cookies = parseFloat(data.cookies || 0);
-      this.cookiesPerClick = 1;
-      this.globalCpsMultiplier = 1;
-      this.luckyClickChance = 0;
-      this.cpsClickBonus = 0;
-      this.miniGameBonus = 1;
-      this.frenzyDurationMultiplier = 1;
+    const stored = localStorage.getItem("cookieClickerSave");
+    if (!stored) return Promise.resolve();
 
-      // Load prestige first (affects multipliers)
-      this.prestige.loadSaveData(data.prestige);
-
-      // Load achievements
-      this.achievementManager.loadSaveData(data.achievements);
-
-      // Load tutorial state
-      if (data.tutorial) {
-        this.tutorial.loadSaveData(data.tutorial);
-      }
-
-      // Load stats
-      if (data.stats) {
-        this.stats = { ...this.stats, ...data.stats };
-      }
-      
-      // Load Buildings
-      if (data.buildings) {
-        const len = Math.min(data.buildings.length, this.buildings.length);
-        for (let i = 0; i < len; i++) {
-          const savedBuilding = data.buildings[i];
-          this.buildings[i].count = savedBuilding.count || 0;
-          this.buildings[i].cost = savedBuilding.cost || this.buildings[i].cost;
-        }
-      }
-      
-      // Load Upgrades and reapply effects
-      if (data.upgrades) {
-        const len = Math.min(data.upgrades.length, this.upgrades.length);
-        for (let i = 0; i < len; i++) {
-          const savedUpgrade = data.upgrades[i];
-          const upgrade = this.upgrades[i];
-          
-          upgrade.level = savedUpgrade.level || 0;
-          upgrade.cost = savedUpgrade.cost || upgrade.cost;
-          
-          if (upgrade.type === "tieredUpgrade" && upgrade.tiers) {
-            upgrade.currentTier = savedUpgrade.currentTier || 0;
-            upgrade.updateTierProperties();
-            upgrade.multiplier = savedUpgrade.multiplier || upgrade.multiplier;
-          }
-          
-          // Re-apply effects
-          if (upgrade.level > 0) {
-            for (let j = 0; j < upgrade.level; j++) {
-              upgrade.applyEffect();
-            }
-          }
-        }
-      }
-      
-      // Restore exact saved values after reapply
-      this.cookiesPerClick = parseFloat(data.cookiesPerClick || 1);
-      if (data.globalCpsMultiplier) this.globalCpsMultiplier = data.globalCpsMultiplier;
-      if (data.luckyClickChance) this.luckyClickChance = data.luckyClickChance;
-      if (data.cpsClickBonus) this.cpsClickBonus = data.cpsClickBonus;
-      if (data.miniGameBonus) this.miniGameBonus = data.miniGameBonus;
-      if (data.frenzyDurationMultiplier) this.frenzyDurationMultiplier = data.frenzyDurationMultiplier;
-      
-      // Calculate offline earnings
-      if (data.lastSavedTime) {
-        const now = Date.now();
-        const elapsedTime = Math.floor((now - data.lastSavedTime) / 1000);
-        
-        if (elapsedTime > 0) {
-          this.calculateCPS();
-          
-          let offlineMultiplier = 0.5;
-          this.upgrades.forEach(upgrade => {
-            if (upgrade.name && upgrade.name.startsWith("Offline Production") && upgrade.level > 0) {
-              offlineMultiplier = upgrade.multiplier;
-            }
-          });
-          
-          const baseCps = this.getEffectiveCPS();
-          const offlineEarnings = elapsedTime * baseCps * offlineMultiplier;
-          this.cookies += offlineEarnings;
-          this.stats.totalCookiesBaked += offlineEarnings;
-          this.cookies = parseFloat(this.cookies.toFixed(1));
-
-          if (offlineEarnings > 0) {
-            if (this.visualEffects) this.visualEffects.triggerIncomeRain(offlineEarnings);
-            if (this.tutorial) {
-              this.tutorial.showOfflineEarnings({
-                elapsedSec: elapsedTime,
-                baseCps,
-                offlineMultiplier,
-                totalEarned: parseFloat(offlineEarnings.toFixed(1)),
-                formatFn: formatNumberInWords,
-              });
-            }
-          }
-        }
-      }
-      
-      this.calculateCPS();
+    if (isEncrypted(stored)) {
+      return decryptSave(stored).then(json => {
+        this._restoreSave(JSON.parse(json));
+      }).catch(err => {
+        console.error("Failed to decrypt save — starting fresh.", err);
+      });
+    } else {
+      // Legacy unencrypted save — restore now, re-encrypted on next save
+      this._restoreSave(JSON.parse(stored));
+      return Promise.resolve();
     }
+  }
+
+  _restoreSave(data) {
+    this.cookies = parseFloat(data.cookies || 0);
+    this.cookiesPerClick = 1;
+    this.globalCpsMultiplier = 1;
+    this.luckyClickChance = 0;
+    this.cpsClickBonus = 0;
+    this.miniGameBonus = 1;
+    this.frenzyDurationMultiplier = 1;
+
+    // Load prestige first (affects multipliers)
+    this.prestige.loadSaveData(data.prestige);
+
+    // Load achievements
+    this.achievementManager.loadSaveData(data.achievements);
+
+    // Load tutorial state
+    if (data.tutorial) {
+      this.tutorial.loadSaveData(data.tutorial);
+    }
+
+    // Load stats
+    if (data.stats) {
+      this.stats = { ...this.stats, ...data.stats };
+    }
+
+    // Load Buildings
+    if (data.buildings) {
+      const len = Math.min(data.buildings.length, this.buildings.length);
+      for (let i = 0; i < len; i++) {
+        const savedBuilding = data.buildings[i];
+        this.buildings[i].count = savedBuilding.count || 0;
+        this.buildings[i].cost = savedBuilding.cost || this.buildings[i].cost;
+      }
+    }
+
+    // Load Upgrades and reapply effects
+    if (data.upgrades) {
+      const len = Math.min(data.upgrades.length, this.upgrades.length);
+      for (let i = 0; i < len; i++) {
+        const savedUpgrade = data.upgrades[i];
+        const upgrade = this.upgrades[i];
+
+        upgrade.level = savedUpgrade.level || 0;
+        upgrade.cost = savedUpgrade.cost || upgrade.cost;
+
+        if (upgrade.type === "tieredUpgrade" && upgrade.tiers) {
+          upgrade.currentTier = savedUpgrade.currentTier || 0;
+          upgrade.updateTierProperties();
+          upgrade.multiplier = savedUpgrade.multiplier || upgrade.multiplier;
+        }
+
+        // Re-apply effects
+        if (upgrade.level > 0) {
+          for (let j = 0; j < upgrade.level; j++) {
+            upgrade.applyEffect();
+          }
+        }
+      }
+    }
+
+    // Restore exact saved values after reapply
+    this.cookiesPerClick = parseFloat(data.cookiesPerClick || 1);
+    if (data.globalCpsMultiplier) this.globalCpsMultiplier = data.globalCpsMultiplier;
+    if (data.luckyClickChance) this.luckyClickChance = data.luckyClickChance;
+    if (data.cpsClickBonus) this.cpsClickBonus = data.cpsClickBonus;
+    if (data.miniGameBonus) this.miniGameBonus = data.miniGameBonus;
+    if (data.frenzyDurationMultiplier) this.frenzyDurationMultiplier = data.frenzyDurationMultiplier;
+
+    // Calculate offline earnings
+    if (data.lastSavedTime) {
+      const now = Date.now();
+      const elapsedTime = Math.floor((now - data.lastSavedTime) / 1000);
+
+      if (elapsedTime > 0) {
+        this.calculateCPS();
+
+        let offlineMultiplier = 0.5;
+        this.upgrades.forEach(upgrade => {
+          if (upgrade.name && upgrade.name.startsWith("Offline Production") && upgrade.level > 0) {
+            offlineMultiplier = upgrade.multiplier;
+          }
+        });
+
+        const baseCps = this.getEffectiveCPS();
+        const offlineEarnings = elapsedTime * baseCps * offlineMultiplier;
+        this.cookies += offlineEarnings;
+        this.stats.totalCookiesBaked += offlineEarnings;
+        this.cookies = parseFloat(this.cookies.toFixed(1));
+
+        if (offlineEarnings > 0) {
+          if (this.visualEffects) this.visualEffects.triggerIncomeRain(offlineEarnings);
+          if (this.tutorial) {
+            this.tutorial.showOfflineEarnings({
+              elapsedSec: elapsedTime,
+              baseCps,
+              offlineMultiplier,
+              totalEarned: parseFloat(offlineEarnings.toFixed(1)),
+              formatFn: formatNumberInWords,
+            });
+          }
+        }
+      }
+    }
+
+    this.calculateCPS();
+    this.updateCookieCount();
   }
 }
