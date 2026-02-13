@@ -306,6 +306,8 @@ export class Tutorial {
   }
 
   _buildDOM() {
+    if (this.overlay) return;           // already built — avoid duplicates
+
     // Overlay container — pointer-events:none so game is usable
     this.overlay = document.createElement("div");
     this.overlay.id = "tutorial-overlay";
@@ -316,9 +318,11 @@ export class Tutorial {
     this.cutoutBox.id = "tutorial-cutout";
     this.overlay.appendChild(this.cutoutBox);
 
-    // Tooltip bubble
+    // Tooltip bubble — appended to body (NOT overlay) so it stays
+    // in the root stacking context, above .tutorial-glow elements
     this.tooltip = document.createElement("div");
     this.tooltip.id = "tutorial-tooltip";
+    this.tooltip.classList.add("tutorial-hidden");
     this.tooltip.innerHTML = `
       <div class="tutorial-title"></div>
       <div class="tutorial-text"></div>
@@ -327,15 +331,16 @@ export class Tutorial {
       </div>
       <div class="tutorial-step-dots"></div>
     `;
-    this.overlay.appendChild(this.tooltip);
 
-    // Skip bar at the bottom
+    // Skip bar at the bottom — also on body for same reason
     this.skipBar = document.createElement("div");
     this.skipBar.id = "tutorial-skip-bar";
+    this.skipBar.classList.add("tutorial-hidden");
     this.skipBar.innerHTML = `<button class="tutorial-skip-btn">Skip Tutorial</button>`;
-    this.overlay.appendChild(this.skipBar);
 
     document.body.appendChild(this.overlay);
+    document.body.appendChild(this.tooltip);
+    document.body.appendChild(this.skipBar);
 
     // Event: Skip
     this.skipBar.querySelector(".tutorial-skip-btn").addEventListener("click", (e) => {
@@ -460,12 +465,22 @@ export class Tutorial {
      ═══════════════════════════════════════════════════ */
   _showOverlay() {
     this.overlay.classList.remove("tutorial-hidden");
-    requestAnimationFrame(() => this.overlay.classList.add("tutorial-visible"));
+    this.tooltip.classList.remove("tutorial-hidden");
+    this.skipBar.classList.remove("tutorial-hidden");
+    requestAnimationFrame(() => {
+      this.overlay.classList.add("tutorial-visible");
+      this.tooltip.classList.add("tutorial-visible");
+      this.skipBar.classList.add("tutorial-visible");
+    });
   }
 
   _hideOverlay() {
     this.overlay.classList.remove("tutorial-visible");
     this.overlay.classList.add("tutorial-hidden");
+    this.tooltip.classList.remove("tutorial-visible");
+    this.tooltip.classList.add("tutorial-hidden");
+    this.skipBar.classList.remove("tutorial-visible");
+    this.skipBar.classList.add("tutorial-hidden");
     this.cutoutBox.style.display = "none";
     document.querySelectorAll('.tutorial-glow').forEach(el => el.classList.remove('tutorial-glow'));
   }
@@ -510,13 +525,57 @@ export class Tutorial {
     // Skip bar: hide for single event tips
     this.skipBar.style.display = this.activeSequence.length <= 1 ? "none" : "";
 
-    // Position cutout + tooltip
-    this._positionOnTarget(step);
+    // Auto-switch mobile tab to show the target, then position
+    const switched = this._autoSwitchTab(step);
+    if (switched) {
+      // After tab switch, wait for layout to settle before positioning
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this._positionOnTarget(step);
+        });
+      });
+    } else {
+      this._positionOnTarget(step);
+    }
 
     // Set up wait-for if needed
     if (step.waitFor) {
       this._setupWaitFor(step.waitFor);
     }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     AUTO-SWITCH MOBILE TAB
+     ═══════════════════════════════════════════════════ */
+  _autoSwitchTab(step) {
+    const nav = this.game._mobileNav;
+    if (!nav || !nav.isMobile()) return false;
+
+    // Resolve target element
+    let targetEl = null;
+    if (typeof step.target === 'function') {
+      targetEl = step.target();
+    } else if (typeof step.target === 'string') {
+      targetEl = document.querySelector(step.target);
+    }
+
+    // Determine which panel the target lives in
+    let neededTab = null;
+    if (targetEl) {
+      const clickArea = document.getElementById('click-area');
+      const stats     = document.getElementById('stats');
+      const shop      = document.getElementById('shop');
+      if (clickArea && clickArea.contains(targetEl)) neededTab = 'click-area';
+      else if (shop && shop.contains(targetEl))      neededTab = 'shop';
+      else if (stats && stats.contains(targetEl))    neededTab = 'stats';
+    }
+
+    // For targets not inside any panel (e.g. #menu-btn), skip switching
+    if (neededTab && neededTab !== nav.activeTab) {
+      nav.switchTab(neededTab);
+      return true;
+    }
+    return false;
   }
 
   _positionOnTarget(step) {
@@ -557,60 +616,100 @@ export class Tutorial {
     const isLargeTarget = rect.width > 300 || rect.height > 300;
     this.cutoutBox.style.borderRadius = isLargeTarget ? "14px" : "10px";
 
-    // Position tooltip
+    // Position tooltip with smart auto-placement
     this.tooltip.style.transform = "";
     this.tooltip.className = "";
     this.tooltip.id = "tutorial-tooltip";
 
     const tooltipWidth = 290;
-    const tooltipHeight = 180;
     const gap = 16;
-
-    let left, top;
-    const pos = step.position || "right";
-
-    switch (pos) {
-      case "right":
-        left = rect.right + gap;
-        top = rect.top + rect.height / 2 - tooltipHeight / 2;
-        this.tooltip.classList.add("arrow-left");
-        break;
-      case "left":
-        left = rect.left - tooltipWidth - gap;
-        top = rect.top + rect.height / 2 - tooltipHeight / 2;
-        this.tooltip.classList.add("arrow-right");
-        break;
-      case "top":
-        left = rect.left + rect.width / 2 - tooltipWidth / 2;
-        top = rect.top - tooltipHeight - gap;
-        this.tooltip.classList.add("arrow-bottom");
-        break;
-      case "bottom":
-        left = rect.left + rect.width / 2 - tooltipWidth / 2;
-        top = rect.bottom + gap;
-        this.tooltip.classList.add("arrow-top");
-        break;
-      case "bottom-right":
-        left = rect.right + gap;
-        top = rect.bottom + gap;
-        this.tooltip.classList.add("arrow-top-left");
-        break;
-      default:
-        left = rect.right + gap;
-        top = rect.top;
-        this.tooltip.classList.add("arrow-left");
-    }
-
-    // Clamp to viewport
+    const margin = 10;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    if (left + tooltipWidth > vw - 10) left = vw - tooltipWidth - 10;
-    if (left < 10) left = 10;
-    if (top + tooltipHeight > vh - 60) top = vh - tooltipHeight - 60;
-    if (top < 10) top = 10;
+    const navHeight = (this.game._mobileNav && this.game._mobileNav.isMobile()) ? 62 : 0;
+    const availH = vh - navHeight;
 
+    // Measure actual tooltip height (render offscreen to measure)
+    this.tooltip.style.left = "-9999px";
+    this.tooltip.style.top = "-9999px";
+    this.tooltip.style.width = tooltipWidth + "px";
+    const tooltipHeight = Math.max(this.tooltip.offsetHeight, 100);
+
+    // Candidate positions: direction → {left, top}
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    const candidates = [
+      { dir: "right",  l: rect.right + gap,                       t: cy - tooltipHeight / 2, arrow: "arrow-left" },
+      { dir: "left",   l: rect.left - tooltipWidth - gap,         t: cy - tooltipHeight / 2, arrow: "arrow-right" },
+      { dir: "bottom", l: cx - tooltipWidth / 2,                  t: rect.bottom + gap,      arrow: "arrow-top" },
+      { dir: "top",    l: cx - tooltipWidth / 2,                  t: rect.top - tooltipHeight - gap, arrow: "arrow-bottom" },
+    ];
+
+    // Score each candidate: how much of the tooltip is visible (0..1)
+    // and whether it overlaps the target (penalty)
+    const preferred = step.position || "right";
+
+    function scorePlacement(c) {
+      const cl = Math.max(c.l, margin);
+      const ct = Math.max(c.t, margin);
+      const cr = Math.min(c.l + tooltipWidth, vw - margin);
+      const cb = Math.min(c.t + tooltipHeight, availH - margin);
+      const visibleW = Math.max(0, cr - cl);
+      const visibleH = Math.max(0, cb - ct);
+      const visibleArea = visibleW * visibleH;
+      const totalArea = tooltipWidth * tooltipHeight;
+      const visibility = totalArea > 0 ? visibleArea / totalArea : 0;
+
+      // Overlap with target rect
+      const ox1 = Math.max(c.l, rect.left - pad);
+      const oy1 = Math.max(c.t, rect.top - pad);
+      const ox2 = Math.min(c.l + tooltipWidth, rect.right + pad);
+      const oy2 = Math.min(c.t + tooltipHeight, rect.bottom + pad);
+      const overlap = Math.max(0, ox2 - ox1) * Math.max(0, oy2 - oy1);
+      const overlapPenalty = totalArea > 0 ? overlap / totalArea : 0;
+
+      // Prefer the author's hint direction
+      const prefBonus = c.dir === preferred ? 0.05 : 0;
+
+      return visibility - overlapPenalty * 0.8 + prefBonus;
+    }
+
+    // Pick best placement
+    let best = candidates[0];
+    let bestScore = -Infinity;
+    for (const c of candidates) {
+      const s = scorePlacement(c);
+      if (s > bestScore) { bestScore = s; best = c; }
+    }
+
+    // If best score is too low (tooltip mostly off-screen / heavily overlapping),
+    // center the tooltip over the highlighted area so it's always interactable
+    if (bestScore < 0.45) {
+      const centerL = cx - tooltipWidth / 2;
+      const centerT = cy - tooltipHeight / 2;
+      let left = Math.max(margin, Math.min(centerL, vw - tooltipWidth - margin));
+      let top  = Math.max(margin, Math.min(centerT, availH - tooltipHeight - margin));
+      this.tooltip.classList.add("tutorial-tooltip-center");
+      this.tooltip.style.left = left + "px";
+      this.tooltip.style.top = top + "px";
+      this.tooltip.style.width = tooltipWidth + "px";
+      return;
+    }
+
+    let left = best.l;
+    let top  = best.t;
+
+    // Clamp to viewport (allow overlap only as last resort, which the scorer already handles)
+    if (left + tooltipWidth > vw - margin) left = vw - tooltipWidth - margin;
+    if (left < margin) left = margin;
+    if (top + tooltipHeight > availH - margin) top = availH - tooltipHeight - margin;
+    if (top < margin) top = margin;
+
+    this.tooltip.classList.add(best.arrow);
     this.tooltip.style.left = left + "px";
     this.tooltip.style.top = top + "px";
+    this.tooltip.style.width = tooltipWidth + "px";
   }
 
   /* ═══════════════════════════════════════════════════

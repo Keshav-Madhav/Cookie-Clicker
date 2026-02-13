@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Cookie Clicker Clone</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -92,6 +92,22 @@
         <div id="building-list"></div>
       </div>
     </div>
+
+    <!-- Mobile bottom navigation -->
+    <nav id="mobile-nav">
+      <button class="mobile-tab active" data-tab="click-area" aria-label="Bake cookies">
+        <span class="mobile-tab-icon">🍪</span>
+        <span class="mobile-tab-label">Bake</span>
+      </button>
+      <button class="mobile-tab" data-tab="stats" aria-label="Viewport">
+        <span class="mobile-tab-icon">📺</span>
+        <span class="mobile-tab-label">Watch</span>
+      </button>
+      <button class="mobile-tab" data-tab="shop" aria-label="Shop">
+        <span class="mobile-tab-icon">🏪</span>
+        <span class="mobile-tab-label">Shop</span>
+      </button>
+    </nav>
   </body>
   <script src="main.js" type="module"></script>
 </html>

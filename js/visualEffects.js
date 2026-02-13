@@ -591,6 +591,9 @@ export class VisualEffects {
     // Tutorial: golden cookie appeared
     if (this.game.tutorial) this.game.tutorial.triggerEvent('goldenCookie');
 
+    // Mobile badge: notify user a golden cookie appeared
+    if (this.game._mobileNav) this.game._mobileNav.showGoldenBadge();
+
     // Disappear after 12 seconds if not clicked
     const fadeGolden = () => {
       // If tutorial tip is active, wait and retry
@@ -602,6 +605,7 @@ export class VisualEffects {
       setTimeout(() => {
         el.classList.add("hidden");
         el.classList.remove("golden-appear", "golden-fade");
+        if (this.game._mobileNav) this.game._mobileNav.clearGoldenBadge();
         this._scheduleGoldenCookie();
       }, 600);
     };
@@ -660,6 +664,10 @@ export class VisualEffects {
 
       el.classList.add("hidden");
       el.classList.remove("golden-appear", "golden-fade");
+
+      // Clear mobile badge
+      if (this.game._mobileNav) this.game._mobileNav.clearGoldenBadge();
+
       this._scheduleGoldenCookie();
     });
   }
