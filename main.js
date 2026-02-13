@@ -50,10 +50,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Building tooltips
     const building = e.target.closest('.building');
     if (building) {
+      const flavor = building.dataset.buildingFlavor;
       const nameP = building.querySelector('.name_p');
       const priceP = building.querySelector('.price_p');
       if (nameP && priceP) {
-        globalTooltip.innerHTML = `<p>${nameP.textContent}</p><p>${priceP.textContent}</p>`;
+        let html = `<p>${nameP.textContent}</p><p>${priceP.textContent}</p>`;
+        if (flavor) html += `<p style="font-style:italic;color:#f8e8b0;font-size:11px;margin-top:4px">${flavor}</p>`;
+        globalTooltip.innerHTML = html;
         globalTooltip.style.opacity = '1';
         const rect = building.getBoundingClientRect();
         globalTooltip.style.left = rect.left + (rect.width / 2) - (globalTooltip.offsetWidth / 2) + 'px';

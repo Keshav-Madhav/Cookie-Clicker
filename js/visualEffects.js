@@ -36,6 +36,10 @@ export class VisualEffects {
     // News ticker pause state
     this._newsPaused = false;
 
+    // User-togglable flags (synced with game.settings)
+    this.particlesEnabled = true;
+    this.shimmersEnabled = true;
+
     this.buildingIcons = [
       { name: "Cursor",     icon: "🖱️" },
       { name: "Grandma",    icon: "👵" },
@@ -367,6 +371,7 @@ export class VisualEffects {
       const ctx = this.ctx;
 
       /* cookie rain — setTransform eliminates save/restore overhead */
+      if (this.particlesEnabled) {
       for (let i = 0, len = this.raindrops.length; i < len; i++) {
         const d = this.raindrops[i];
         d.y += d.speed * sMult;
@@ -387,6 +392,7 @@ export class VisualEffects {
         ctx.setTransform(cos, sin, -sin, cos, d.x, d.y);
         ctx.drawImage(cache, -16, -16, 32, 32);
       }
+      } // end particlesEnabled
 
       /* burst cookies — swap-and-pop removal, no splice */
       for (let i = this._burstCount - 1; i >= 0; i--) {
@@ -420,6 +426,7 @@ export class VisualEffects {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       /* shimmer sparkles — batch into single path per color */
+      if (this.shimmersEnabled) {
       const colorGroups = {};
       for (const s of this.shimmers) {
         s.phase += s.speed;
@@ -448,6 +455,7 @@ export class VisualEffects {
         }
         this.ctx.fill();
       }
+      } // end shimmersEnabled
       this.ctx.globalAlpha = 1;
     };
     requestAnimationFrame(loop);

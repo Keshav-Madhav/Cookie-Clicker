@@ -1,4 +1,16 @@
+// Global flag: when false, uses full comma-separated numbers instead of shorthand
+let _useShortNumbers = true;
+export function setShortNumbers(v) { _useShortNumbers = v; }
+
 export const formatNumberInWords = (num) => {
+  num = parseFloat(num);
+  if (isNaN(num)) return "0";
+
+  // Full comma-separated mode
+  if (!_useShortNumbers) {
+    return Math.floor(num).toLocaleString('en-US');
+  }
+
   if (num < 10000) return num.toString(); // No formatting needed for small numbers
 
   const suffixes = [

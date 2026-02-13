@@ -12,6 +12,8 @@ export class Building {
     this.cps = this.building.cps;
     this.cost_multiplier = this.building.cost_multiplier || 1.15;
     this.requires = this.building.requires || null;
+    this.desc = this.building.desc || '';
+    this.flavor = this.building.flavor || '';
     this.count = 0;
   }
 
@@ -151,58 +153,96 @@ export class Building {
     this.cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count));
   }  
 
+  /** How close the player is to meeting requirements (0..1) */
+  getProgressRatio() {
+    if (!this.requires) return 1;
+    const conditions = Array.isArray(this.requires) ? this.requires : [this.requires];
+    let total = 0;
+    for (const c of conditions) {
+      let current = 0, target = c.min;
+      switch (c.type) {
+        case "totalBuildings": current = this.game.getTotalBuildingCount(); break;
+        case "cps":            current = this.game.cookiesPerSecond; break;
+        case "totalCookies":   current = this.game.stats.totalCookiesBaked; break;
+        default:               current = target; break;
+      }
+      total += Math.min(current / target, 1);
+    }
+    return total / conditions.length;
+  }
+
   getButton(index) {
     let button = document.createElement("button");
     button.addEventListener("click", () => this.buy());
     button.classList.add("building");
     button.dataset.buildingIndex = index;
 
+    const locked = !this.meetsRequirements() && this.count === 0;
+
     let name_p = document.createElement("p");
     name_p.classList.add("name_p");
-    const totalBuildingCps = parseFloat((this.count * this.cps).toFixed(1));
-    if (this.count > 0) {
-      name_p.innerHTML = `${this.name} <span>(${this.cps}/s each · <strong class="building-total-cps">${formatNumberInWords(totalBuildingCps)}/s</strong>)</span>`;
+
+    if (locked) {
+      // Always show name, but hide CPS
+      name_p.innerHTML = `${this.name} <span>(?/s each)</span>`;
     } else {
-      name_p.innerHTML = `${this.name} <span>(${this.cps}/s each)</span>`;
+      const totalBuildingCps = parseFloat((this.count * this.cps).toFixed(1));
+      if (this.count > 0) {
+        name_p.innerHTML = `${this.name} <span>(${this.cps}/s each · <strong class="building-total-cps">${formatNumberInWords(totalBuildingCps)}/s</strong>)</span>`;
+      } else {
+        name_p.innerHTML = `${this.name} <span>(${this.cps}/s each)</span>`;
+      }
+    }
+
+    // Short description (only visible when unlocked)
+    let desc_p = null;
+    if (!locked && this.desc) {
+      desc_p = document.createElement("p");
+      desc_p.classList.add("building-desc");
+      desc_p.textContent = this.desc;
     }
 
     let price_p = document.createElement("p");
     price_p.classList.add("price_p");
-    
-    // Calculate price and amount based on purchase amount
-    const purchaseAmount = this.game.purchaseAmount;
-    let displayCost, displayAmount;
-    let canAfford = false;
-    
-    if (purchaseAmount === 'Max') {
-      const maxBuyable = this.calculateMaxBuyable();
-      displayCost = maxBuyable > 0 ? this.calculateBulkCost(maxBuyable) : this.cost;
-      displayAmount = maxBuyable > 0 ? maxBuyable : 0;
-      price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${displayAmount})`;
-      canAfford = maxBuyable > 0;
+
+    if (locked) {
+      button.disabled = true;
+      button.classList.add('building-locked');
+      price_p.textContent = `🔒 ${this.getRequirementText()}`;
     } else {
-      displayCost = this.calculateBulkCost(purchaseAmount);
-      price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${purchaseAmount})`;
-      canAfford = this.game.cookies >= displayCost;
+      // Calculate price and amount based on purchase amount
+      const purchaseAmount = this.game.purchaseAmount;
+      let displayCost, displayAmount;
+      let canAfford = false;
+
+      if (purchaseAmount === 'Max') {
+        const maxBuyable = this.calculateMaxBuyable();
+        displayCost = maxBuyable > 0 ? this.calculateBulkCost(maxBuyable) : this.cost;
+        displayAmount = maxBuyable > 0 ? maxBuyable : 0;
+        price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${displayAmount})`;
+        canAfford = maxBuyable > 0;
+      } else {
+        displayCost = this.calculateBulkCost(purchaseAmount);
+        price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${purchaseAmount})`;
+        canAfford = this.game.cookies >= displayCost;
+      }
+      button.disabled = !canAfford;
+    }
+
+    // Store flavor text for tooltip
+    if (this.flavor) {
+      button.dataset.buildingFlavor = this.flavor;
     }
 
     let subDiv = document.createElement("div");
     subDiv.appendChild(name_p);
+    if (desc_p) subDiv.appendChild(desc_p);
     subDiv.appendChild(price_p);
     button.appendChild(subDiv);
 
     let quantity_p = document.createElement("p");
     quantity_p.classList.add("quantity_p");
-    quantity_p.textContent = `${this.count}`;
-
-    // FIXED: Ensure the button is disabled if the player can't afford the purchase
-    if (!this.meetsRequirements()) {
-      button.disabled = true;
-      button.classList.add('building-locked');
-      price_p.textContent = `🔒 ${this.getRequirementText()}`;
-    } else {
-      button.disabled = !canAfford;
-    }
+    quantity_p.textContent = locked ? `🔒` : `${this.count}`;
 
     button.appendChild(quantity_p);
     return button;

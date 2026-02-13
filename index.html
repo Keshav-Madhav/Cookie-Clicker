@@ -66,7 +66,30 @@
             <!-- Settings section -->
             <div class="menu-section">
               <h3>⚙️ Settings</h3>
-              <button id="replay-tutorial-btn" class="tutorial-replay-btn">Replay Tutorial</button>
+              <div class="settings-group">
+                <label class="settings-toggle">
+                  <span>Cookie Rain</span>
+                  <input type="checkbox" id="setting-particles" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="settings-toggle">
+                  <span>Number Shorthand</span>
+                  <input type="checkbox" id="setting-short-numbers" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="settings-toggle">
+                  <span>Shimmer Effects</span>
+                  <input type="checkbox" id="setting-shimmers" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button id="replay-tutorial-btn" class="tutorial-replay-btn">🔄 Replay Tutorial</button>
+                <button id="export-save-btn" class="settings-btn settings-btn-export">📤 Export Save</button>
+                <button id="import-save-btn" class="settings-btn settings-btn-import">📥 Import Save</button>
+                <button id="wipe-save-btn" class="settings-btn settings-btn-danger">🗑️ Wipe Save</button>
+              </div>
+              <textarea id="save-text-area" class="save-textarea" placeholder="Paste save data here..." style="display:none;"></textarea>
             </div>
           </div>
         </div>

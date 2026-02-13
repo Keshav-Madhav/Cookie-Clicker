@@ -5,7 +5,7 @@ import { PrestigeManager } from "./prestige.js";
 import { VisualEffects } from "./visualEffects.js";
 import { Tutorial } from "./tutorial.js";
 import { buildings, upgrades } from "./gameData.js";
-import { formatNumberInWords } from "./utils.js";
+import { formatNumberInWords, setShortNumbers } from "./utils.js";
 import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
 
 export class Game {
@@ -23,6 +23,13 @@ export class Game {
     this._upgradeOrder = []; // sorted indices for upgrade display
     this._upgradeSortTimer = null;
     this._buildingSort = 'default'; // default, price, cps, efficiency, owned
+
+    // User settings
+    this.settings = {
+      particles: true,       // cookie rain in viewport
+      shortNumbers: true,    // e.g. "1.5M" vs "1,500,000"
+      shimmers: true,        // shimmer sparkles in viewport
+    };
 
     // Frenzy state
     this.frenzyActive = false;
@@ -68,6 +75,10 @@ export class Game {
     this.setupMenu();
     this.initParticles();
     this.visualEffects.init();
+    // Apply saved settings to visual effects
+    this.visualEffects.particlesEnabled = this.settings.particles;
+    this.visualEffects.shimmersEnabled = this.settings.shimmers;
+    setShortNumbers(this.settings.shortNumbers);
     this.tutorial.init();
 
     // Main game loop - 1 second tick
@@ -457,6 +468,7 @@ export class Game {
     if (menuBtn && overlay) {
       menuBtn.addEventListener("click", () => {
         this.updateMenu();
+        this._syncToggles();
         overlay.classList.remove("hidden");
         // Easter egg: first time opening settings
         if (this.tutorial) this.tutorial.triggerEvent('settingsOpened');
@@ -478,6 +490,87 @@ export class Game {
         overlay.classList.add("hidden");
         this.tutorial.replayTutorial();
       });
+    }
+
+    // ── Settings toggles ──
+    this._bindToggle("setting-particles", "particles", (v) => {
+      if (this.visualEffects) this.visualEffects.particlesEnabled = v;
+    });
+    this._bindToggle("setting-short-numbers", "shortNumbers", (v) => {
+      setShortNumbers(v);
+      this.updateUI();
+    });
+    this._bindToggle("setting-shimmers", "shimmers", (v) => {
+      if (this.visualEffects) this.visualEffects.shimmersEnabled = v;
+    });
+
+    // ── Export Save ──
+    const exportBtn = document.getElementById("export-save-btn");
+    const saveArea = document.getElementById("save-text-area");
+    if (exportBtn && saveArea) {
+      exportBtn.addEventListener("click", () => {
+        const raw = localStorage.getItem("cookieClickerSave");
+        if (raw) {
+          saveArea.style.display = "block";
+          saveArea.value = raw;
+          saveArea.select();
+          navigator.clipboard.writeText(raw).catch(() => {});
+          exportBtn.textContent = "✓ Copied!";
+          setTimeout(() => { exportBtn.textContent = "📤 Export Save"; }, 2000);
+        }
+      });
+    }
+
+    // ── Import Save ──
+    const importBtn = document.getElementById("import-save-btn");
+    if (importBtn && saveArea) {
+      importBtn.addEventListener("click", () => {
+        if (saveArea.style.display === "none") {
+          saveArea.style.display = "block";
+          saveArea.value = "";
+          saveArea.placeholder = "Paste your save data here, then click Import again...";
+          importBtn.textContent = "📥 Confirm Import";
+        } else if (saveArea.value.trim()) {
+          if (confirm("This will overwrite your current save. Continue?")) {
+            localStorage.setItem("cookieClickerSave", saveArea.value.trim());
+            location.reload();
+          }
+        }
+      });
+    }
+
+    // ── Wipe Save ──
+    const wipeBtn = document.getElementById("wipe-save-btn");
+    if (wipeBtn) {
+      wipeBtn.addEventListener("click", () => {
+        if (confirm("Are you sure? This will permanently delete ALL your progress!")) {
+          if (confirm("Really? There is no undo. All cookies, buildings, and upgrades will be gone.")) {
+            localStorage.removeItem("cookieClickerSave");
+            location.reload();
+          }
+        }
+      });
+    }
+  }
+
+  /** Helper: bind a checkbox toggle to a settings property */
+  _bindToggle(elementId, settingsKey, onChange) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.checked = this.settings[settingsKey];
+    el.addEventListener("change", () => {
+      this.settings[settingsKey] = el.checked;
+      if (onChange) onChange(el.checked);
+      this.saveGame();
+    });
+  }
+
+  /** Sync toggle checkboxes with current settings (called on menu open) */
+  _syncToggles() {
+    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers" };
+    for (const [id, key] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      if (el) el.checked = this.settings[key];
     }
   }
 
@@ -783,6 +876,7 @@ export class Game {
       this.renderUpgradePage();
       this.updateButtonsState(); 
     } else {
+      this.renderBuildingList(false);
       this.updateButtonsState(); 
     }
 
@@ -873,6 +967,8 @@ export class Game {
     const buildingList = document.getElementById("building-list");
     buildingList.innerHTML = "";
     const sortedIndices = this.getSortedBuildingIndices();
+
+    // Show ALL buildings — locked ones get locked styling
     sortedIndices.forEach((index, i) => {
       const div = this.buildings[index].getButton(index);
       if (animate) {
@@ -1117,6 +1213,7 @@ export class Game {
       achievements: this.achievementManager.getSaveData(),
       prestige: this.prestige.getSaveData(),
       tutorial: this.tutorial.getSaveData(),
+      settings: this.settings,
       lastSavedTime: Date.now(),
     };
     const jsonStr = JSON.stringify(saveData);
@@ -1160,6 +1257,11 @@ export class Game {
     // Load tutorial state
     if (data.tutorial) {
       this.tutorial.loadSaveData(data.tutorial);
+    }
+
+    // Load settings
+    if (data.settings) {
+      this.settings = { ...this.settings, ...data.settings };
     }
 
     // Load stats
