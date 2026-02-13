@@ -400,6 +400,8 @@ export class Tutorial {
     // If ending an event tip, mark not busy and process queue after cooldown
     if (this._eventBusy) {
       this._eventBusy = false;
+      // Resume news ticker
+      if (this.game.visualEffects) this.game.visualEffects.resumeNews();
       if (this._eventQueue.length > 0) {
         setTimeout(() => this._processEventQueue(), this._eventCooldown);
       }
@@ -439,6 +441,8 @@ export class Tutorial {
     if (this.activeSequence && this.activeSequence === this.onboardingSteps) return;
 
     this._eventBusy = true;
+    // Pause news ticker while tip is visible
+    if (this.game.visualEffects) this.game.visualEffects.pauseNews();
     const { tip, dynamicTarget } = this._eventQueue.shift();
 
     const step = { ...tip };
@@ -473,7 +477,12 @@ export class Tutorial {
 
     // Update title & text
     this.tooltip.querySelector(".tutorial-title").textContent = step.title;
-    this.tooltip.querySelector(".tutorial-text").textContent = step.text;
+    const textEl = this.tooltip.querySelector(".tutorial-text");
+    if (step.html) {
+      textEl.innerHTML = step.text;
+    } else {
+      textEl.textContent = step.text;
+    }
 
     // Update button text
     const btn = this.tooltip.querySelector(".tutorial-next-btn");
@@ -632,6 +641,58 @@ export class Tutorial {
       }
     };
     check();
+  }
+
+  /* ═══════════════════════════════════════════════════
+     OFFLINE EARNINGS POPUP
+     ═══════════════════════════════════════════════════ */
+  showOfflineEarnings({ elapsedSec, baseCps, offlineMultiplier, totalEarned, formatFn }) {
+    const fmt = formatFn || (n => n.toLocaleString());
+
+    // Time away in human-readable form
+    let timeStr;
+    if (elapsedSec < 60) {
+      timeStr = `${elapsedSec}s`;
+    } else if (elapsedSec < 3600) {
+      const m = Math.floor(elapsedSec / 60);
+      const s = elapsedSec % 60;
+      timeStr = s > 0 ? `${m}m ${s}s` : `${m}m`;
+    } else {
+      const h = Math.floor(elapsedSec / 3600);
+      const m = Math.floor((elapsedSec % 3600) / 60);
+      timeStr = m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+
+    const html = `
+      <div class="offline-summary">
+        <div class="offline-total">+${fmt(totalEarned)} cookies</div>
+        <div class="offline-details">
+          <span>Time away</span><span>${timeStr}</span>
+          <span>Base CPS</span><span>${fmt(baseCps)}/s</span>
+          <span>Offline multiplier</span><span>${offlineMultiplier}x</span>
+          <span>Effective rate</span><span>${fmt(parseFloat((baseCps * offlineMultiplier).toFixed(1)))}/s</span>
+        </div>
+      </div>`;
+
+    const step = {
+      title: "Welcome Back, Baker!",
+      text: html,
+      html: true,
+      target: null,
+      position: "left",
+      isLast: true,
+    };
+
+    // Ensure DOM is built (showOfflineEarnings may fire before init())
+    if (!this.overlay) this._buildDOM();
+
+    // Show immediately — bypass event queue since this is a one-shot popup
+    this._eventBusy = true;
+    if (this.game.visualEffects) this.game.visualEffects.pauseNews();
+    this.activeSequence = [step];
+    this.currentStep = 0;
+    this._showOverlay();
+    this._renderStep();
   }
 
   /* ═══════════════════════════════════════════════════

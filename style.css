@@ -2838,3 +2838,36 @@ html {
 .tutorial-replay-btn:active {
   transform: translateY(1px);
 }
+
+/* ── Offline Earnings Popup ── */
+.offline-summary {
+  text-align: center;
+}
+
+.offline-total {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.offline-details {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.offline-details span:nth-child(odd) {
+  color: #b8a080;
+}
+
+.offline-details span:nth-child(even) {
+  color: #f5e8d3;
+  font-weight: 600;
+  text-align: right;
+}

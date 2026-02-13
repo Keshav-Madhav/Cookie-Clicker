@@ -217,6 +217,7 @@ export class Game {
         this.cookies += bonus;
         this.stats.totalCookiesBaked += bonus;
         this.createFloatingText(event, `🍀 LUCKY! +${formatNumberInWords(bonus)}`, true);
+        if (this.visualEffects) this.visualEffects.triggerIncomeRain(bonus);
       } else if (roll < 0.8) {
         // Frenzy: 7x CPS for 30 seconds
         this.startFrenzy('cps', 7, 30);
@@ -767,16 +768,7 @@ export class Game {
     setTimeout(() => floatingText.remove(), 1500);
   }
   
-  showOfflineEarningsText(earnings) {
-    const floatingText = document.createElement("span");
-    floatingText.textContent = `+${formatNumberInWords(earnings)} cookies while offline!`;
-    floatingText.classList.add("cookie-text", "offline-earnings");
-    floatingText.style.left = "50%";
-    floatingText.style.top = "10%";
-    floatingText.style.transform = "translateX(-50%)";
-    document.body.appendChild(floatingText);
-    setTimeout(() => floatingText.remove(), 3000);
-  }
+  // Offline earnings are now shown via Tutorial.showOfflineEarnings() popup
 
   updateCookieCount() {
     document.getElementById("cookie-count").textContent = formatNumberInWords(this.cookies);
@@ -1216,13 +1208,23 @@ export class Game {
             }
           });
           
-          const offlineEarnings = elapsedTime * this.getEffectiveCPS() * offlineMultiplier;
+          const baseCps = this.getEffectiveCPS();
+          const offlineEarnings = elapsedTime * baseCps * offlineMultiplier;
           this.cookies += offlineEarnings;
           this.stats.totalCookiesBaked += offlineEarnings;
           this.cookies = parseFloat(this.cookies.toFixed(1));
-          
+
           if (offlineEarnings > 0) {
-            this.showOfflineEarningsText(offlineEarnings);
+            if (this.visualEffects) this.visualEffects.triggerIncomeRain(offlineEarnings);
+            if (this.tutorial) {
+              this.tutorial.showOfflineEarnings({
+                elapsedSec: elapsedTime,
+                baseCps,
+                offlineMultiplier,
+                totalEarned: parseFloat(offlineEarnings.toFixed(1)),
+                formatFn: formatNumberInWords,
+              });
+            }
           }
         }
       }

@@ -23,8 +23,18 @@ export class VisualEffects {
     this._rainSpeedMult = 1;
     this._rainTargetCount = 40;
     this._rainBaseCount = 40;
-    this._burstDrops = [];          // temporary burst cookies
     this._lastIntensityUpdate = 0;
+
+    // Pre-allocated burst pool (avoids per-burst GC)
+    this._burstPoolCap = 200;
+    this._burstPool = new Array(this._burstPoolCap);
+    this._burstCount = 0;  // active burst drops = _burstPool[0.._burstCount-1]
+    for (let i = 0; i < this._burstPoolCap; i++) {
+      this._burstPool[i] = { x:0, y:0, size:10, speed:1, wobbleAmp:0, wobbleSpeed:0, wobblePhase:0, rotation:0, rotSpeed:0, opacity:0 };
+    }
+
+    // News ticker pause state
+    this._newsPaused = false;
 
     this.buildingIcons = [
       { name: "Cursor",     icon: "🖱️" },
@@ -198,56 +208,55 @@ export class VisualEffects {
   /* ─── dynamic rain intensity ─── */
 
   /**
-   * Recalculates how many cookies should be raining and how fast,
-   * based on the current game state.  Called every ~500 ms.
+   * Recalculates rain intensity based on CPS using smooth log scaling.
+   * The ambient rain visually represents your ongoing cookie income.
+   * Called every ~500 ms.
    *
-   * Scaling rules
-   * ─────────────
-   * CPS tier        extra drops   speed mult
-   * ────────────    ───────────   ──────────
-   *    0 – 10            0          1.0×
-   *   10 – 100          +8          1.1×
-   *  100 – 1 k         +14          1.2×
-   *   1 k – 10 k       +20          1.3×
-   *  10 k – 100 k      +26          1.5×
-   * 100 k+             +32          1.7×
-   *
-   * Frenzy (CPS 7×)    +25          2.0×
-   * Click Frenzy 777×  +40          2.5×
+   * CPS        ~drops   speed
+   * ────────   ──────   ─────
+   *    0         40      1.0×
+   *   10         48      1.08×
+   *  100         56      1.16×
+   *   1k         64      1.24×
+   *  10k         72      1.32×
+   * 100k         80      1.40×
+   *   1M         88      1.48×
+   *   1B        112      1.72×
    */
   _updateRainIntensity() {
     const g = this.game;
     const cps = g.getEffectiveCPS();
 
-    // --- CPS-based scaling ---
-    let extraDrops = 0;
-    let speedMult  = 1;
-    if      (cps >= 100000) { extraDrops = 32; speedMult = 1.7; }
-    else if (cps >= 10000)  { extraDrops = 26; speedMult = 1.5; }
-    else if (cps >= 1000)   { extraDrops = 20; speedMult = 1.3; }
-    else if (cps >= 100)    { extraDrops = 14; speedMult = 1.2; }
-    else if (cps >= 10)     { extraDrops = 8;  speedMult = 1.1; }
+    // Smooth log-based scaling — rain grows with income
+    const logCps = cps > 0 ? Math.log10(cps) : 0;
+    let targetCount = Math.floor(this._rainBaseCount + logCps * 8);
+    let speedMult   = 1 + logCps * 0.08;
 
-    // --- Frenzy overlay ---
+    // Frenzy overlay — income spike = rain spike
     if (g.frenzyActive) {
       if (g.frenzyType === 'click') {
-        extraDrops += 40;
+        targetCount += 40;
         speedMult  *= 2.5;
       } else {
-        extraDrops += 25;
+        targetCount += 25;
         speedMult  *= 2.0;
       }
     }
 
-    this._rainTargetCount = this._rainBaseCount + extraDrops;
+    // Clamp to reasonable values (raised cap — canvas rendering is cheap)
+    targetCount = Math.min(200, Math.max(this._rainBaseCount, targetCount));
+    speedMult   = Math.min(3, speedMult);
+
+    this._rainTargetCount = targetCount;
     this._rainSpeedMult   = speedMult;
 
     // Grow / shrink the raindrop pool to match the target
     while (this.raindrops.length < this._rainTargetCount) {
       this.raindrops.push(this._makeRaindrop(true));
     }
-    while (this.raindrops.length > this._rainTargetCount) {
-      this.raindrops.pop();
+    // Shrink: just truncate (objects are lightweight, GC handles them)
+    if (this.raindrops.length > this._rainTargetCount) {
+      this.raindrops.length = this._rainTargetCount;
     }
   }
 
@@ -260,14 +269,14 @@ export class VisualEffects {
    */
   triggerCookieBurst(count = 20, speedMult = 2.5) {
     for (let i = 0; i < count; i++) {
-      const drop = this._makeRaindrop(false);
-      // Start spread across the top so they don't clump
-      drop.y = -(Math.random() * 60);
-      drop.speed *= speedMult;
-      drop.opacity = Math.random() * 0.5 + 0.3;    // a bit brighter
-      drop.size = Math.random() * 16 + 10;          // slightly bigger
-      drop._burst = true;                            // mark as burst (auto-remove)
-      this._burstDrops.push(drop);
+      if (this._burstCount >= this._burstPoolCap) break; // pool full
+      const d = this._burstPool[this._burstCount];
+      this._resetDrop(d, false);
+      d.y = -(Math.random() * 60);
+      d.speed *= speedMult;
+      d.opacity = Math.random() * 0.5 + 0.3;
+      d.size = Math.random() * 16 + 10;
+      this._burstCount++;
     }
   }
 
@@ -286,6 +295,22 @@ export class VisualEffects {
       rotSpeed: (Math.random() - 0.5) * 0.02,
       opacity: Math.random() * 0.35 + 0.15,
     };
+  }
+
+  /** Reset an existing drop object in-place (zero allocation). */
+  _resetDrop(d, randomY) {
+    const w = this.canvas ? this.canvas.width : 600;
+    const h = this.canvas ? this.canvas.height : 400;
+    d.x = Math.random() * w;
+    d.y = randomY ? Math.random() * h : -20;
+    d.size = Math.random() * 14 + 8;
+    d.speed = Math.random() * 1.2 + 0.4;
+    d.wobbleAmp = Math.random() * 1.5 + 0.3;
+    d.wobbleSpeed = Math.random() * 0.03 + 0.01;
+    d.wobblePhase = Math.random() * Math.PI * 2;
+    d.rotation = Math.random() * Math.PI * 2;
+    d.rotSpeed = (Math.random() - 0.5) * 0.02;
+    d.opacity = Math.random() * 0.35 + 0.15;
   }
 
   /* ─── shimmer sparkles ─── */
@@ -338,10 +363,11 @@ export class VisualEffects {
       }
 
       const sMult = this._rainSpeedMult;
-
-      /* cookie rain — use cached bitmap */
       const cache = this._cookieCache;
-      for (let i = 0; i < this.raindrops.length; i++) {
+      const ctx = this.ctx;
+
+      /* cookie rain — setTransform eliminates save/restore overhead */
+      for (let i = 0, len = this.raindrops.length; i < len; i++) {
         const d = this.raindrops[i];
         d.y += d.speed * sMult;
         d.wobblePhase += d.wobbleSpeed;
@@ -349,40 +375,49 @@ export class VisualEffects {
         d.rotation += d.rotSpeed;
 
         if (d.y > H + 30) {
-          this.raindrops[i] = this._makeRaindrop(false);
+          this._resetDrop(d, false);  // recycle in-place, zero allocation
           continue;
         }
 
-        this.ctx.globalAlpha = d.opacity;
-        this.ctx.save();
-        this.ctx.translate(d.x, d.y);
-        this.ctx.rotate(d.rotation);
         const s = d.size / 28;
-        this.ctx.drawImage(cache, -16 * s, -16 * s, 32 * s, 32 * s);
-        this.ctx.restore();
+        const cos = Math.cos(d.rotation) * s;
+        const sin = Math.sin(d.rotation) * s;
+        ctx.globalAlpha = d.opacity;
+        // setTransform = translate(x,y) * rotate * scale — no save/restore needed
+        ctx.setTransform(cos, sin, -sin, cos, d.x, d.y);
+        ctx.drawImage(cache, -16, -16, 32, 32);
       }
 
-      /* burst cookies — temporary, auto-removed when off-screen */
-      for (let i = this._burstDrops.length - 1; i >= 0; i--) {
-        const d = this._burstDrops[i];
+      /* burst cookies — swap-and-pop removal, no splice */
+      for (let i = this._burstCount - 1; i >= 0; i--) {
+        const d = this._burstPool[i];
         d.y += d.speed;
         d.wobblePhase += d.wobbleSpeed;
         d.x += Math.sin(d.wobblePhase) * d.wobbleAmp;
         d.rotation += d.rotSpeed;
 
         if (d.y > H + 30) {
-          this._burstDrops.splice(i, 1);
+          // Swap with last active, shrink active count — O(1) removal
+          const last = this._burstCount - 1;
+          if (i !== last) {
+            const tmp = this._burstPool[i];
+            this._burstPool[i] = this._burstPool[last];
+            this._burstPool[last] = tmp;
+          }
+          this._burstCount--;
           continue;
         }
 
-        this.ctx.globalAlpha = d.opacity;
-        this.ctx.save();
-        this.ctx.translate(d.x, d.y);
-        this.ctx.rotate(d.rotation);
         const s = d.size / 28;
-        this.ctx.drawImage(cache, -16 * s, -16 * s, 32 * s, 32 * s);
-        this.ctx.restore();
+        const cos = Math.cos(d.rotation) * s;
+        const sin = Math.sin(d.rotation) * s;
+        ctx.globalAlpha = d.opacity;
+        ctx.setTransform(cos, sin, -sin, cos, d.x, d.y);
+        ctx.drawImage(cache, -16, -16, 32, 32);
       }
+
+      // Reset transform for shimmer drawing below
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       /* shimmer sparkles — batch into single path per color */
       const colorGroups = {};
@@ -424,6 +459,9 @@ export class VisualEffects {
     if (!el) return;
 
     const rotate = () => {
+      // Skip rotation if paused (tutorial tip is showing)
+      if (this._newsPaused) return;
+
       // mix in dynamic messages
       const dynamic = this._getDynamicNews();
       const pool = [...this.newsMessages, ...dynamic];
@@ -554,14 +592,20 @@ export class VisualEffects {
     if (this.game.tutorial) this.game.tutorial.triggerEvent('goldenCookie');
 
     // Disappear after 12 seconds if not clicked
-    this._goldenTimeout = setTimeout(() => {
+    const fadeGolden = () => {
+      // If tutorial tip is active, wait and retry
+      if (this.game.tutorial && this.game.tutorial._eventBusy) {
+        this._goldenTimeout = setTimeout(fadeGolden, 2000);
+        return;
+      }
       el.classList.add("golden-fade");
       setTimeout(() => {
         el.classList.add("hidden");
         el.classList.remove("golden-appear", "golden-fade");
         this._scheduleGoldenCookie();
       }, 600);
-    }, 12000);
+    };
+    this._goldenTimeout = setTimeout(fadeGolden, 12000);
   }
 
   _setupGoldenCookieClick() {
@@ -576,11 +620,13 @@ export class VisualEffects {
       const roll = Math.random();
       const g = this.game;
       let msg = "";
+      let incomeAmount = 0;
       if (roll < 0.45) {
         const bonus = Math.max(200, g.getEffectiveCPS() * 600);
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `🍀 Lucky! +${formatNumberInWords(bonus)}`;
+        incomeAmount = bonus;
       } else if (roll < 0.75) {
         g.startFrenzy('cps', 7, 77);
         msg = "🔥 Frenzy! 7x CPS for 77s!";
@@ -592,14 +638,19 @@ export class VisualEffects {
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `💎 Cookie Storm! +${formatNumberInWords(bonus)}`;
+        incomeAmount = bonus;
         // Easter egg: cookie storm (rarest golden reward)
         if (this.game.tutorial) this.game.tutorial.triggerEvent('cookieStorm');
       }
       g.stats.luckyClicks++;
       g.updateCookieCount();
 
-      // Cookie rain burst when golden cookie is clicked
-      this.triggerCookieBurst(30, 3);
+      // Income-proportional cookie rain (or small burst for frenzies)
+      if (incomeAmount > 0) {
+        this.triggerIncomeRain(incomeAmount);
+      } else {
+        this.triggerCookieBurst(20, 2.5);
+      }
 
       // Burst particles
       this._goldenBurst(el);
@@ -736,6 +787,28 @@ export class VisualEffects {
     this.updateBuildingShowcase();
     this.updateMilk();
   }
+
+  /* ───────────── income-based cookie rain burst ─────────────
+   * Spawns cookies proportional to the income relative to CPS.
+   * Small income (1s of CPS) → gentle burst.
+   * Big bonus (600s of CPS)  → dramatic cookie shower.
+   */
+  triggerIncomeRain(cookiesReceived) {
+    const cps = Math.max(1, this.game.getEffectiveCPS());
+    const secondsWorth = cookiesReceived / cps;
+
+    // Burst count: log2 scaling, 5–120 range (pool supports up to 200)
+    const count = Math.floor(Math.min(120, Math.max(5, Math.log2(secondsWorth + 1) * 15)));
+
+    // Speed: bigger bonuses fall faster, 2–4× range
+    const speed = Math.min(4, Math.max(2, 1.5 + Math.log10(secondsWorth + 1) * 0.8));
+
+    this.triggerCookieBurst(count, speed);
+  }
+
+  /* ───────────────────────── pause / resume (for tutorial) ── */
+  pauseNews()  { this._newsPaused = true; }
+  resumeNews() { this._newsPaused = false; }
 
   destroy() {
     cancelAnimationFrame(this._animFrame);

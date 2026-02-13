@@ -71,7 +71,8 @@ export class MiniGames {
     g.cookies += reward;
     g.stats.totalCookiesBaked += reward;
     g.updateCookieCount();
-    if (g.visualEffects) g.visualEffects.triggerCookieBurst(tier === "jackpot" ? 30 : 15, 2);
+    // Income-proportional cookie rain
+    if (g.visualEffects) g.visualEffects.triggerIncomeRain(reward);
 
     // Track mini-game win for achievements
     if (gameName && g.stats.miniGamesWon) {
