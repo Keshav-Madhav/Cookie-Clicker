@@ -1574,17 +1574,8 @@ html {
 }
 
 .showcase-icon {
-  font-size: 1.3rem;
-  animation: showcaseFloat 3s ease-in-out infinite;
   display: block;
-}
-
-.showcase-building:nth-child(odd)  .showcase-icon { animation-delay: 0s; }
-.showcase-building:nth-child(even) .showcase-icon { animation-delay: 1.5s; }
-
-@keyframes showcaseFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  border-radius: 4px;
 }
 
 .showcase-count {
@@ -2087,9 +2078,48 @@ html {
   opacity: 0.5;
 }
 
+/* ─── Building row canvas icon ─── */
+.building-row-icon {
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 0 8px rgba(255, 215, 0, 0.06);
+  image-rendering: pixelated;
+  margin-right: 10px;
+}
+.building-icon-locked {
+  filter: grayscale(0.7) brightness(0.5);
+  opacity: 0.55;
+}
+
 .building-main {
   flex: 1;
   min-width: 0;
+}
+
+/* ─── Building info panel header ─── */
+.building-info-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ─── Article layout: big icon + story text wrapping around ─── */
+.building-info-article {
+  overflow: hidden; /* contain the float */
+}
+.building-info-article-icon {
+  float: left;
+  margin: 0 14px 10px 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 215, 0, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.06);
+  shape-outside: margin-box;
+}
+.building-info-article-text {
+  /* text flows naturally around the floated icon */
 }
 
 /* ─── Building Info Panel Overlay ─── */
@@ -2110,7 +2140,7 @@ html {
   border: 2px solid #a57847;
   border-radius: 14px;
   width: 92%;
-  max-width: 480px;
+  max-width: 560px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -2177,20 +2207,33 @@ html {
 .building-info-lore {
   color: #f8e8b0;
   font-style: italic;
-  font-size: 0.85rem;
+  font-size: 0.74rem;
   line-height: 1.5;
-  margin: 0 0 10px 0;
-  padding: 8px 12px;
+  margin: 0 0 4px 0;
+  padding: 8px 10px;
   background: rgba(255,215,0,0.06);
   border-left: 3px solid rgba(255,215,0,0.3);
   border-radius: 0 6px 6px 0;
+  overflow: hidden;
 }
 
 .building-info-story {
   color: #c8b8a0;
   font-size: 0.82rem;
-  line-height: 1.6;
+  line-height: 1.4;
   margin: 0;
+  text-align: justify;
+}
+
+.building-info-meta {
+  color: #a89878;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0.6em 0 0 0;
+  text-align: justify;
+  font-style: italic;
+  border-left: 2px solid rgba(200, 170, 120, 0.3);
+  padding-left: 0.6em;
 }
 
 /* Locked story: blurred with unlock overlay */
@@ -3112,7 +3155,7 @@ html {
     padding: 3px 4px;
   }
 
-  .showcase-icon { font-size: 1.1rem; }
+  .showcase-icon { /* canvas icons scale via width/height attribute */ }
   .showcase-count { font-size: 0.7rem; }
   .showcase-name { display: none; }
 

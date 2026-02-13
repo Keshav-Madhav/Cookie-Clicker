@@ -1,5 +1,6 @@
 import { formatNumberInWords } from "./utils.js";
 import { MiniGames } from "./miniGames.js";
+import { getBuildingIcon } from "./buildingIcons.js";
 
 /**
  * VisualEffects — manages the middle-panel "viewport" with
@@ -39,22 +40,6 @@ export class VisualEffects {
     // User-togglable flags (synced with game.settings)
     this.particlesEnabled = true;
     this.shimmersEnabled = true;
-
-    this.buildingIcons = [
-      { name: "Cursor",     icon: "🖱️" },
-      { name: "Grandma",    icon: "👵" },
-      { name: "Farm",       icon: "🌾" },
-      { name: "Factory",    icon: "🏭" },
-      { name: "Mine",       icon: "⛏️" },
-      { name: "Shipment",   icon: "🚀" },
-      { name: "Alchemy Lab",icon: "⚗️" },
-      { name: "Portal",     icon: "🌀" },
-      { name: "Time Machine", icon: "⏳" },
-      { name: "Antimatter Condenser", icon: "⚛️" },
-      { name: "Prism",      icon: "🌈" },
-      { name: "Chancemaker", icon: "🎰" },
-      { name: "Fractal Engine", icon: "🔮" },
-    ];
 
     this.newsMessages = [
       "News: cookie production is at an all-time high!",
@@ -718,14 +703,23 @@ export class VisualEffects {
 
     this.game.buildings.forEach((b, i) => {
       if (b.count <= 0) return;
-      const iconData = this.buildingIcons[i] || { icon: "🏠" };
       const el = document.createElement("div");
       el.className = "showcase-building";
-      el.innerHTML = `
-        <span class="showcase-icon">${iconData.icon}</span>
-        <span class="showcase-count">${b.count}</span>
-        <span class="showcase-name">${b.name}</span>
-      `;
+
+      const iconCanvas = getBuildingIcon(b.name, 28);
+      iconCanvas.className = "showcase-icon";
+      el.appendChild(iconCanvas);
+
+      const countSpan = document.createElement("span");
+      countSpan.className = "showcase-count";
+      countSpan.textContent = b.count;
+      el.appendChild(countSpan);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "showcase-name";
+      nameSpan.textContent = b.name;
+      el.appendChild(nameSpan);
+
       el.title = `${b.name}: ${b.count} owned\nProducing ${formatNumberInWords(b.count * b.cps)} CPS`;
       container.appendChild(el);
     });

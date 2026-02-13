@@ -1,5 +1,6 @@
 import { buildings } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
+import { getBuildingIcon } from "./buildingIcons.js";
 
 export class Building {
   constructor(index, game) {
@@ -225,24 +226,68 @@ export class Building {
     // Header
     const header = document.createElement('div');
     header.className = 'building-info-header';
-    header.innerHTML = `<h2>${this.name}</h2><button class="building-info-close">✕</button>`;
+    const titleText = document.createElement('h2');
+    titleText.textContent = this.name;
+    header.appendChild(titleText);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'building-info-close';
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
     panel.appendChild(header);
 
     // Body
     const body = document.createElement('div');
     body.className = 'building-info-body';
 
-    // Lore / Story
+    // Lore / Story — newspaper article layout with big icon
     if (this.lore) {
       const loreSection = document.createElement('div');
       loreSection.className = 'building-info-section';
+
+      const heading = document.createElement('h3');
+      heading.textContent = '📖 Story';
+      loreSection.appendChild(heading);
+
+      // Article layout: big icon + text
+      const articleWrap = document.createElement('div');
+      articleWrap.className = 'building-info-article';
+
+      const bigIcon = getBuildingIcon(this.name, 96);
+      bigIcon.className = 'building-info-article-icon';
+      if (locked) bigIcon.classList.add('building-icon-locked');
+      articleWrap.appendChild(bigIcon);
+
+      const textCol = document.createElement('div');
+      textCol.className = 'building-info-article-text';
+
+      const flavorP = document.createElement('p');
+      flavorP.className = 'building-info-lore';
+      flavorP.textContent = this.flavor;
+      textCol.appendChild(flavorP);
+
       if (locked) {
-        // Scramble text to gibberish so inspect won't reveal it
         const gibberish = this._scrambleText(this.lore);
-        loreSection.innerHTML = `<h3>📖 Story</h3><p class="building-info-lore">${this.flavor}</p><div class="building-info-story-locked"><p class="building-info-story building-info-blurred">${gibberish}</p><div class="building-info-unlock-overlay">🔒 Unlock this baker to read</div></div>`;
+        const lockedDiv = document.createElement('div');
+        lockedDiv.className = 'building-info-story-locked';
+        lockedDiv.innerHTML = `<p class="building-info-story building-info-blurred">${gibberish}</p><div class="building-info-unlock-overlay">🔒 Unlock this baker to read</div>`;
+        textCol.appendChild(lockedDiv);
       } else {
-        loreSection.innerHTML = `<h3>📖 Story</h3><p class="building-info-lore">${this.flavor}</p><p class="building-info-story">${this.lore}</p>`;
+        const loreParts = this.lore.split('\n\n');
+        const storyP = document.createElement('p');
+        storyP.className = 'building-info-story';
+        storyP.textContent = loreParts[0];
+        textCol.appendChild(storyP);
+
+        if (loreParts[1]) {
+          const metaP = document.createElement('p');
+          metaP.className = 'building-info-meta';
+          metaP.textContent = loreParts[1];
+          textCol.appendChild(metaP);
+        }
       }
+
+      articleWrap.appendChild(textCol);
+      loreSection.appendChild(articleWrap);
       body.appendChild(loreSection);
     }
 
@@ -326,7 +371,7 @@ export class Building {
 
     // Close handlers
     const close = () => overlay.remove();
-    header.querySelector('.building-info-close').addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   }
 
@@ -392,6 +437,12 @@ export class Building {
     if (this.flavor) {
       button.dataset.buildingFlavor = this.flavor;
     }
+
+    // Building icon
+    const iconCanvas = getBuildingIcon(this.name, 44);
+    iconCanvas.classList.add('building-row-icon');
+    if (locked) iconCanvas.classList.add('building-icon-locked');
+    button.appendChild(iconCanvas);
 
     let subDiv = document.createElement("div");
     subDiv.classList.add("building-main");
