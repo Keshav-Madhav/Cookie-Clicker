@@ -391,6 +391,7 @@ export class Building {
     document.body.appendChild(overlay);
 
     // Draw canvas elements after DOM append (need real dimensions)
+    const overlayKey = `info-panel-${this.name}`;
     requestAnimationFrame(() => {
       // Header banner — themed scene behind the title
       const bannerW = header.clientWidth;
@@ -402,12 +403,30 @@ export class Building {
         bannerCanvas.style.width = '100%';
         bannerCanvas.style.height = '100%';
         bannerWrap.appendChild(bannerCanvas);
+
+        // Animated overlay on the banner (same animations as baker rows)
+        const animator = this.game.visualEffects && this.game.visualEffects.rowAnimator;
+        if (animator) {
+          const animCanvas = document.createElement('canvas');
+          animCanvas.style.position = 'absolute';
+          animCanvas.style.inset = '0';
+          animCanvas.style.width = '100%';
+          animCanvas.style.height = '100%';
+          animCanvas.style.pointerEvents = 'none';
+          bannerWrap.appendChild(animCanvas);
+          animator.addOverlay(overlayKey, this.name, animCanvas, bannerW, bannerH);
+        }
       }
 
     });
 
     // Close handlers
-    const close = () => overlay.remove();
+    const close = () => {
+      // Unregister the animated overlay before removing the DOM
+      const animator = this.game.visualEffects && this.game.visualEffects.rowAnimator;
+      if (animator) animator.removeOverlay(overlayKey);
+      overlay.remove();
+    };
     closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   }

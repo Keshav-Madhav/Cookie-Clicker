@@ -11,6 +11,7 @@ export class RowAnimator {
   constructor() {
     this._animFrame = null;
     this._entries = new Map(); // buildingName → { overlay, ctx, w, h, dpr }
+    this._extras = new Map();  // arbitrary key → { name, overlay, ctx, w, h, dpr }
     this._startTime = performance.now();
     this._lastFrame = 0;
   }
@@ -71,6 +72,34 @@ export class RowAnimator {
     }
   }
 
+  /**
+   * Register an external overlay canvas (e.g. for the info panel banner).
+   * @param {string} key   Unique key for this overlay (so it can be removed later).
+   * @param {string} name  Building name (must match an animDrawers key).
+   * @param {HTMLCanvasElement} canvas  The overlay canvas element.
+   * @param {number} w  Logical width.
+   * @param {number} h  Logical height.
+   */
+  addOverlay(key, name, canvas, w, h) {
+    if (!animDrawers[name]) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    this._extras.set(key, { name, overlay: canvas, ctx, w, h, dpr });
+  }
+
+  /**
+   * Remove a previously registered external overlay.
+   * @param {string} key  The key passed to addOverlay().
+   */
+  removeOverlay(key) {
+    this._extras.delete(key);
+  }
+
   _startAnimLoop() {
     const loop = (timestamp) => {
       this._animFrame = requestAnimationFrame(loop);
@@ -84,6 +113,20 @@ export class RowAnimator {
         if (!data.overlay.isConnected) continue;
         const { ctx, w, h, dpr } = data;
 
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        const drawFn = animDrawers[name];
+        if (drawFn) drawFn(ctx, w, h, t);
+      }
+
+      // Draw extra (external) overlays (e.g. info panel banner)
+      for (const [key, data] of this._extras) {
+        if (!data.overlay.isConnected) {
+          this._extras.delete(key);
+          continue;
+        }
+        const { name, ctx, w, h, dpr } = data;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, w, h);
 
@@ -1743,139 +1786,283 @@ const animDrawers = {
 
   /* ── Reality Bender: Warping grid, golden fractures, dimensional flickers ── */
   'Reality Bender'(ctx, w, h, t) {
-    // Animated warping grid distortion — silver/white lines
-    const gridSize = 40;
-    const warpIntensity = 8 + 3 * Math.sin(t * 0.5);
-    ctx.strokeStyle = `rgba(180,200,220,${0.03 + 0.015 * Math.sin(t * 0.8)})`;
-    ctx.lineWidth = 0.5;
+    // ── Animated warping grid distortion ──
+    const gridSize = 32;
+    const warpIntensity = 12 + 5 * Math.sin(t * 0.5);
+    ctx.lineWidth = 0.7;
+    // Vertical lines
     for (let x = 0; x < w; x += gridSize) {
+      const lineAlpha = 0.06 + 0.03 * Math.sin(t * 0.8 + x * 0.02);
+      ctx.strokeStyle = `rgba(200,180,255,${lineAlpha})`;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       for (let y = 0; y < h; y += 5) {
-        const warp = Math.sin((x + y) * 0.01 + t * 0.5) * warpIntensity;
+        const warp = Math.sin((x + y) * 0.012 + t * 0.6) * warpIntensity
+                   + Math.sin((x - y) * 0.008 + t * 0.9) * warpIntensity * 0.4;
         ctx.lineTo(x + warp, y);
       }
       ctx.stroke();
     }
+    // Horizontal lines
     for (let y = 0; y < h; y += gridSize) {
+      const lineAlpha = 0.06 + 0.03 * Math.sin(t * 0.6 + y * 0.03);
+      ctx.strokeStyle = `rgba(200,180,255,${lineAlpha})`;
       ctx.beginPath();
       ctx.moveTo(0, y);
       for (let x = 0; x < w; x += 5) {
-        const warp = Math.cos((x + y) * 0.01 + t * 0.3) * warpIntensity;
+        const warp = Math.cos((x + y) * 0.012 + t * 0.4) * warpIntensity
+                   + Math.cos((x * 2 - y) * 0.006 + t * 0.7) * warpIntensity * 0.3;
         ctx.lineTo(x, y + warp);
       }
       ctx.stroke();
     }
 
-    // Reality fracture lightning — bright golden cracks
+    // ── Expanding reality distortion rings ──
     for (let i = 0; i < 3; i++) {
-      const crackPhase = (t * 0.15 + i * 0.33) % 1;
-      const crackAlpha = crackPhase < 0.4 ? 0.25 * Math.sin(crackPhase / 0.4 * Math.PI) : 0;
+      const ringPhase = (t * 0.12 + i * 0.33) % 1;
+      const ringR = ringPhase * Math.max(w, h) * 0.7;
+      const ringAlpha = 0.18 * (1 - ringPhase);
+      const cx = w * (0.25 + hash(i, 88) * 0.5);
+      const cy = h * (0.3 + hash(i, 89) * 0.4);
+      ctx.strokeStyle = `rgba(180,140,255,${ringAlpha})`;
+      ctx.lineWidth = 1.5 * (1 - ringPhase) + 0.3;
+      circle(ctx, cx, cy, ringR);
+      ctx.stroke();
+      // Inner ring glow
+      ctx.strokeStyle = `rgba(251,191,36,${ringAlpha * 0.5})`;
+      ctx.lineWidth = 3 * (1 - ringPhase);
+      circle(ctx, cx, cy, ringR);
+      ctx.stroke();
+    }
+
+    // ── Reality fracture lightning — bright golden cracks with branches ──
+    for (let i = 0; i < 4; i++) {
+      const crackPhase = (t * 0.18 + i * 0.25) % 1;
+      const crackAlpha = crackPhase < 0.5 ? 0.45 * Math.sin(crackPhase / 0.5 * Math.PI) : 0;
 
       if (crackAlpha > 0.01) {
-        // Core crack — bright gold
-        ctx.strokeStyle = `rgba(251,191,36,${crackAlpha})`;
-        ctx.lineWidth = 1.2;
+        // Outer glow — wide warm amber halo
+        ctx.strokeStyle = `rgba(245,158,11,${crackAlpha * 0.25})`;
+        ctx.lineWidth = 8;
         let sx = hash(i, 11) * w;
         let sy = 0;
         ctx.beginPath();
         ctx.moveTo(sx, sy);
         while (sy < h) {
           sx += (hash(Math.floor(sy) + i * 100, 22) - 0.5) * 35;
-          sy += 8 + hash(Math.floor(sy) + i * 50, 33) * 12;
+          sy += 6 + hash(Math.floor(sy) + i * 50, 33) * 10;
           ctx.lineTo(sx, sy);
         }
         ctx.stroke();
 
-        // Glow around crack — warm amber
-        ctx.strokeStyle = `rgba(245,158,11,${crackAlpha * 0.35})`;
-        ctx.lineWidth = 5;
+        // Core crack — bright gold
+        ctx.strokeStyle = `rgba(251,191,36,${crackAlpha})`;
+        ctx.lineWidth = 1.8;
+        sx = hash(i, 11) * w;
+        sy = 0;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        const branchPoints = [];
+        while (sy < h) {
+          sx += (hash(Math.floor(sy) + i * 100, 22) - 0.5) * 35;
+          sy += 6 + hash(Math.floor(sy) + i * 50, 33) * 10;
+          ctx.lineTo(sx, sy);
+          // Collect branch points
+          if (hash(Math.floor(sy) + i * 200, 44) > 0.65) {
+            branchPoints.push({ x: sx, y: sy });
+          }
+        }
+        ctx.stroke();
+
+        // White-hot center line
+        ctx.strokeStyle = `rgba(255,255,255,${crackAlpha * 0.6})`;
+        ctx.lineWidth = 0.6;
         sx = hash(i, 11) * w;
         sy = 0;
         ctx.beginPath();
         ctx.moveTo(sx, sy);
         while (sy < h) {
           sx += (hash(Math.floor(sy) + i * 100, 22) - 0.5) * 35;
-          sy += 8 + hash(Math.floor(sy) + i * 50, 33) * 12;
+          sy += 6 + hash(Math.floor(sy) + i * 50, 33) * 10;
           ctx.lineTo(sx, sy);
         }
         ctx.stroke();
+
+        // Small branches off the main crack
+        ctx.strokeStyle = `rgba(253,224,71,${crackAlpha * 0.5})`;
+        ctx.lineWidth = 0.8;
+        for (const bp of branchPoints) {
+          ctx.beginPath();
+          ctx.moveTo(bp.x, bp.y);
+          let bx = bp.x, by = bp.y;
+          const dir = hash(Math.floor(bp.y) + i * 300, 55) > 0.5 ? 1 : -1;
+          for (let s = 0; s < 4; s++) {
+            bx += dir * (5 + hash(s + i * 10, 56) * 10);
+            by += 4 + hash(s + i * 10, 57) * 6;
+            ctx.lineTo(bx, by);
+          }
+          ctx.stroke();
+        }
       }
     }
 
-    // Tesseract rotation — golden edges
-    const cubeCount = Math.max(2, Math.floor(w / 180));
+    // ── Tesseract rotation — dual nested cubes with connecting edges ──
+    const cubeCount = Math.max(2, Math.floor(w / 140));
     for (let i = 0; i < cubeCount; i++) {
       const tx = (i + 0.5) * (w / cubeCount);
-      const ty = h * 0.5 + Math.sin(i * 2.1) * h * 0.12;
-      const ts = 16 + Math.sin(i * 1.4) * 4;
-      const rot = t * 0.3 + i * 1.5;
+      const ty = h * 0.5 + Math.sin(i * 2.1 + t * 0.3) * h * 0.15;
+      const outerS = 22 + Math.sin(i * 1.4 + t * 0.5) * 5;
+      const innerS = outerS * 0.5;
+      const rot = t * 0.4 + i * 1.5;
+      const rot2 = -t * 0.25 + i * 2.3;
 
-      // Rotating golden highlight edges
       ctx.save();
       ctx.translate(tx, ty);
+
+      // Outer cube
+      ctx.save();
       ctx.rotate(rot);
-      const edgeAlpha = 0.12 + 0.06 * Math.sin(t * 2 + i);
-      ctx.strokeStyle = `rgba(251,191,36,${edgeAlpha})`;
-      ctx.lineWidth = 0.8;
-      ctx.strokeRect(-ts * 0.4, -ts * 0.4, ts * 0.8, ts * 0.8);
+      const outerAlpha = 0.22 + 0.1 * Math.sin(t * 2 + i);
+      ctx.strokeStyle = `rgba(251,191,36,${outerAlpha})`;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-outerS * 0.5, -outerS * 0.5, outerS, outerS);
       ctx.restore();
 
-      // Pulsing golden center glow
-      const glowAlpha = 0.06 + 0.04 * Math.sin(t * 2.5 + i * 1.3);
-      const cubeGlow = ctx.createRadialGradient(tx, ty, 0, tx, ty, ts);
+      // Inner cube (rotates opposite)
+      ctx.save();
+      ctx.rotate(rot2);
+      ctx.strokeStyle = `rgba(180,140,255,${outerAlpha * 0.8})`;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-innerS * 0.5, -innerS * 0.5, innerS, innerS);
+      ctx.restore();
+
+      // Connecting edges (tesseract projection) — corner-to-corner lines
+      const outerCorners = [[-1,-1],[1,-1],[1,1],[-1,1]];
+      const innerCorners = [[-1,-1],[1,-1],[1,1],[-1,1]];
+      const connAlpha = 0.12 + 0.06 * Math.sin(t * 1.5 + i * 0.7);
+      ctx.strokeStyle = `rgba(253,224,71,${connAlpha})`;
+      ctx.lineWidth = 0.5;
+      for (let c = 0; c < 4; c++) {
+        const cosR = Math.cos(rot), sinR = Math.sin(rot);
+        const ox = outerCorners[c][0] * outerS * 0.5;
+        const oy = outerCorners[c][1] * outerS * 0.5;
+        const rxO = ox * cosR - oy * sinR;
+        const ryO = ox * sinR + oy * cosR;
+
+        const cosR2 = Math.cos(rot2), sinR2 = Math.sin(rot2);
+        const ix = innerCorners[c][0] * innerS * 0.5;
+        const iy = innerCorners[c][1] * innerS * 0.5;
+        const rxI = ix * cosR2 - iy * sinR2;
+        const ryI = ix * sinR2 + iy * cosR2;
+
+        ctx.beginPath();
+        ctx.moveTo(rxO, ryO);
+        ctx.lineTo(rxI, ryI);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      // Pulsing glow around tesseract
+      const glowAlpha = 0.1 + 0.06 * Math.sin(t * 2.5 + i * 1.3);
+      const cubeGlow = ctx.createRadialGradient(tx, ty, 0, tx, ty, outerS * 1.2);
       cubeGlow.addColorStop(0, `rgba(251,191,36,${glowAlpha})`);
-      cubeGlow.addColorStop(0.5, `rgba(245,158,11,${glowAlpha * 0.4})`);
+      cubeGlow.addColorStop(0.4, `rgba(180,140,255,${glowAlpha * 0.4})`);
       cubeGlow.addColorStop(1, 'rgba(0,0,0,0)');
-      circle(ctx, tx, ty, ts);
+      circle(ctx, tx, ty, outerS * 1.2);
       ctx.fillStyle = cubeGlow;
       ctx.fill();
     }
 
-    // Dimensional flicker particles — golden flashes
-    for (let i = 0; i < Math.floor(w / 25); i++) {
-      const flickerPhase = (t * 0.3 + hash(i, 55) * 8) % 1;
-      if (flickerPhase < 0.04) {
+    // ── Dimensional flicker particles — golden + violet flashes ──
+    for (let i = 0; i < Math.floor(w / 18); i++) {
+      const flickerPhase = (t * 0.35 + hash(i, 55) * 8) % 1;
+      if (flickerPhase < 0.07) {
         const fx = hash(i, 66) * w;
         const fy = hash(i, 77) * h;
-        const flickAlpha = 0.45 * Math.sin(flickerPhase / 0.04 * Math.PI);
-        ctx.fillStyle = `rgba(253,224,71,${flickAlpha})`;
-        star(ctx, fx, fy, 2.5, 0.8, 4);
+        const flickAlpha = 0.65 * Math.sin(flickerPhase / 0.07 * Math.PI);
+        // Alternate gold and violet particles
+        if (i % 3 === 0) {
+          ctx.fillStyle = `rgba(180,140,255,${flickAlpha * 0.7})`;
+        } else {
+          ctx.fillStyle = `rgba(253,224,71,${flickAlpha})`;
+        }
+        star(ctx, fx, fy, 3.5, 1.2, 4);
+        ctx.fill();
+        // Tiny glow halo
+        const sparkGlow = ctx.createRadialGradient(fx, fy, 0, fx, fy, 6);
+        sparkGlow.addColorStop(0, `rgba(255,255,255,${flickAlpha * 0.3})`);
+        sparkGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        circle(ctx, fx, fy, 6);
+        ctx.fillStyle = sparkGlow;
         ctx.fill();
       }
     }
 
-    // Floating reality-warped cookie echoes — golden glitch
-    for (let i = 0; i < Math.floor(w / 100); i++) {
-      const phase = (t * 0.05 + hash(i, 99) * 5) % 1;
-      const ex = hash(i, 12) * w + Math.sin(t * 0.3 + i * 2) * 15;
-      const ey = h * 0.9 - phase * h * 0.8;
-      const opacity = 0.12 * Math.sin(phase * Math.PI);
-      const wobble = Math.sin(t * 2 + i * 3) * 0.3;
+    // ── Floating reality-warped cookie echoes — golden glitch ──
+    for (let i = 0; i < Math.floor(w / 80); i++) {
+      const phase = (t * 0.06 + hash(i, 99) * 5) % 1;
+      const ex = hash(i, 12) * w + Math.sin(t * 0.4 + i * 2) * 20;
+      const ey = h * 0.95 - phase * h * 0.9;
+      const opacity = 0.22 * Math.sin(phase * Math.PI);
+      const wobble = Math.sin(t * 2 + i * 3) * 0.4;
 
       if (opacity > 0.01) {
         ctx.save();
         ctx.translate(ex, ey);
         ctx.rotate(wobble);
         ctx.globalAlpha = opacity;
+        // Outer glow
+        const echoGlow = ctx.createRadialGradient(0, 0, 2, 0, 0, 8);
+        echoGlow.addColorStop(0, 'rgba(251,191,36,0.3)');
+        echoGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        circle(ctx, 0, 0, 8);
+        ctx.fillStyle = echoGlow;
+        ctx.fill();
         // Cookie outline — golden
-        ctx.strokeStyle = 'rgba(251,191,36,0.7)';
-        ctx.lineWidth = 0.8;
-        circle(ctx, 0, 0, 3.5);
+        ctx.strokeStyle = 'rgba(251,191,36,0.8)';
+        ctx.lineWidth = 1;
+        circle(ctx, 0, 0, 4);
         ctx.stroke();
-        // Duplicate offset (glitch effect) — amber
-        ctx.strokeStyle = 'rgba(245,158,11,0.5)';
-        circle(ctx, 1.5, -1, 3.5);
+        // Duplicate offset (glitch effect) — violet tint
+        ctx.strokeStyle = 'rgba(180,140,255,0.6)';
+        circle(ctx, 2, -1.5, 4);
+        ctx.stroke();
+        // Second duplicate — further offset
+        ctx.strokeStyle = 'rgba(245,158,11,0.3)';
+        circle(ctx, -1.5, 1, 4);
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.restore();
       }
     }
 
-    // Ambient warm golden dimensional wash
-    const dimWash = 0.012 + 0.008 * Math.sin(t * 0.6);
-    const washGrad = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, w * 0.6);
+    // ── Pulsing edge vignette — reality straining at the borders ──
+    const vignetteAlpha = 0.06 + 0.04 * Math.sin(t * 0.8);
+    const edgeGrad = ctx.createLinearGradient(0, 0, w, 0);
+    edgeGrad.addColorStop(0, `rgba(180,140,255,${vignetteAlpha})`);
+    edgeGrad.addColorStop(0.15, 'rgba(0,0,0,0)');
+    edgeGrad.addColorStop(0.85, 'rgba(0,0,0,0)');
+    edgeGrad.addColorStop(1, `rgba(180,140,255,${vignetteAlpha})`);
+    ctx.fillStyle = edgeGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    const edgeGradV = ctx.createLinearGradient(0, 0, 0, h);
+    edgeGradV.addColorStop(0, `rgba(251,191,36,${vignetteAlpha * 0.7})`);
+    edgeGradV.addColorStop(0.2, 'rgba(0,0,0,0)');
+    edgeGradV.addColorStop(0.8, 'rgba(0,0,0,0)');
+    edgeGradV.addColorStop(1, `rgba(251,191,36,${vignetteAlpha * 0.7})`);
+    ctx.fillStyle = edgeGradV;
+    ctx.fillRect(0, 0, w, h);
+
+    // ── Ambient golden-violet dimensional wash ──
+    const dimWash = 0.025 + 0.015 * Math.sin(t * 0.6);
+    const washGrad = ctx.createRadialGradient(
+      w * (0.5 + 0.1 * Math.sin(t * 0.2)), h * 0.5, 0,
+      w * 0.5, h * 0.5, w * 0.55
+    );
     washGrad.addColorStop(0, `rgba(251,191,36,${dimWash})`);
+    washGrad.addColorStop(0.5, `rgba(180,140,255,${dimWash * 0.4})`);
     washGrad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = washGrad;
     ctx.fillRect(0, 0, w, h);
