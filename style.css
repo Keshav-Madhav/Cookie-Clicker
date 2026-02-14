@@ -2881,6 +2881,72 @@ html {
   opacity: 0.6;
 }
 
+/* ── Idleverse: vivid cosmic violet ── */
+.building-info-panel[data-building-type="idleverse"] {
+  --bi-bg1: #1a0838;
+  --bi-bg2: #0e0425;
+  --bi-border: #a78bfa;
+  --bi-accent: #d4c5fe;
+  --bi-glow: rgba(168,85,247,0.15);
+  --bi-header-bg: rgba(26,8,56,0.75);
+  --bi-divider: rgba(168,85,247,0.3);
+  --bi-lore-bg: rgba(196,181,253,0.06);
+  --bi-lore-border: rgba(168,85,247,0.35);
+  --bi-upgrade-bg: rgba(168,85,247,0.05);
+  --bi-upgrade-border: rgba(139,92,246,0.25);
+}
+.building-info-panel[data-building-type="idleverse"]::before {
+  background:
+    radial-gradient(ellipse at 25% 30%, rgba(168,85,247,0.14) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 60%, rgba(139,92,246,0.10) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(192,132,252,0.06) 0%, transparent 65%);
+  opacity: 0.75;
+}
+
+/* ── Cortex Baker: warm neural pink ── */
+.building-info-panel[data-building-type="cortex-baker"] {
+  --bi-bg1: #280c14;
+  --bi-bg2: #1a060c;
+  --bi-border: #f87171;
+  --bi-accent: #fca5a5;
+  --bi-glow: rgba(248,113,113,0.1);
+  --bi-header-bg: rgba(40,12,20,0.7);
+  --bi-divider: rgba(248,113,113,0.25);
+  --bi-lore-bg: rgba(252,165,165,0.05);
+  --bi-lore-border: rgba(239,68,68,0.3);
+  --bi-upgrade-bg: rgba(239,68,68,0.04);
+  --bi-upgrade-border: rgba(248,113,113,0.2);
+}
+.building-info-panel[data-building-type="cortex-baker"]::before {
+  background:
+    radial-gradient(ellipse at 30% 35%, rgba(251,191,36,0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 55%, rgba(239,68,68,0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 80%, rgba(252,165,165,0.05) 0%, transparent 50%);
+  opacity: 0.65;
+}
+
+/* ── Reality Bender: dark midnight with golden fractures ── */
+.building-info-panel[data-building-type="reality-bender"] {
+  --bi-bg1: #060e1c;
+  --bi-bg2: #030812;
+  --bi-border: #d97706;
+  --bi-accent: #fbbf24;
+  --bi-glow: rgba(251,191,36,0.08);
+  --bi-header-bg: rgba(6,14,28,0.75);
+  --bi-divider: rgba(217,119,6,0.3);
+  --bi-lore-bg: rgba(253,224,71,0.04);
+  --bi-lore-border: rgba(251,191,36,0.25);
+  --bi-upgrade-bg: rgba(251,191,36,0.03);
+  --bi-upgrade-border: rgba(217,119,6,0.2);
+}
+.building-info-panel[data-building-type="reality-bender"]::before {
+  background:
+    radial-gradient(ellipse at 35% 30%, rgba(251,191,36,0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 65% 65%, rgba(245,158,11,0.05) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(253,224,71,0.03) 0%, transparent 55%);
+  opacity: 0.7;
+}
+
 .building::before {
   content: '';
   position: absolute;

@@ -1488,4 +1488,396 @@ const animDrawers = {
       ctx.fill();
     }
   },
+
+  /* ── Idleverse: Swirling portal vortexes, drifting dimension sparks, cookie rifts ── */
+  Idleverse(ctx, w, h, t) {
+    // Portal vortex rotation — spinning rings around each portal position
+    const portalCount = Math.max(2, Math.floor(w / 140));
+    for (let i = 0; i < portalCount; i++) {
+      const px = (i + 0.5) * (w / portalCount);
+      const py = h * 0.45 + Math.sin(i * 1.7) * h * 0.15;
+      const pr = 18 + Math.sin(i * 2.3) * 6;
+
+      // Slowly rotating outer ring
+      const ringAngle = t * 0.4 + i * 1.2;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(ringAngle);
+      ctx.strokeStyle = `rgba(168,85,247,${0.15 + 0.08 * Math.sin(t * 1.5 + i)})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, pr * 1.1, pr * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Counter-rotating inner ring
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(-ringAngle * 0.7);
+      ctx.strokeStyle = `rgba(192,132,252,${0.12 + 0.06 * Math.sin(t * 2 + i * 0.5)})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, pr * 0.65, pr * 0.35, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Pulsing core glow
+      const coreAlpha = 0.06 + 0.04 * Math.sin(t * 2.5 + i * 1.7);
+      const coreGlow = ctx.createRadialGradient(px, py, 0, px, py, pr * 0.8);
+      coreGlow.addColorStop(0, `rgba(192,132,252,${coreAlpha * 2})`);
+      coreGlow.addColorStop(1, `rgba(139,92,246,0)`);
+      circle(ctx, px, py, pr * 0.8);
+      ctx.fillStyle = coreGlow;
+      ctx.fill();
+    }
+
+    // Interdimensional sparks drifting between portals
+    const sparkCount = Math.floor(w / 12);
+    for (let i = 0; i < sparkCount; i++) {
+      const phase = (t * 0.1 + hash(i, 77) * 3) % 1;
+      const baseX = hash(i, 33) * w;
+      const drift = Math.sin(t * 0.6 + i * 1.7) * 15;
+      const dx = baseX + drift;
+      const dy = h - phase * h * 1.2;
+      const opacity = 0.25 * Math.sin(phase * Math.PI);
+
+      if (opacity > 0.01) {
+        const hue = (i * 25 + t * 15) % 360;
+        ctx.fillStyle = `hsla(${270 + hue % 60}, 70%, 75%, ${opacity})`;
+        star(ctx, dx, dy, 1.8 + hash(i, 44) * 1.2, 0.6, 4);
+        ctx.fill();
+      }
+    }
+
+    // Floating cookie silhouettes drifting through portals
+    for (let i = 0; i < Math.floor(w / 80); i++) {
+      const phase = (t * 0.07 + hash(i, 88) * 4) % 1;
+      const baseX = hash(i, 55) * w;
+      const fx = baseX + Math.sin(t * 0.3 + i * 2.1) * 20;
+      const fy = h * 0.8 - phase * h * 0.7;
+      const opacity = 0.18 * Math.sin(phase * Math.PI);
+
+      if (opacity > 0.01) {
+        ctx.fillStyle = `rgba(192,132,252,${opacity})`;
+        circle(ctx, fx, fy, 3 + hash(i, 66) * 2);
+        ctx.fill();
+        // Cookie chip dots
+        ctx.fillStyle = `rgba(139,92,246,${opacity * 0.8})`;
+        circle(ctx, fx - 1, fy - 1, 0.8);
+        ctx.fill();
+        circle(ctx, fx + 1.5, fy + 0.5, 0.6);
+        ctx.fill();
+      }
+    }
+
+    // Wispy energy tendrils connecting portals (animated flow)
+    ctx.lineWidth = 0.6;
+    for (let i = 0; i < portalCount - 1; i++) {
+      const x1 = (i + 0.5) * (w / portalCount);
+      const x2 = (i + 1.5) * (w / portalCount);
+      const flowOffset = Math.sin(t * 0.8 + i) * 12;
+      const alpha = 0.06 + 0.03 * Math.sin(t * 1.5 + i * 2);
+      ctx.strokeStyle = `rgba(168,85,247,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(x1, h * 0.5);
+      ctx.bezierCurveTo(
+        x1 + 30, h * 0.3 + flowOffset,
+        x2 - 30, h * 0.6 - flowOffset,
+        x2, h * 0.5
+      );
+      ctx.stroke();
+
+      // Traveling pulse along tendril
+      const pulsePos = ((t * 0.5 + i * 0.3) % 1);
+      const pulsePx = x1 + (x2 - x1) * pulsePos;
+      const pulsePy = h * 0.5 + Math.sin(pulsePos * Math.PI) * (flowOffset - 10);
+      const pulseGlow = ctx.createRadialGradient(pulsePx, pulsePy, 0, pulsePx, pulsePy, 6);
+      pulseGlow.addColorStop(0, `rgba(192,132,252,${alpha * 4})`);
+      pulseGlow.addColorStop(1, 'rgba(192,132,252,0)');
+      circle(ctx, pulsePx, pulsePy, 6);
+      ctx.fillStyle = pulseGlow;
+      ctx.fill();
+    }
+
+    // Ambient purple shimmer wash
+    const shimmer = 0.02 + 0.015 * Math.sin(t * 0.8);
+    ctx.fillStyle = `rgba(139,92,246,${shimmer})`;
+    ctx.fillRect(0, 0, w, h);
+  },
+
+  /* ── Cortex Baker: Pulses along random neural web + animated EEG waves ── */
+  'Cortex Baker'(ctx, w, h, t) {
+    // Rebuild the same random node positions as the static background
+    const nodeCount = Math.max(18, Math.floor((w * h) / 1800));
+    const nodes = [];
+    for (let i = 0; i < nodeCount; i++) {
+      const px = ((i * 0.618033988 + 0.1) % 1) * w * 0.9 + w * 0.05;
+      const py = ((i * 0.414213562 + 0.2) % 1) * h * 0.75 + h * 0.05;
+      const jx = Math.sin(i * 13.7 + 3.1) * w * 0.04;
+      const jy = Math.cos(i * 9.3 + 7.7) * h * 0.06;
+      nodes.push({
+        x: Math.max(4, Math.min(w - 4, px + jx)),
+        y: Math.max(4, Math.min(h - 4, py + jy)),
+      });
+    }
+
+    // Rebuild edges (same nearest-neighbour logic as static bg)
+    const maxConnDist = Math.hypot(w, h) * 0.28;
+    const edges = [];
+    const edgeSet = new Set();
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      const dists = [];
+      for (let j = 0; j < nodes.length; j++) {
+        if (j === i) continue;
+        const d = Math.hypot(nodes[j].x - n.x, nodes[j].y - n.y);
+        if (d < maxConnDist) dists.push({ j, d });
+      }
+      dists.sort((a, b) => a.d - b.d);
+      const connectCount = 2 + (Math.sin(i * 5.7) > 0.3 ? 1 : 0);
+      for (let k = 0; k < Math.min(connectCount, dists.length); k++) {
+        const j = dists[k].j;
+        const key = Math.min(i, j) + ',' + Math.max(i, j);
+        if (edgeSet.has(key)) continue;
+        edgeSet.add(key);
+        edges.push([i, j]);
+      }
+    }
+
+    // ── Traveling pulses along edges ──
+    const pulseCount = Math.max(6, Math.floor(edges.length / 3));
+    for (let p = 0; p < pulseCount; p++) {
+      const edgeIdx = Math.floor(hash(p, 100) * edges.length);
+      const [a, b] = edges[edgeIdx];
+      const n1 = nodes[a], n2 = nodes[b];
+      const speed = 0.3 + hash(p, 110) * 0.5;
+      const offset = hash(p, 120) * 6;
+      const phase = ((t * speed + offset) % 2);
+
+      if (phase < 1) {
+        const pos = phase;
+        const ex = n1.x + (n2.x - n1.x) * pos;
+        const ey = n1.y + (n2.y - n1.y) * pos;
+        const alpha = 0.35 * Math.sin(pos * Math.PI);
+
+        // Trailing light
+        const trailStart = Math.max(0, pos - 0.3);
+        const tx = n1.x + (n2.x - n1.x) * trailStart;
+        const ty = n1.y + (n2.y - n1.y) * trailStart;
+        const lineGrad = ctx.createLinearGradient(tx, ty, ex, ey);
+        lineGrad.addColorStop(0, 'rgba(248,113,113,0)');
+        lineGrad.addColorStop(1, `rgba(252,165,165,${(alpha * 0.6).toFixed(3)})`);
+        ctx.strokeStyle = lineGrad;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+
+        // Pulse dot
+        const pulseGlow = ctx.createRadialGradient(ex, ey, 0, ex, ey, 5);
+        pulseGlow.addColorStop(0, `rgba(252,165,165,${alpha.toFixed(3)})`);
+        pulseGlow.addColorStop(1, 'rgba(252,165,165,0)');
+        circle(ctx, ex, ey, 5);
+        ctx.fillStyle = pulseGlow;
+        ctx.fill();
+      }
+    }
+
+    // ── Pulsing nodes ──
+    nodes.forEach((n, i) => {
+      const pulse = 0.04 + 0.05 * Math.sin(t * 1.8 + i * 0.9);
+      const nodeGlow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 8);
+      nodeGlow.addColorStop(0, `rgba(248,113,113,${pulse.toFixed(3)})`);
+      nodeGlow.addColorStop(1, 'rgba(248,113,113,0)');
+      circle(ctx, n.x, n.y, 8);
+      ctx.fillStyle = nodeGlow;
+      ctx.fill();
+    });
+
+    // ── Occasional bright synapse flash ──
+    const flashIdx = Math.floor(((t * 0.4) % 1) * nodes.length);
+    const flashAlpha = 0.2 * Math.sin(((t * 0.4) % 1) * Math.PI);
+    if (flashAlpha > 0.02 && flashIdx < nodes.length) {
+      const fn = nodes[flashIdx];
+      const flashGlow = ctx.createRadialGradient(fn.x, fn.y, 0, fn.x, fn.y, 14);
+      flashGlow.addColorStop(0, `rgba(255,200,200,${flashAlpha.toFixed(3)})`);
+      flashGlow.addColorStop(0.5, `rgba(248,113,113,${(flashAlpha * 0.4).toFixed(3)})`);
+      flashGlow.addColorStop(1, 'rgba(248,113,113,0)');
+      circle(ctx, fn.x, fn.y, 14);
+      ctx.fillStyle = flashGlow;
+      ctx.fill();
+    }
+
+    // ── Animated EEG waves (3 waves scrolling along the bottom) ──
+    const waveSpeed = t * 3;
+    const waveConfigs = [
+      { y: h * 0.84, freq1: 0.05, amp1: 5, freq2: 0.13, amp2: 2.5, speed1: 40, speed2: 25, color: 'rgba(252,165,165,0.18)', lw: 1.0 },
+      { y: h * 0.89, freq1: 0.07, amp1: 4, freq2: 0.11, amp2: 2, speed1: 30, speed2: 45, color: 'rgba(248,113,113,0.12)', lw: 0.8 },
+      { y: h * 0.94, freq1: 0.04, amp1: 3, freq2: 0.16, amp2: 1.5, speed1: 50, speed2: 35, color: 'rgba(220,38,38,0.09)', lw: 0.6 },
+    ];
+    waveConfigs.forEach((wc) => {
+      ctx.strokeStyle = wc.color;
+      ctx.lineWidth = wc.lw;
+      ctx.beginPath();
+      ctx.moveTo(0, wc.y);
+      for (let x = 0; x < w; x += 2) {
+        ctx.lineTo(
+          x,
+          wc.y +
+            Math.sin((x + waveSpeed * wc.speed1) * wc.freq1) * wc.amp1 +
+            Math.sin((x + waveSpeed * wc.speed2) * wc.freq2) * wc.amp2
+        );
+      }
+      ctx.stroke();
+    });
+
+    // ── Subtle ambient red glow pulse ──
+    const ambientPulse = 0.015 + 0.008 * Math.sin(t * 0.7);
+    const ambient = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, h * 0.8);
+    ambient.addColorStop(0, `rgba(220,38,38,${ambientPulse.toFixed(3)})`);
+    ambient.addColorStop(1, 'rgba(220,38,38,0)');
+    ctx.fillStyle = ambient;
+    ctx.fillRect(0, 0, w, h);
+  },
+
+  /* ── Reality Bender: Warping grid, golden fractures, dimensional flickers ── */
+  'Reality Bender'(ctx, w, h, t) {
+    // Animated warping grid distortion — silver/white lines
+    const gridSize = 40;
+    const warpIntensity = 8 + 3 * Math.sin(t * 0.5);
+    ctx.strokeStyle = `rgba(180,200,220,${0.03 + 0.015 * Math.sin(t * 0.8)})`;
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < w; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      for (let y = 0; y < h; y += 5) {
+        const warp = Math.sin((x + y) * 0.01 + t * 0.5) * warpIntensity;
+        ctx.lineTo(x + warp, y);
+      }
+      ctx.stroke();
+    }
+    for (let y = 0; y < h; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x < w; x += 5) {
+        const warp = Math.cos((x + y) * 0.01 + t * 0.3) * warpIntensity;
+        ctx.lineTo(x, y + warp);
+      }
+      ctx.stroke();
+    }
+
+    // Reality fracture lightning — bright golden cracks
+    for (let i = 0; i < 3; i++) {
+      const crackPhase = (t * 0.15 + i * 0.33) % 1;
+      const crackAlpha = crackPhase < 0.4 ? 0.25 * Math.sin(crackPhase / 0.4 * Math.PI) : 0;
+
+      if (crackAlpha > 0.01) {
+        // Core crack — bright gold
+        ctx.strokeStyle = `rgba(251,191,36,${crackAlpha})`;
+        ctx.lineWidth = 1.2;
+        let sx = hash(i, 11) * w;
+        let sy = 0;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        while (sy < h) {
+          sx += (hash(Math.floor(sy) + i * 100, 22) - 0.5) * 35;
+          sy += 8 + hash(Math.floor(sy) + i * 50, 33) * 12;
+          ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+
+        // Glow around crack — warm amber
+        ctx.strokeStyle = `rgba(245,158,11,${crackAlpha * 0.35})`;
+        ctx.lineWidth = 5;
+        sx = hash(i, 11) * w;
+        sy = 0;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        while (sy < h) {
+          sx += (hash(Math.floor(sy) + i * 100, 22) - 0.5) * 35;
+          sy += 8 + hash(Math.floor(sy) + i * 50, 33) * 12;
+          ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // Tesseract rotation — golden edges
+    const cubeCount = Math.max(2, Math.floor(w / 180));
+    for (let i = 0; i < cubeCount; i++) {
+      const tx = (i + 0.5) * (w / cubeCount);
+      const ty = h * 0.5 + Math.sin(i * 2.1) * h * 0.12;
+      const ts = 16 + Math.sin(i * 1.4) * 4;
+      const rot = t * 0.3 + i * 1.5;
+
+      // Rotating golden highlight edges
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(rot);
+      const edgeAlpha = 0.12 + 0.06 * Math.sin(t * 2 + i);
+      ctx.strokeStyle = `rgba(251,191,36,${edgeAlpha})`;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-ts * 0.4, -ts * 0.4, ts * 0.8, ts * 0.8);
+      ctx.restore();
+
+      // Pulsing golden center glow
+      const glowAlpha = 0.06 + 0.04 * Math.sin(t * 2.5 + i * 1.3);
+      const cubeGlow = ctx.createRadialGradient(tx, ty, 0, tx, ty, ts);
+      cubeGlow.addColorStop(0, `rgba(251,191,36,${glowAlpha})`);
+      cubeGlow.addColorStop(0.5, `rgba(245,158,11,${glowAlpha * 0.4})`);
+      cubeGlow.addColorStop(1, 'rgba(0,0,0,0)');
+      circle(ctx, tx, ty, ts);
+      ctx.fillStyle = cubeGlow;
+      ctx.fill();
+    }
+
+    // Dimensional flicker particles — golden flashes
+    for (let i = 0; i < Math.floor(w / 25); i++) {
+      const flickerPhase = (t * 0.3 + hash(i, 55) * 8) % 1;
+      if (flickerPhase < 0.04) {
+        const fx = hash(i, 66) * w;
+        const fy = hash(i, 77) * h;
+        const flickAlpha = 0.45 * Math.sin(flickerPhase / 0.04 * Math.PI);
+        ctx.fillStyle = `rgba(253,224,71,${flickAlpha})`;
+        star(ctx, fx, fy, 2.5, 0.8, 4);
+        ctx.fill();
+      }
+    }
+
+    // Floating reality-warped cookie echoes — golden glitch
+    for (let i = 0; i < Math.floor(w / 100); i++) {
+      const phase = (t * 0.05 + hash(i, 99) * 5) % 1;
+      const ex = hash(i, 12) * w + Math.sin(t * 0.3 + i * 2) * 15;
+      const ey = h * 0.9 - phase * h * 0.8;
+      const opacity = 0.12 * Math.sin(phase * Math.PI);
+      const wobble = Math.sin(t * 2 + i * 3) * 0.3;
+
+      if (opacity > 0.01) {
+        ctx.save();
+        ctx.translate(ex, ey);
+        ctx.rotate(wobble);
+        ctx.globalAlpha = opacity;
+        // Cookie outline — golden
+        ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+        ctx.lineWidth = 0.8;
+        circle(ctx, 0, 0, 3.5);
+        ctx.stroke();
+        // Duplicate offset (glitch effect) — amber
+        ctx.strokeStyle = 'rgba(245,158,11,0.5)';
+        circle(ctx, 1.5, -1, 3.5);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+    }
+
+    // Ambient warm golden dimensional wash
+    const dimWash = 0.012 + 0.008 * Math.sin(t * 0.6);
+    const washGrad = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, w * 0.6);
+    washGrad.addColorStop(0, `rgba(251,191,36,${dimWash})`);
+    washGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = washGrad;
+    ctx.fillRect(0, 0, w, h);
+  },
 };

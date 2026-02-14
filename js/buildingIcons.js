@@ -950,149 +950,278 @@ const iconDrawers = {
     ctx.stroke();
   },
 
-  /* ── Idleverse ── Parallel universe portal with floating cookies */
+  /* ── Idleverse ── Parallel universe portal with dimensional depth */
   Idleverse(ctx, s) {
     const cx = s / 2, cy = s / 2;
     const sc = s / 48;
 
+    // Outer cosmic haze
+    const outerHaze = ctx.createRadialGradient(cx, cy, 12 * sc, cx, cy, 22 * sc);
+    outerHaze.addColorStop(0, 'rgba(139,92,246,0.15)');
+    outerHaze.addColorStop(1, 'rgba(0,0,0,0)');
+    circle(ctx, cx, cy, 22 * sc);
+    ctx.fillStyle = outerHaze;
+    ctx.fill();
+
     // Dark purple void background
     circle(ctx, cx, cy, 18 * sc);
-    const voidGrad = ctx.createRadialGradient(cx, cy, 2 * sc, cx, cy, 18 * sc);
-    voidGrad.addColorStop(0, '#6b21a8');
-    voidGrad.addColorStop(0.5, '#3b0764');
+    const voidGrad = ctx.createRadialGradient(cx, cy, 1 * sc, cx, cy, 18 * sc);
+    voidGrad.addColorStop(0, '#7c3aed');
+    voidGrad.addColorStop(0.3, '#6b21a8');
+    voidGrad.addColorStop(0.6, '#3b0764');
     voidGrad.addColorStop(1, '#1e0338');
     ctx.fillStyle = voidGrad;
     ctx.fill();
 
-    // Swirling ring (portal edge)
+    // Tiny universe stars inside the portal
+    const starPositions = [
+      [-6, -7, 0.6], [8, -4, 0.5], [-3, 8, 0.4], [5, 6, 0.7],
+      [-10, 2, 0.5], [2, -10, 0.4], [-8, 5, 0.3], [10, -8, 0.5],
+      [7, 10, 0.4], [-5, -12, 0.3], [12, 3, 0.5], [-11, -5, 0.4],
+    ];
+    starPositions.forEach(([dx, dy, r]) => {
+      ctx.fillStyle = 'rgba(233,213,255,0.4)';
+      circle(ctx, cx + dx * sc, cy + dy * sc, r * sc);
+      ctx.fill();
+    });
+
+    // Outermost swirling ring (portal edge) — thicker with glow
+    ctx.strokeStyle = 'rgba(168,85,247,0.3)';
+    ctx.lineWidth = 4 * sc;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 17 * sc, 15 * sc, 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+
     ctx.strokeStyle = '#a855f7';
-    ctx.lineWidth = 2.5 * sc;
+    ctx.lineWidth = 2 * sc;
     ctx.beginPath();
     ctx.ellipse(cx, cy, 16 * sc, 14 * sc, 0.3, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Inner glow ring
-    ctx.strokeStyle = 'rgba(192,132,252,0.5)';
+    // Middle glow ring
+    ctx.strokeStyle = 'rgba(192,132,252,0.45)';
     ctx.lineWidth = 1.5 * sc;
     ctx.beginPath();
     ctx.ellipse(cx, cy, 12 * sc, 10 * sc, -0.2, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Floating mini cookies inside portal
-    ctx.globalAlpha = 0.7;
+    // Inner vortex ring
+    ctx.strokeStyle = 'rgba(233,213,255,0.3)';
+    ctx.lineWidth = 0.8 * sc;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 7 * sc, 5.5 * sc, 0.4, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Floating mini cookies inside portal (from different dimensions)
+    ctx.globalAlpha = 0.75;
     miniCookie(ctx, cx - 4 * sc, cy - 3 * sc, 3 * sc);
     miniCookie(ctx, cx + 5 * sc, cy + 2 * sc, 2.5 * sc);
-    miniCookie(ctx, cx + 1 * sc, cy + 5 * sc, 2 * sc);
+    miniCookie(ctx, cx + 1 * sc, cy + 6 * sc, 2 * sc);
+    ctx.globalAlpha = 0.4;
+    miniCookie(ctx, cx - 7 * sc, cy + 4 * sc, 1.8 * sc);
+    miniCookie(ctx, cx + 8 * sc, cy - 5 * sc, 1.5 * sc);
     ctx.globalAlpha = 1;
 
-    // Sparkle dots
+    // Dimensional sparkle stars (4-pointed)
     ctx.fillStyle = '#e9d5ff';
-    circle(ctx, cx - 8 * sc, cy - 8 * sc, 1 * sc); ctx.fill();
-    circle(ctx, cx + 10 * sc, cy - 5 * sc, 0.8 * sc); ctx.fill();
-    circle(ctx, cx - 6 * sc, cy + 9 * sc, 0.7 * sc); ctx.fill();
-    circle(ctx, cx + 7 * sc, cy + 8 * sc, 1.2 * sc); ctx.fill();
+    star(ctx, cx - 9 * sc, cy - 9 * sc, 2 * sc, 0.7 * sc, 4);
+    ctx.fill();
+    star(ctx, cx + 11 * sc, cy - 5 * sc, 1.5 * sc, 0.5 * sc, 4);
+    ctx.fill();
+    star(ctx, cx - 7 * sc, cy + 10 * sc, 1.2 * sc, 0.4 * sc, 4);
+    ctx.fill();
+    star(ctx, cx + 8 * sc, cy + 9 * sc, 1.8 * sc, 0.6 * sc, 4);
+    ctx.fill();
+
+    // Central bright core
+    const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 3 * sc);
+    coreGlow.addColorStop(0, 'rgba(233,213,255,0.25)');
+    coreGlow.addColorStop(1, 'rgba(139,92,246,0)');
+    circle(ctx, cx, cy, 3 * sc);
+    ctx.fillStyle = coreGlow;
+    ctx.fill();
   },
 
-  /* ── Cortex Baker ── Brain-shaped cookie processor */
+  /* ── Cortex Baker ── Brain-shaped cookie processor with neural detail */
   'Cortex Baker'(ctx, s) {
     const cx = s / 2, cy = s / 2;
     const sc = s / 48;
 
-    // Brain shape (two hemispheres)
-    const brainGrad = ctx.createRadialGradient(cx, cy - 2 * sc, 2 * sc, cx, cy, 16 * sc);
-    brainGrad.addColorStop(0, '#fca5a5');
-    brainGrad.addColorStop(0.6, '#ef4444');
-    brainGrad.addColorStop(1, '#991b1b');
+    // Outer neural glow haze
+    const outerGlow = ctx.createRadialGradient(cx, cy - 2 * sc, 6 * sc, cx, cy - 2 * sc, 20 * sc);
+    outerGlow.addColorStop(0, 'rgba(251,191,36,0.08)');
+    outerGlow.addColorStop(0.5, 'rgba(239,68,68,0.04)');
+    outerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    circle(ctx, cx, cy - 2 * sc, 20 * sc);
+    ctx.fillStyle = outerGlow;
+    ctx.fill();
+
+    // Brain shape (two hemispheres) with rich gradient
+    const brainGradL = ctx.createRadialGradient(cx - 7 * sc, cy - 5 * sc, 2 * sc, cx - 4 * sc, cy - 2 * sc, 14 * sc);
+    brainGradL.addColorStop(0, '#fca5a5');
+    brainGradL.addColorStop(0.4, '#ef4444');
+    brainGradL.addColorStop(0.8, '#dc2626');
+    brainGradL.addColorStop(1, '#991b1b');
+
+    const brainGradR = ctx.createRadialGradient(cx + 7 * sc, cy - 5 * sc, 2 * sc, cx + 4 * sc, cy - 2 * sc, 14 * sc);
+    brainGradR.addColorStop(0, '#fca5a5');
+    brainGradR.addColorStop(0.4, '#ef4444');
+    brainGradR.addColorStop(0.8, '#dc2626');
+    brainGradR.addColorStop(1, '#991b1b');
 
     // Left hemisphere
     ctx.beginPath();
     ctx.ellipse(cx - 5 * sc, cy - 2 * sc, 12 * sc, 14 * sc, -0.15, 0, Math.PI * 2);
-    ctx.fillStyle = brainGrad;
+    ctx.fillStyle = brainGradL;
     ctx.fill();
+    ctx.strokeStyle = 'rgba(153,27,27,0.4)';
+    ctx.lineWidth = 0.8 * sc;
+    ctx.stroke();
 
     // Right hemisphere
     ctx.beginPath();
     ctx.ellipse(cx + 5 * sc, cy - 2 * sc, 12 * sc, 14 * sc, 0.15, 0, Math.PI * 2);
-    ctx.fillStyle = brainGrad;
+    ctx.fillStyle = brainGradR;
     ctx.fill();
+    ctx.strokeStyle = 'rgba(153,27,27,0.4)';
+    ctx.lineWidth = 0.8 * sc;
+    ctx.stroke();
 
     // Central fissure (dividing line)
     ctx.strokeStyle = '#7f1d1d';
     ctx.lineWidth = 1.5 * sc;
     ctx.beginPath();
     ctx.moveTo(cx, cy - 16 * sc);
-    ctx.bezierCurveTo(cx - 1 * sc, cy - 6 * sc, cx + 1 * sc, cy + 4 * sc, cx, cy + 12 * sc);
+    ctx.bezierCurveTo(cx - 1 * sc, cy - 8 * sc, cx + 1 * sc, cy + 2 * sc, cx, cy + 12 * sc);
     ctx.stroke();
 
-    // Brain folds (wavy lines)
-    ctx.strokeStyle = 'rgba(127,29,29,0.5)';
-    ctx.lineWidth = 1 * sc;
-    // Left folds
+    // Brain folds (wavy lines) — more detailed
+    ctx.strokeStyle = 'rgba(127,29,29,0.45)';
+    ctx.lineWidth = 0.9 * sc;
+    // Left folds (3 lines)
     ctx.beginPath();
-    ctx.moveTo(cx - 14 * sc, cy - 4 * sc);
-    ctx.bezierCurveTo(cx - 10 * sc, cy - 8 * sc, cx - 6 * sc, cy, cx - 2 * sc, cy - 4 * sc);
+    ctx.moveTo(cx - 14 * sc, cy - 6 * sc);
+    ctx.bezierCurveTo(cx - 10 * sc, cy - 10 * sc, cx - 6 * sc, cy - 2 * sc, cx - 2 * sc, cy - 6 * sc);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(cx - 12 * sc, cy + 4 * sc);
-    ctx.bezierCurveTo(cx - 8 * sc, cy, cx - 4 * sc, cy + 8 * sc, cx - 1 * sc, cy + 4 * sc);
-    ctx.stroke();
-    // Right folds
-    ctx.beginPath();
-    ctx.moveTo(cx + 2 * sc, cy - 4 * sc);
-    ctx.bezierCurveTo(cx + 6 * sc, cy - 8 * sc, cx + 10 * sc, cy, cx + 14 * sc, cy - 4 * sc);
+    ctx.moveTo(cx - 13 * sc, cy + 1 * sc);
+    ctx.bezierCurveTo(cx - 9 * sc, cy - 3 * sc, cx - 5 * sc, cy + 5 * sc, cx - 1 * sc, cy + 1 * sc);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(cx + 1 * sc, cy + 4 * sc);
-    ctx.bezierCurveTo(cx + 4 * sc, cy + 8 * sc, cx + 8 * sc, cy, cx + 12 * sc, cy + 4 * sc);
+    ctx.moveTo(cx - 11 * sc, cy + 7 * sc);
+    ctx.bezierCurveTo(cx - 7 * sc, cy + 4 * sc, cx - 4 * sc, cy + 10 * sc, cx - 1 * sc, cy + 7 * sc);
+    ctx.stroke();
+    // Right folds (3 lines)
+    ctx.beginPath();
+    ctx.moveTo(cx + 2 * sc, cy - 6 * sc);
+    ctx.bezierCurveTo(cx + 6 * sc, cy - 10 * sc, cx + 10 * sc, cy - 2 * sc, cx + 14 * sc, cy - 6 * sc);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 1 * sc, cy + 1 * sc);
+    ctx.bezierCurveTo(cx + 5 * sc, cy - 3 * sc, cx + 9 * sc, cy + 5 * sc, cx + 13 * sc, cy + 1 * sc);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 1 * sc, cy + 7 * sc);
+    ctx.bezierCurveTo(cx + 4 * sc, cy + 4 * sc, cx + 7 * sc, cy + 10 * sc, cx + 11 * sc, cy + 7 * sc);
     ctx.stroke();
 
-    // Neural glow spots (cookie-colored neurons)
-    ctx.fillStyle = '#fbbf24';
-    circle(ctx, cx - 7 * sc, cy - 6 * sc, 1.5 * sc); ctx.fill();
-    circle(ctx, cx + 8 * sc, cy - 3 * sc, 1.2 * sc); ctx.fill();
-    circle(ctx, cx - 3 * sc, cy + 6 * sc, 1.3 * sc); ctx.fill();
-    circle(ctx, cx + 5 * sc, cy + 7 * sc, 1 * sc); ctx.fill();
+    // Neural glow spots (cookie-colored neurons) with glow halos
+    const neurons = [
+      [-8, -7, 1.6], [9, -4, 1.3], [-4, 5, 1.4], [6, 7, 1.1],
+      [-10, 1, 1.0], [3, -10, 0.9], [10, 3, 1.2], [-6, 9, 1.0],
+    ];
+    neurons.forEach(([dx, dy, r]) => {
+      // Glow halo
+      const glow = ctx.createRadialGradient(cx + dx * sc, cy + dy * sc, 0, cx + dx * sc, cy + dy * sc, r * 2.5 * sc);
+      glow.addColorStop(0, 'rgba(251,191,36,0.25)');
+      glow.addColorStop(1, 'rgba(251,191,36,0)');
+      circle(ctx, cx + dx * sc, cy + dy * sc, r * 2.5 * sc);
+      ctx.fillStyle = glow;
+      ctx.fill();
+      // Neuron dot
+      ctx.fillStyle = '#fbbf24';
+      circle(ctx, cx + dx * sc, cy + dy * sc, r * sc);
+      ctx.fill();
+    });
 
-    // Stem
-    ctx.fillStyle = '#dc2626';
-    roundRect(ctx, cx - 3 * sc, cy + 11 * sc, 6 * sc, 6 * sc, 2 * sc);
+    // Tiny dendrite lines between neurons
+    ctx.strokeStyle = 'rgba(251,191,36,0.2)';
+    ctx.lineWidth = 0.4 * sc;
+    for (let i = 0; i < neurons.length - 1; i++) {
+      const [x1, y1] = neurons[i];
+      const [x2, y2] = neurons[i + 1];
+      ctx.beginPath();
+      ctx.moveTo(cx + x1 * sc, cy + y1 * sc);
+      ctx.lineTo(cx + x2 * sc, cy + y2 * sc);
+      ctx.stroke();
+    }
+
+    // Stem (brainstem)
+    const stemGrad = ctx.createLinearGradient(cx, cy + 11 * sc, cx, cy + 18 * sc);
+    stemGrad.addColorStop(0, '#dc2626');
+    stemGrad.addColorStop(1, '#991b1b');
+    ctx.fillStyle = stemGrad;
+    roundRect(ctx, cx - 3 * sc, cy + 11 * sc, 6 * sc, 7 * sc, 2 * sc);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(127,29,29,0.4)';
+    ctx.lineWidth = 0.5 * sc;
+    ctx.stroke();
+
+    // Top highlight shine
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath();
+    ctx.ellipse(cx - 3 * sc, cy - 10 * sc, 8 * sc, 4 * sc, -0.3, 0, Math.PI * 2);
     ctx.fill();
   },
 
-  /* ── Reality Bender ── Reality-warping cube/tesseract */
+  /* ── Reality Bender ── Dark midnight tesseract with golden reality fractures */
   'Reality Bender'(ctx, s) {
     const cx = s / 2, cy = s / 2;
     const sc = s / 48;
 
-    // Outer distortion aura
-    const auraGrad = ctx.createRadialGradient(cx, cy, 4 * sc, cx, cy, 20 * sc);
-    auraGrad.addColorStop(0, 'rgba(14,165,233,0.3)');
-    auraGrad.addColorStop(0.6, 'rgba(139,92,246,0.15)');
+    // Outer golden distortion aura
+    const auraGrad2 = ctx.createRadialGradient(cx, cy, 10 * sc, cx, cy, 22 * sc);
+    auraGrad2.addColorStop(0, 'rgba(251,191,36,0.06)');
+    auraGrad2.addColorStop(1, 'rgba(0,0,0,0)');
+    circle(ctx, cx, cy, 22 * sc);
+    ctx.fillStyle = auraGrad2;
+    ctx.fill();
+
+    // Inner golden glow
+    const auraGrad = ctx.createRadialGradient(cx, cy, 3 * sc, cx, cy, 18 * sc);
+    auraGrad.addColorStop(0, 'rgba(251,191,36,0.18)');
+    auraGrad.addColorStop(0.4, 'rgba(245,158,11,0.10)');
+    auraGrad.addColorStop(0.8, 'rgba(253,224,71,0.04)');
     auraGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    circle(ctx, cx, cy, 20 * sc);
+    circle(ctx, cx, cy, 18 * sc);
     ctx.fillStyle = auraGrad;
     ctx.fill();
 
-    // Inner cube (front face)
+    // Warped grid lines — silver/white on dark
+    ctx.strokeStyle = 'rgba(180,200,220,0.08)';
+    ctx.lineWidth = 0.4 * sc;
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cx + i * 5 * sc, cy - 18 * sc);
+      for (let y = -18; y <= 18; y += 2) {
+        const warp = Math.sin((i + y) * 0.3) * 2;
+        ctx.lineTo(cx + i * 5 * sc + warp * sc, cy + y * sc);
+      }
+      ctx.stroke();
+    }
+
+    // Back face — dark blue with amber outline
     const cubeSize = 14 * sc;
     const offset = 5 * sc;
-    ctx.fillStyle = 'rgba(14,165,233,0.4)';
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 1.5 * sc;
-    roundRect(ctx, cx - cubeSize / 2, cy - cubeSize / 2, cubeSize, cubeSize, 2 * sc);
-    ctx.fill();
-    ctx.stroke();
-
-    // Back face (offset)
-    ctx.fillStyle = 'rgba(139,92,246,0.25)';
-    ctx.strokeStyle = '#a78bfa';
+    ctx.fillStyle = 'rgba(20,35,60,0.3)';
+    ctx.strokeStyle = '#d97706';
     ctx.lineWidth = 1 * sc;
-    roundRect(ctx, cx - cubeSize / 2 + offset, cy - cubeSize / 2 - offset, cubeSize, cubeSize, 2 * sc);
+    roundRect(ctx, cx - cubeSize / 2 + offset, cy - cubeSize / 2 - offset, cubeSize, cubeSize, 1.5 * sc);
     ctx.fill();
     ctx.stroke();
 
-    // Connect corners (tesseract edges)
-    ctx.strokeStyle = 'rgba(167,139,250,0.5)';
+    // Connecting edges — golden
+    ctx.strokeStyle = 'rgba(253,224,71,0.45)';
     ctx.lineWidth = 0.8 * sc;
     const corners = [
       [-cubeSize / 2, -cubeSize / 2],
@@ -1107,20 +1236,58 @@ const iconDrawers = {
       ctx.stroke();
     });
 
-    // Central glowing cookie
+    // Front face — dark midnight with bright golden outline
+    ctx.fillStyle = 'rgba(10,20,45,0.45)';
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 1.5 * sc;
+    roundRect(ctx, cx - cubeSize / 2, cy - cubeSize / 2, cubeSize, cubeSize, 1.5 * sc);
+    ctx.fill();
+    ctx.stroke();
+
+    // Face highlight — subtle golden sheen
+    ctx.fillStyle = 'rgba(251,191,36,0.06)';
+    ctx.fillRect(cx - cubeSize / 2 + 1 * sc, cy - cubeSize / 2 + 1 * sc, cubeSize * 0.4, cubeSize - 2 * sc);
+
+    // Central glowing cookie (between the faces)
+    const cookieX = cx + offset / 3, cookieY = cy - offset / 3;
+    const cookieGlow = ctx.createRadialGradient(cookieX, cookieY, 0, cookieX, cookieY, 6 * sc);
+    cookieGlow.addColorStop(0, 'rgba(251,191,36,0.25)');
+    cookieGlow.addColorStop(1, 'rgba(251,191,36,0)');
+    circle(ctx, cookieX, cookieY, 6 * sc);
+    ctx.fillStyle = cookieGlow;
+    ctx.fill();
     ctx.globalAlpha = 0.9;
-    miniCookie(ctx, cx + offset / 3, cy - offset / 3, 4 * sc);
+    miniCookie(ctx, cookieX, cookieY, 4 * sc);
     ctx.globalAlpha = 1;
 
-    // Reality crack lines radiating out
-    ctx.strokeStyle = 'rgba(251,191,36,0.4)';
-    ctx.lineWidth = 0.7 * sc;
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI * 2) / 6 + 0.5;
+    // Reality crack lines radiating out — bright gold
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI * 2) / 8 + 0.3;
+      const innerR = 10 * sc;
+      const outerR = 17 * sc + (i % 2) * 2 * sc;
+      // Glow
+      ctx.strokeStyle = 'rgba(251,191,36,0.18)';
+      ctx.lineWidth = 2.5 * sc;
       ctx.beginPath();
-      ctx.moveTo(cx + 10 * sc * Math.cos(angle), cy + 10 * sc * Math.sin(angle));
-      ctx.lineTo(cx + 18 * sc * Math.cos(angle), cy + 18 * sc * Math.sin(angle));
+      ctx.moveTo(cx + innerR * Math.cos(angle), cy + innerR * Math.sin(angle));
+      ctx.lineTo(cx + outerR * Math.cos(angle), cy + outerR * Math.sin(angle));
       ctx.stroke();
+      // Core line
+      ctx.strokeStyle = 'rgba(253,224,71,0.5)';
+      ctx.lineWidth = 0.7 * sc;
+      ctx.beginPath();
+      ctx.moveTo(cx + innerR * Math.cos(angle), cy + innerR * Math.sin(angle));
+      ctx.lineTo(cx + outerR * Math.cos(angle), cy + outerR * Math.sin(angle));
+      ctx.stroke();
+    }
+
+    // Golden sparkle points at crack tips
+    ctx.fillStyle = 'rgba(253,224,71,0.6)';
+    for (let i = 0; i < 8; i += 2) {
+      const angle = (i * Math.PI * 2) / 8 + 0.3;
+      const tipR = 17 * sc + (i % 2) * 2 * sc;
+      star(ctx, cx + tipR * Math.cos(angle), cy + tipR * Math.sin(angle), 1.5 * sc, 0.5 * sc, 4);
+      ctx.fill();
     }
   },
 };
@@ -2384,159 +2551,335 @@ const rowBgDrawers = {
     // (recursive squares, math symbols, golden dust drawn by animation overlay)
   },
 
-  /* ── Idleverse: Parallel universe void with floating portals ── */
+  /* ── Idleverse: Parallel universe void with floating portals & dimension rifts ── */
   Idleverse(ctx, w, h) {
-    // Deep purple-black void
+    // Rich purple void — brighter base so purple is unmistakable
     const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#0a0020');
-    bg.addColorStop(0.4, '#1a0040');
-    bg.addColorStop(0.7, '#120030');
-    bg.addColorStop(1, '#080018');
+    bg.addColorStop(0, '#120028');
+    bg.addColorStop(0.25, '#1e0050');
+    bg.addColorStop(0.5, '#250060');
+    bg.addColorStop(0.75, '#1a0048');
+    bg.addColorStop(1, '#0e0020');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Distant stars / universe dots
-    for (let i = 0; i < Math.floor(w / 8); i++) {
-      const sx = Math.random() * w;
-      const sy = Math.random() * h;
-      const sr = Math.random() * 1.5 + 0.3;
-      ctx.fillStyle = `rgba(192,132,252,${Math.random() * 0.3 + 0.1})`;
-      circle(ctx, sx, sy, sr);
+    // Vivid purple nebula clouds (multiverse haze)
+    const nebulas = [
+      { x: w * 0.2, y: h * 0.3, r: h * 1.2, c1: 'rgba(139,92,246,0.14)', c2: 'rgba(80,20,140,0)' },
+      { x: w * 0.7, y: h * 0.6, r: h * 1.0, c1: 'rgba(168,85,247,0.10)', c2: 'rgba(100,40,180,0)' },
+      { x: w * 0.5, y: h * 0.2, r: h * 0.8, c1: 'rgba(192,132,252,0.08)', c2: 'rgba(120,60,200,0)' },
+    ];
+    nebulas.forEach(n => {
+      const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+      grad.addColorStop(0, n.c1);
+      grad.addColorStop(0.6, n.c2);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    });
+
+    // Dense multiverse star field (deterministic) — brighter purple-tinted stars
+    for (let i = 0; i < Math.floor(w / 3); i++) {
+      const sx = Math.sin(i * 7.13 + 0.5) * w * 0.5 + w * 0.5;
+      const sy = Math.cos(i * 4.37 + 0.3) * h * 0.5 + h * 0.5;
+      const brightness = 0.15 + Math.sin(i * 2.1) * 0.15 + Math.cos(i * 3.7) * 0.1;
+      const size = 0.3 + Math.sin(i * 5.3) * 0.3;
+      const tint = i % 4;
+      if (tint === 0) ctx.fillStyle = `rgba(192,132,252,${brightness + 0.12})`;
+      else if (tint === 1) ctx.fillStyle = `rgba(168,85,247,${brightness + 0.05})`;
+      else if (tint === 2) ctx.fillStyle = `rgba(233,213,255,${brightness + 0.08})`;
+      else ctx.fillStyle = `rgba(200,160,255,${brightness})`;
+      circle(ctx, sx, sy, size);
       ctx.fill();
     }
 
-    // Portal circles at intervals
-    const portalCount = Math.max(2, Math.floor(w / 140));
+    // Portal circles at intervals — larger, more detailed
+    const portalCount = Math.max(2, Math.floor(w / 130));
     for (let i = 0; i < portalCount; i++) {
       const px = (i + 0.5) * (w / portalCount);
       const py = h * 0.45 + Math.sin(i * 1.7) * h * 0.15;
-      const pr = 18 + Math.sin(i * 2.3) * 6;
+      const pr = 20 + Math.sin(i * 2.3) * 6;
 
-      // Portal glow
-      const glow = ctx.createRadialGradient(px, py, pr * 0.2, px, py, pr * 1.5);
-      glow.addColorStop(0, 'rgba(139,92,246,0.2)');
+      // Deep portal void
+      circle(ctx, px, py, pr * 0.5);
+      const voidGrad = ctx.createRadialGradient(px, py, 0, px, py, pr * 0.5);
+      voidGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+      voidGrad.addColorStop(1, 'rgba(139,92,246,0.05)');
+      ctx.fillStyle = voidGrad;
+      ctx.fill();
+
+      // Portal glow halo — brighter
+      const glow = ctx.createRadialGradient(px, py, pr * 0.2, px, py, pr * 2);
+      glow.addColorStop(0, 'rgba(168,85,247,0.28)');
+      glow.addColorStop(0.4, 'rgba(139,92,246,0.12)');
       glow.addColorStop(1, 'rgba(139,92,246,0)');
-      circle(ctx, px, py, pr * 1.5);
+      circle(ctx, px, py, pr * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
-      // Portal ring
-      ctx.strokeStyle = 'rgba(168,85,247,0.35)';
-      ctx.lineWidth = 1.5;
+      // Outer portal ring — vivid purple
+      ctx.strokeStyle = 'rgba(168,85,247,0.5)';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.ellipse(px, py, pr, pr * 0.7, i * 0.3, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Inner ring
-      ctx.strokeStyle = 'rgba(192,132,252,0.2)';
-      ctx.lineWidth = 0.8;
+      // Middle ring
+      ctx.strokeStyle = 'rgba(192,132,252,0.35)';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.ellipse(px, py, pr * 0.6, pr * 0.4, -i * 0.2, 0, Math.PI * 2);
+      ctx.ellipse(px, py, pr * 0.7, pr * 0.5, -i * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner ring
+      ctx.strokeStyle = 'rgba(233,213,255,0.25)';
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr * 0.4, pr * 0.28, i * 0.4, 0, Math.PI * 2);
       ctx.stroke();
 
       // Mini cookie inside portal
-      ctx.globalAlpha = 0.4;
+      ctx.globalAlpha = 0.45;
       miniCookie(ctx, px, py, 4);
       ctx.globalAlpha = 1;
     }
 
-    // Wispy connection lines between portals
-    ctx.strokeStyle = 'rgba(139,92,246,0.06)';
-    ctx.lineWidth = 0.5;
+    // Dimension rift lines (vertical tears)
+    for (let i = 0; i < Math.floor(w / 200); i++) {
+      const rx = 80 + i * 190 + Math.sin(i * 3.1) * 20;
+      ctx.strokeStyle = 'rgba(192,132,252,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(rx, h * 0.1);
+      for (let y = h * 0.1; y < h * 0.9; y += 8) {
+        ctx.lineTo(rx + Math.sin(y * 0.08 + i) * 6, y);
+      }
+      ctx.stroke();
+      // Rift glow
+      ctx.strokeStyle = 'rgba(192,132,252,0.03)';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(rx, h * 0.1);
+      for (let y = h * 0.1; y < h * 0.9; y += 8) {
+        ctx.lineTo(rx + Math.sin(y * 0.08 + i) * 6, y);
+      }
+      ctx.stroke();
+    }
+
+    // Floating alternate-universe cookie fragments
+    for (let i = 0; i < Math.floor(w / 65); i++) {
+      const fx = 30 + i * 60 + Math.sin(i * 2.7) * 15;
+      const fy = h * 0.2 + Math.cos(i * 1.9) * h * 0.25;
+      ctx.globalAlpha = 0.15 + Math.sin(i * 1.3) * 0.05;
+      miniCookie(ctx, fx, fy, 2.5 + Math.sin(i * 0.7) * 1);
+      ctx.globalAlpha = 1;
+    }
+
+    // Wispy connection tendrils between portals
+    ctx.lineWidth = 0.7;
     for (let i = 0; i < portalCount - 1; i++) {
       const x1 = (i + 0.5) * (w / portalCount);
       const x2 = (i + 1.5) * (w / portalCount);
+      // Main tendril
+      ctx.strokeStyle = 'rgba(139,92,246,0.08)';
       ctx.beginPath();
       ctx.moveTo(x1, h * 0.5);
-      ctx.bezierCurveTo(x1 + 30, h * 0.3, x2 - 30, h * 0.6, x2, h * 0.5);
+      ctx.bezierCurveTo(x1 + 40, h * 0.25, x2 - 40, h * 0.65, x2, h * 0.5);
+      ctx.stroke();
+      // Secondary tendril
+      ctx.strokeStyle = 'rgba(168,85,247,0.04)';
+      ctx.beginPath();
+      ctx.moveTo(x1, h * 0.48);
+      ctx.bezierCurveTo(x1 + 30, h * 0.6, x2 - 30, h * 0.35, x2, h * 0.52);
       ctx.stroke();
     }
+
+    // Small dimensional clocks (time distortion motif)
+    for (let i = 0; i < Math.floor(w / 150); i++) {
+      const cx2 = 65 + i * 140;
+      const cy2 = h * 0.78 + Math.cos(i * 2.3) * h * 0.06;
+      // Clock face
+      ctx.strokeStyle = 'rgba(192,132,252,0.15)';
+      ctx.lineWidth = 0.8;
+      circle(ctx, cx2, cy2, 6);
+      ctx.stroke();
+      // Clock hands
+      ctx.strokeStyle = 'rgba(233,213,255,0.2)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(cx2, cy2);
+      ctx.lineTo(cx2 + 3 * Math.cos(i * 2.1), cy2 - 3 * Math.sin(i * 2.1));
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx2, cy2);
+      ctx.lineTo(cx2 + 4 * Math.cos(i * 0.8), cy2 - 4 * Math.sin(i * 0.8));
+      ctx.stroke();
+    }
+
+    // (portal rotation, sparks, cookie rifts drawn by animation overlay)
   },
 
-  /* ── Cortex Baker: Neural network / brain landscape ── */
+  /* ── Cortex Baker: Random neural web — scattered nodes with organic connections + EEG waves ── */
   'Cortex Baker'(ctx, w, h) {
-    // Warm pinkish-red background
+    // Clean dark red background
     const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#1a0505');
-    bg.addColorStop(0.3, '#2a0808');
-    bg.addColorStop(0.7, '#200a0a');
-    bg.addColorStop(1, '#150404');
+    bg.addColorStop(0, '#1a0406');
+    bg.addColorStop(0.5, '#220608');
+    bg.addColorStop(1, '#160305');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Neural network: nodes and connections
-    const nodeCount = Math.max(8, Math.floor(w / 50));
+    // Subtle warm center glow
+    const glow = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.6);
+    glow.addColorStop(0, 'rgba(220,38,38,0.06)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+
+    // ── Neural web: pseudo-random scattered nodes ──
+    // Use deterministic sin/cos hashing for repeatable but random-looking positions
+    const nodeCount = Math.max(18, Math.floor((w * h) / 1800));
     const nodes = [];
     for (let i = 0; i < nodeCount; i++) {
+      // Pseudo-random positions using irrational-ratio hashing
+      const px = ((i * 0.618033988 + 0.1) % 1) * w * 0.9 + w * 0.05;
+      const py = ((i * 0.414213562 + 0.2) % 1) * h * 0.75 + h * 0.05;
+      // Extra scatter via sin/cos
+      const jx = Math.sin(i * 13.7 + 3.1) * w * 0.04;
+      const jy = Math.cos(i * 9.3 + 7.7) * h * 0.06;
       nodes.push({
-        x: (i + 0.3 + Math.random() * 0.4) * (w / nodeCount),
-        y: h * (0.2 + Math.random() * 0.6),
-        r: 3 + Math.random() * 4,
+        x: Math.max(4, Math.min(w - 4, px + jx)),
+        y: Math.max(4, Math.min(h - 4, py + jy)),
+        r: 2 + Math.sin(i * 2.71) * 1.2,
       });
     }
 
-    // Connections (dendrites)
-    ctx.strokeStyle = 'rgba(239,68,68,0.08)';
-    ctx.lineWidth = 0.6;
-    nodes.forEach((n, i) => {
-      for (let j = i + 1; j < Math.min(i + 4, nodes.length); j++) {
+    // ── Web connections: connect each node to its 2-3 nearest neighbours ──
+    // Precompute distances, then draw connections to closest nodes
+    const maxConnDist = Math.hypot(w, h) * 0.28; // max connection range
+    const drawn = new Set();
+    ctx.lineWidth = 0.7;
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      // Find distances to all other nodes
+      const dists = [];
+      for (let j = 0; j < nodes.length; j++) {
+        if (j === i) continue;
+        const d = Math.hypot(nodes[j].x - n.x, nodes[j].y - n.y);
+        if (d < maxConnDist) dists.push({ j, d });
+      }
+      dists.sort((a, b) => a.d - b.d);
+      // Connect to 2-3 nearest (skip some for randomness)
+      const connectCount = 2 + (Math.sin(i * 5.7) > 0.3 ? 1 : 0);
+      for (let k = 0; k < Math.min(connectCount, dists.length); k++) {
+        const { j, d } = dists[k];
+        const key = Math.min(i, j) + ',' + Math.max(i, j);
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        const alpha = Math.max(0.03, 0.11 * (1 - d / maxConnDist));
+        ctx.strokeStyle = `rgba(248,113,113,${alpha.toFixed(3)})`;
         ctx.beginPath();
         ctx.moveTo(n.x, n.y);
-        const mx = (n.x + nodes[j].x) / 2 + (Math.random() - 0.5) * 30;
-        const my = (n.y + nodes[j].y) / 2 + (Math.random() - 0.5) * 20;
-        ctx.quadraticCurveTo(mx, my, nodes[j].x, nodes[j].y);
+        // Organic curve — offset midpoint perpendicular to the line
+        const mx = (n.x + nodes[j].x) / 2;
+        const my = (n.y + nodes[j].y) / 2;
+        const dx = nodes[j].x - n.x, dy = nodes[j].y - n.y;
+        const perpX = -dy, perpY = dx;
+        const len = Math.hypot(perpX, perpY) || 1;
+        const curveAmount = Math.sin(i * 3.7 + j * 2.3) * 12;
+        ctx.quadraticCurveTo(
+          mx + (perpX / len) * curveAmount,
+          my + (perpY / len) * curveAmount,
+          nodes[j].x, nodes[j].y
+        );
         ctx.stroke();
       }
-    });
+    }
 
-    // Neuron nodes (cookie-colored synapses)
-    nodes.forEach(n => {
-      const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 2);
-      glow.addColorStop(0, 'rgba(251,191,36,0.15)');
-      glow.addColorStop(1, 'rgba(251,191,36,0)');
-      circle(ctx, n.x, n.y, n.r * 2);
-      ctx.fillStyle = glow;
+    // ── Neuron nodes: small dots at each intersection ──
+    nodes.forEach((n) => {
+      // Soft red glow halo
+      const nodeGlow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 3);
+      nodeGlow.addColorStop(0, 'rgba(252,165,165,0.12)');
+      nodeGlow.addColorStop(1, 'rgba(252,165,165,0)');
+      circle(ctx, n.x, n.y, n.r * 3);
+      ctx.fillStyle = nodeGlow;
       ctx.fill();
 
+      // Node dot
       circle(ctx, n.x, n.y, n.r);
-      ctx.fillStyle = 'rgba(239,68,68,0.25)';
+      ctx.fillStyle = 'rgba(248,113,113,0.3)';
       ctx.fill();
       ctx.strokeStyle = 'rgba(252,165,165,0.2)';
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = 0.4;
       ctx.stroke();
     });
 
-    // Brain wave pattern along bottom
-    ctx.strokeStyle = 'rgba(252,165,165,0.1)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.85);
-    for (let x = 0; x < w; x += 3) {
-      ctx.lineTo(x, h * 0.85 + Math.sin(x * 0.05) * 8 + Math.sin(x * 0.13) * 4);
+    // ── Scattered mini cookies at a few nodes (subtle) ──
+    for (let i = 0; i < nodes.length; i += Math.max(5, Math.floor(nodes.length / 5))) {
+      const n = nodes[i];
+      ctx.globalAlpha = 0.15;
+      miniCookie(ctx, n.x, n.y, 3);
+      ctx.globalAlpha = 1;
     }
-    ctx.stroke();
+
+    // ── EEG waves along the bottom (3 static waves) ──
+    const waveConfigs = [
+      { y: h * 0.84, freq1: 0.05, amp1: 5, freq2: 0.13, amp2: 2.5, color: 'rgba(252,165,165,0.10)', lw: 0.9 },
+      { y: h * 0.89, freq1: 0.07, amp1: 4, freq2: 0.11, amp2: 2, color: 'rgba(248,113,113,0.08)', lw: 0.7 },
+      { y: h * 0.94, freq1: 0.04, amp1: 3, freq2: 0.16, amp2: 1.5, color: 'rgba(220,38,38,0.06)', lw: 0.6 },
+    ];
+    waveConfigs.forEach((wc, wi) => {
+      ctx.strokeStyle = wc.color;
+      ctx.lineWidth = wc.lw;
+      ctx.beginPath();
+      ctx.moveTo(0, wc.y);
+      for (let x = 0; x < w; x += 2) {
+        ctx.lineTo(x, wc.y + Math.sin(x * wc.freq1 + wi * 2) * wc.amp1 + Math.sin(x * wc.freq2 + wi) * wc.amp2);
+      }
+      ctx.stroke();
+    });
+
+    // (pulse animations & animated EEG drawn by animation overlay)
   },
 
-  /* ── Reality Bender: Warped spacetime with tesseract geometry ── */
+  /* ── Reality Bender: Dark midnight void with golden reality fractures ── */
   'Reality Bender'(ctx, w, h) {
-    // Deep cyan-purple void
+    // Deep midnight blue-black — cold, void-like, no purple
     const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#020617');
-    bg.addColorStop(0.3, '#0c1631');
-    bg.addColorStop(0.6, '#0f0b2e');
-    bg.addColorStop(1, '#020617');
+    bg.addColorStop(0, '#020610');
+    bg.addColorStop(0.2, '#040a18');
+    bg.addColorStop(0.4, '#060e20');
+    bg.addColorStop(0.6, '#050c1c');
+    bg.addColorStop(0.8, '#030814');
+    bg.addColorStop(1, '#020610');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Warped grid (perspective distortion)
-    ctx.strokeStyle = 'rgba(56,189,248,0.06)';
-    ctx.lineWidth = 0.5;
-    const gridSize = 40;
+    // Golden reality-glow hazes — warm amber light leaking through cracks
+    const dims = [
+      { x: w * 0.3, y: h * 0.35, r: h * 0.9, c1: 'rgba(251,191,36,0.05)', c2: 'rgba(180,120,0,0)' },
+      { x: w * 0.7, y: h * 0.55, r: h * 0.8, c1: 'rgba(245,158,11,0.04)', c2: 'rgba(160,100,0,0)' },
+      { x: w * 0.5, y: h * 0.5, r: h * 0.5, c1: 'rgba(253,224,71,0.03)', c2: 'rgba(200,160,0,0)' },
+    ];
+    dims.forEach(d => {
+      const grad = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+      grad.addColorStop(0, d.c1);
+      grad.addColorStop(0.7, d.c2);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    });
+
+    // Warped spacetime grid — silver/white tint, no cyan or purple
+    const gridSize = 35;
+    ctx.strokeStyle = 'rgba(180,200,220,0.04)';
+    ctx.lineWidth = 0.4;
     for (let x = 0; x < w; x += gridSize) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      for (let y = 0; y < h; y += 5) {
-        const warp = Math.sin((x + y) * 0.01) * 8;
+      for (let y = 0; y < h; y += 4) {
+        const warp = Math.sin((x + y) * 0.01) * 8 + Math.sin(x * 0.008) * 4;
         ctx.lineTo(x + warp, y);
       }
       ctx.stroke();
@@ -2544,32 +2887,60 @@ const rowBgDrawers = {
     for (let y = 0; y < h; y += gridSize) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      for (let x = 0; x < w; x += 5) {
-        const warp = Math.cos((x + y) * 0.01) * 8;
+      for (let x = 0; x < w; x += 4) {
+        const warp = Math.cos((x + y) * 0.01) * 8 + Math.cos(y * 0.008) * 4;
         ctx.lineTo(x, y + warp);
       }
       ctx.stroke();
     }
 
-    // Tesseract cubes at intervals
-    const cubeCount = Math.max(2, Math.floor(w / 180));
+    // Stars — cool white and pale gold
+    for (let i = 0; i < Math.floor(w / 5); i++) {
+      const sx = Math.sin(i * 6.13 + 1.5) * w * 0.5 + w * 0.5;
+      const sy = Math.cos(i * 3.37 + 2.3) * h * 0.5 + h * 0.5;
+      const brightness = 0.06 + Math.sin(i * 2.1) * 0.05;
+      const size = 0.2 + Math.sin(i * 4.3) * 0.2;
+      const tint = i % 3;
+      if (tint === 0) ctx.fillStyle = `rgba(255,255,255,${brightness})`;
+      else if (tint === 1) ctx.fillStyle = `rgba(253,224,71,${brightness * 0.7})`;
+      else ctx.fillStyle = `rgba(200,210,230,${brightness})`;
+      circle(ctx, sx, sy, size);
+      ctx.fill();
+    }
+
+    // Tesseract cubes — midnight blue with golden edges
+    const cubeCount = Math.max(2, Math.floor(w / 160));
     for (let i = 0; i < cubeCount; i++) {
       const tx = (i + 0.5) * (w / cubeCount);
-      const ty = h * 0.5 + Math.sin(i * 2.1) * h * 0.12;
-      const ts = 16 + Math.sin(i * 1.4) * 4;
+      const ty = h * 0.48 + Math.sin(i * 2.1) * h * 0.1;
+      const ts = 18 + Math.sin(i * 1.4) * 4;
       const off = ts * 0.5;
 
-      // Inner cube
-      ctx.strokeStyle = 'rgba(56,189,248,0.2)';
+      // Tesseract golden glow halo
+      const tGlow = ctx.createRadialGradient(tx, ty, 0, tx, ty, ts * 1.8);
+      tGlow.addColorStop(0, 'rgba(251,191,36,0.06)');
+      tGlow.addColorStop(0.5, 'rgba(245,158,11,0.02)');
+      tGlow.addColorStop(1, 'rgba(0,0,0,0)');
+      circle(ctx, tx, ty, ts * 1.8);
+      ctx.fillStyle = tGlow;
+      ctx.fill();
+
+      // Front face — dark blue with golden outline
+      ctx.fillStyle = 'rgba(20,40,80,0.12)';
+      ctx.strokeStyle = 'rgba(251,191,36,0.2)';
       ctx.lineWidth = 0.8;
+      ctx.fillRect(tx - ts / 2, ty - ts / 2, ts, ts);
       ctx.strokeRect(tx - ts / 2, ty - ts / 2, ts, ts);
 
-      // Outer cube
-      ctx.strokeStyle = 'rgba(139,92,246,0.15)';
+      // Back face (offset) — slightly lighter
+      ctx.fillStyle = 'rgba(30,50,90,0.08)';
+      ctx.strokeStyle = 'rgba(245,158,11,0.14)';
+      ctx.lineWidth = 0.6;
+      ctx.fillRect(tx - ts / 2 + off, ty - ts / 2 - off, ts, ts);
       ctx.strokeRect(tx - ts / 2 + off, ty - ts / 2 - off, ts, ts);
 
-      // Connecting edges
-      ctx.strokeStyle = 'rgba(167,139,250,0.1)';
+      // Connecting edges — golden
+      ctx.strokeStyle = 'rgba(253,224,71,0.12)';
       ctx.lineWidth = 0.5;
       [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
         ctx.beginPath();
@@ -2579,26 +2950,86 @@ const rowBgDrawers = {
       });
 
       // Center cookie
-      ctx.globalAlpha = 0.3;
-      miniCookie(ctx, tx + off / 3, ty - off / 3, 3);
+      ctx.globalAlpha = 0.4;
+      miniCookie(ctx, tx + off / 3, ty - off / 3, 3.5);
       ctx.globalAlpha = 1;
     }
 
-    // Reality cracks (golden lightning)
-    ctx.strokeStyle = 'rgba(251,191,36,0.12)';
-    ctx.lineWidth = 0.8;
-    for (let i = 0; i < 3; i++) {
-      let sx = Math.random() * w;
+    // Reality fracture cracks — bright golden lightning
+    ctx.lineWidth = 1;
+    for (let i = 0; i < Math.max(3, Math.floor(w / 130)); i++) {
+      let sx = Math.sin(i * 4.7 + 2.1) * w * 0.4 + w * 0.5;
       let sy = 0;
+      // Crack glow (wider, softer)
+      ctx.strokeStyle = 'rgba(251,191,36,0.06)';
+      ctx.lineWidth = 5;
       ctx.beginPath();
       ctx.moveTo(sx, sy);
       while (sy < h) {
-        sx += (Math.random() - 0.5) * 30;
-        sy += 10 + Math.random() * 15;
+        sx += (Math.sin(sy * 0.3 + i * 7) * 15);
+        sy += 8 + Math.abs(Math.cos(sy * 0.2 + i * 5)) * 12;
+        ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      // Crack core line
+      sx = Math.sin(i * 4.7 + 2.1) * w * 0.4 + w * 0.5;
+      sy = 0;
+      ctx.strokeStyle = 'rgba(251,191,36,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      while (sy < h) {
+        sx += (Math.sin(sy * 0.3 + i * 7) * 15);
+        sy += 8 + Math.abs(Math.cos(sy * 0.2 + i * 5)) * 12;
         ctx.lineTo(sx, sy);
       }
       ctx.stroke();
     }
+
+    // Scattered physics equation fragments — gold tinted
+    const eqns = ['E=mc²', 'ℏ', 'Ψ', 'Δx·Δp≥ℏ/2', 'c', 'G', '∇²'];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '8px monospace';
+    for (let i = 0; i < Math.floor(w / 120); i++) {
+      const ex = 50 + i * 110 + Math.sin(i * 2.3) * 20;
+      const ey = h * 0.15 + Math.cos(i * 1.8) * h * 0.08;
+      ctx.fillStyle = 'rgba(253,224,71,0.06)';
+      ctx.fillText(eqns[i % eqns.length], ex, ey);
+    }
+
+    // Floating warped cookie fragments — with golden distortion rings
+    for (let i = 0; i < Math.floor(w / 80); i++) {
+      const fx = 40 + i * 75 + Math.sin(i * 2.1) * 12;
+      const fy = h * 0.72 + Math.cos(i * 1.5) * h * 0.08;
+      ctx.globalAlpha = 0.18;
+      miniCookie(ctx, fx, fy, 3);
+      ctx.globalAlpha = 1;
+      // Golden distortion ripple
+      ctx.strokeStyle = 'rgba(251,191,36,0.07)';
+      ctx.lineWidth = 0.5;
+      circle(ctx, fx, fy, 6 + Math.sin(i * 1.7) * 2);
+      ctx.stroke();
+    }
+
+    // Small golden wormhole-like structures
+    for (let i = 0; i < Math.floor(w / 200); i++) {
+      const wx = 90 + i * 190 + Math.sin(i * 3.1) * 20;
+      const wy = h * 0.25 + Math.cos(i * 2.1) * h * 0.1;
+      const wr = 10 + Math.sin(i * 1.7) * 3;
+      // Wormhole ring — golden
+      ctx.strokeStyle = 'rgba(251,191,36,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(wx, wy, wr, wr * 0.4, Math.sin(i) * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      // Inner void
+      circle(ctx, wx, wy, wr * 0.3);
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fill();
+    }
+
+    // (warping grid, fractures, dimensional flickers drawn by animation overlay)
   },
 };
 
