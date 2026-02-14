@@ -114,9 +114,6 @@ export class VisualEffects {
     this._scheduleGoldenCookie();
     this._setupGoldenCookieClick();
 
-    // DEBUG: unlock all bakers for visual testing (remove later)
-    this.game.buildings.forEach(b => { if (b.count === 0) b.count = 1; });
-
     // initial render
     this.updateBuildingShowcase();
     this.updateMilk();
