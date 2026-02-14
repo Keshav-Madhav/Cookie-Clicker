@@ -28,6 +28,12 @@ export class Building {
         return this.game.cookiesPerSecond >= cond.min;
       case "totalCookies":
         return this.game.stats.totalCookiesBaked >= cond.min;
+      case "prestige": {
+        if (!this.game.prestige) return false;
+        const discount = this.game.prestige.getPrestigeBuildingDiscount();
+        const effectiveMin = Math.max(1, cond.min - discount);
+        return this.game.prestige.timesPrestiged >= effectiveMin;
+      }
       default:
         return true;
     }
@@ -53,6 +59,11 @@ export class Building {
           return `Need ${formatNumberInWords(cond.min)} CPS`;
         case "totalCookies":
           return `Need ${formatNumberInWords(cond.min)} total cookies baked`;
+        case "prestige": {
+          const discount = this.game.prestige ? this.game.prestige.getPrestigeBuildingDiscount() : 0;
+          const effectiveMin = Math.max(1, cond.min - discount);
+          return `Need ${effectiveMin} prestige${effectiveMin > 1 ? 's' : ''} (have ${this.game.prestige ? this.game.prestige.timesPrestiged : 0})`;
+        }
         default:
           return 'Unknown requirement';
       }
@@ -166,6 +177,7 @@ export class Building {
         case "totalBuildings": current = this.game.getTotalBuildingCount(); break;
         case "cps":            current = this.game.cookiesPerSecond; break;
         case "totalCookies":   current = this.game.stats.totalCookiesBaked; break;
+        case "prestige":       current = this.game.prestige ? this.game.prestige.timesPrestiged : 0; break;
         default:               current = target; break;
       }
       total += Math.min(current / target, 1);
@@ -310,8 +322,8 @@ export class Building {
     const totalCps = parseFloat((this.count * this.cps).toFixed(1));
     const rows = [
       ['Owned', locked ? '🔒' : `${this.count}`],
-      ['Base CPS', locked ? '???' : `${this.baseCps}/s`],
-      ['Current CPS', locked ? '???' : `${this.cps}/s each`],
+      ['Base CPS', locked ? '???' : `${formatNumberInWords(this.baseCps)}/s`],
+      ['Current CPS', locked ? '???' : `${formatNumberInWords(this.cps)}/s each`],
       ['Total Generation', locked ? '???' : `${formatNumberInWords(totalCps)}/s`],
       ['Base Cost', `${formatNumberInWords(this.baseCost)}`],
       ['Next Cost', locked ? '???' : `${formatNumberInWords(this.cost)}`],
@@ -344,6 +356,7 @@ export class Building {
           case 'totalBuildings': text = `${formatNumberInWords(c.min)} total bakers`; break;
           case 'totalCookies': text = `${formatNumberInWords(c.min)} total cookies baked`; break;
           case 'cps': text = `${formatNumberInWords(c.min)} CPS`; break;
+          case 'prestige': text = `${c.min} prestige${c.min > 1 ? 's' : ''}`; break;
         }
         reqList.innerHTML += `<span class="${met ? 'req-met' : 'req-unmet'}">${met ? '✅' : '❌'} ${text}</span>`;
       });
@@ -416,9 +429,9 @@ export class Building {
     } else {
       const totalBuildingCps = parseFloat((this.count * this.cps).toFixed(1));
       if (this.count > 0) {
-        name_p.innerHTML = `${this.name} <span>(${this.cps}/s each · <strong class="building-total-cps">${formatNumberInWords(totalBuildingCps)}/s</strong>)</span>`;
+        name_p.innerHTML = `${this.name} <span>(${formatNumberInWords(this.cps)}/s each · <strong class="building-total-cps">${formatNumberInWords(totalBuildingCps)}/s</strong>)</span>`;
       } else {
-        name_p.innerHTML = `${this.name} <span>(${this.cps}/s each)</span>`;
+        name_p.innerHTML = `${this.name} <span>(${formatNumberInWords(this.cps)}/s each)</span>`;
       }
     }
 

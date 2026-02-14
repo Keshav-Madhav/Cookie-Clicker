@@ -84,6 +84,10 @@ export class AchievementManager {
           met = Array.isArray(stats.miniGamesWon) &&
                 stats.miniGamesWon.length >= achievement.requirement;
           break;
+        case "heavenlyUpgradesPurchased":
+          met = this.game.prestige &&
+                this.game.prestige.getHeavenlyUpgradeCount() >= achievement.requirement;
+          break;
       }
 
       if (met) {

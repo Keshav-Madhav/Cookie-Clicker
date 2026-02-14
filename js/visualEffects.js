@@ -574,8 +574,11 @@ export class VisualEffects {
 
   /* ───────────────────────── golden cookie ──────────────────── */
   _scheduleGoldenCookie() {
-    // Appear every 60-180 seconds
-    const delay = (Math.random() * GOLDEN_COOKIE.delayRangeSec + GOLDEN_COOKIE.delayMinSec) * 1000;
+    // Appear every 60-180 seconds, reduced by Heavenly Luck
+    const freqBonus = this.game.prestige ? this.game.prestige.getGoldenCookieFrequencyBonus() : 0;
+    const freqBonus2 = this.game.prestige ? this.game.prestige.getGoldenCookieFrequencyBonus2() : 0;
+    const freqMult = 1 - freqBonus - freqBonus2; // stacks: e.g. 0.20 + 0.40 = 60% faster
+    const delay = (Math.random() * GOLDEN_COOKIE.delayRangeSec + GOLDEN_COOKIE.delayMinSec) * 1000 * freqMult;
     this.goldenCookieTimer = setTimeout(() => this._spawnGoldenCookie(), delay);
   }
 

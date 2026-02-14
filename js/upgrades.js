@@ -45,6 +45,15 @@ export class Upgrade {
     if (tier.chance !== undefined) this.chance = tier.chance;
   }
   
+  /** Get cost after Divine Discount heavenly upgrade */
+  getEffectiveCost() {
+    const discount = this.game.prestige ? this.game.prestige.getUpgradeCostReduction() : 0;
+    if (discount > 0) {
+      return Math.floor(this.cost * (1 - discount));
+    }
+    return this.cost;
+  }
+
   canUpgradeTier() {
     if (!this.tiers || this.currentTier >= this.tiers.length - 1) return false;
     const nextTier = this.tiers[this.currentTier + 1];
@@ -61,9 +70,17 @@ export class Upgrade {
   }
 
   getEffectiveMaxLevel() {
-    if (!this.prestige_bonus_levels || !isFinite(this.base_max_level)) return this.base_max_level;
-    const prestigeCount = this.game.prestige ? this.game.prestige.timesPrestiged : 0;
-    return this.base_max_level + (this.prestige_bonus_levels * prestigeCount);
+    if (!isFinite(this.base_max_level)) return this.base_max_level;
+    let extra = 0;
+    if (this.prestige_bonus_levels) {
+      const prestigeCount = this.game.prestige ? this.game.prestige.timesPrestiged : 0;
+      extra += this.prestige_bonus_levels * prestigeCount;
+    }
+    // Infinite Wisdom heavenly upgrade: +1 to all max levels
+    if (this.game.prestige) {
+      extra += this.game.prestige.getBonusUpgradeLevels();
+    }
+    return this.base_max_level + extra;
   }
 
   /** Check a single requirement condition */
@@ -86,7 +103,7 @@ export class Upgrade {
           ? this.game.achievementManager.getUnlockedCount() >= cond.min
           : false;
       case "prestige":
-        return this.game.stats.timesPrestiged >= cond.min;
+        return (this.game.prestige ? this.game.prestige.timesPrestiged : this.game.stats.timesPrestiged) >= cond.min;
       case "totalUpgradesPurchased":
         return this.game.stats.totalUpgradesPurchased >= cond.min;
       case "miniGamesWon":
@@ -139,10 +156,11 @@ export class Upgrade {
 
   buy() {
     if (!this.meetsRequirements()) return false;
-    if (this.game.cookies >= this.cost) {
+    const effectiveCost = this.getEffectiveCost();
+    if (this.game.cookies >= effectiveCost) {
       if (this.type === "tieredUpgrade") {
         if (this.level === 0) {
-          this.game.cookies -= this.cost;
+          this.game.cookies -= effectiveCost;
           this.level = 1;
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
@@ -155,7 +173,7 @@ export class Upgrade {
           this.game.updateUI();
           return true;
         } else if (this.canUpgradeTier()) {
-          this.game.cookies -= this.cost;
+          this.game.cookies -= effectiveCost;
           this.upgradeTier(); // upgradeTier already calls applyEffect
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
@@ -170,7 +188,7 @@ export class Upgrade {
         return false;
       } else {
         if (this.getEffectiveMaxLevel() > this.level) {
-          this.game.cookies -= this.cost;
+          this.game.cookies -= effectiveCost;
           this.level += 1;
           this.applyEffect();
           let costMult = this.level > this.base_max_level ? this.prestige_cost_multiplier : this.cost_multiplier;
@@ -335,6 +353,8 @@ export class Upgrade {
     
     button.addEventListener("click", () => this.buy());
 
+    const effectiveCost = this.getEffectiveCost();
+
     // Requirements check — takes highest priority
     if (!this.meetsRequirements()) {
       button.disabled = true;
@@ -342,7 +362,7 @@ export class Upgrade {
       button.dataset.disabledReason = `🔒 ${this.getRequirementText()}`;
     } else if (this.type === "tieredUpgrade") {
       // Disable logic for tiered
-      if (this.game.cookies < this.cost) {
+      if (this.game.cookies < effectiveCost) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
       } else if (this.level > 0 && !this.canUpgradeTier()) {
@@ -359,7 +379,7 @@ export class Upgrade {
         button.dataset.disabledReason = 'Maximum Tier Reached';
       }
     } else {
-      if (this.game.cookies < this.cost) {
+      if (this.game.cookies < effectiveCost) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
       } else if (this.getEffectiveMaxLevel() <= this.level) {
@@ -372,7 +392,7 @@ export class Upgrade {
 
     // Tooltip data
     button.dataset.tooltipEffect = this.effect;
-    button.dataset.tooltipCost = this.cost;
+    button.dataset.tooltipCost = effectiveCost;
     
     if (this.type === "tieredUpgrade" && this.level > 0 && this.currentTier < this.tiers.length - 1) {
       const nextTier = this.tiers[this.currentTier + 1];

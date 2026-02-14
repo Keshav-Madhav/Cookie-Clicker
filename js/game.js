@@ -4,7 +4,7 @@ import { AchievementManager } from "./achievements.js";
 import { PrestigeManager } from "./prestige.js";
 import { VisualEffects } from "./visualEffects.js";
 import { Tutorial } from "./tutorial.js";
-import { buildings, upgrades } from "./gameData.js";
+import { buildings, upgrades, heavenlyUpgrades } from "./gameData.js";
 import { formatNumberInWords, setShortNumbers } from "./utils.js";
 import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
 import {
@@ -80,6 +80,7 @@ export class Game {
 
     this.createPurchaseAmountButtons();
     this.setupPrestigeButton();
+    this.setupHeavenlyShop();
     this.setupUpgradeNav();
     this.setupMenu();
     this.initParticles();
@@ -127,6 +128,20 @@ export class Game {
     let cps = this.cookiesPerSecond * this.globalCpsMultiplier;
     cps *= this.achievementManager.getMultiplier();
     cps *= this.prestige.getPrestigeMultiplier();
+
+    // Kitten Workers: +1% CPS per achievement
+    const kittenBonus = this.prestige.getCpsPerAchievementBonus();
+    if (kittenBonus > 0) {
+      cps *= (1 + kittenBonus * this.achievementManager.getUnlockedCount());
+    }
+
+    // Cosmic Resonance: +0.5% CPS per building type owned
+    const buildingTypeBonus = this.prestige.getCpsPerBuildingTypeBonus();
+    if (buildingTypeBonus > 0) {
+      const typesOwned = this.buildings.filter(b => b.count > 0).length;
+      cps *= (1 + buildingTypeBonus * typesOwned);
+    }
+
     if (this.frenzyActive && this.frenzyType === 'cps') {
       cps *= this.frenzyMultiplier;
     }
@@ -149,6 +164,8 @@ export class Game {
     }
 
     let cpc = baseClick + cpsBonus;
+    // Heavenly Clicking: x3 clicking power
+    cpc *= this.prestige.getClickMultiplier();
     if (this.frenzyActive && this.frenzyType === 'click') {
       cpc *= this.frenzyMultiplier;
     }
@@ -232,8 +249,9 @@ export class Game {
       // Random bonus type
       const roll = Math.random();
       if (roll < LUCKY_CLICK.cookieRollMax) {
-        // Lucky: CPS bonus (minimum floor)
-        const bonus = Math.max(LUCKY_CLICK.cookie.minCookies, this.getEffectiveCPS() * LUCKY_CLICK.cookie.cpsMultiplier);
+        // Lucky: CPS bonus (minimum floor), amplified by Lucky Stars
+        const luckyMult = this.prestige.getLuckyClickMultiplier();
+        const bonus = Math.max(LUCKY_CLICK.cookie.minCookies, this.getEffectiveCPS() * LUCKY_CLICK.cookie.cpsMultiplier) * luckyMult;
         this.cookies += bonus;
         this.stats.totalCookiesBaked += bonus;
         this.createFloatingText(event, `🍀 LUCKY! +${formatNumberInWords(bonus)}`, true);
@@ -257,7 +275,8 @@ export class Game {
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier;
     this.frenzyActive = true;
     this.frenzyType = type;
-    this.frenzyMultiplier = multiplier;
+    // Frenzy Overload: double frenzy multiplier
+    this.frenzyMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier();
     this.frenzyEndTime = Date.now() + duration;
     this.stats.frenziesTriggered++;
     this.updateFrenzyIndicator();
@@ -456,6 +475,84 @@ export class Game {
     }
   }
 
+  setupHeavenlyShop() {
+    const btn = document.getElementById("heavenly-shop-btn");
+    const overlay = document.getElementById("heavenly-overlay");
+    const closeBtn = document.getElementById("heavenly-close");
+
+    if (btn && overlay) {
+      btn.addEventListener("click", () => {
+        this.renderHeavenlyShop();
+        overlay.classList.remove("hidden");
+      });
+    }
+    if (closeBtn && overlay) {
+      closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
+    }
+    if (overlay) {
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) overlay.classList.add("hidden");
+      });
+    }
+  }
+
+  renderHeavenlyShop() {
+    const grid = document.getElementById("heavenly-upgrade-grid");
+    const chipsEl = document.getElementById("heavenly-available-chips");
+    if (!grid) return;
+
+    const spendable = this.prestige.getSpendableChips();
+    if (chipsEl) chipsEl.textContent = formatNumberInWords(spendable);
+
+    grid.innerHTML = "";
+    heavenlyUpgrades.forEach(upgrade => {
+      const owned = this.prestige.hasUpgrade(upgrade.id);
+      const canBuy = this.prestige.canBuyUpgrade(upgrade.id);
+
+      // Check prerequisites
+      const prereqsMet = !upgrade.requires || upgrade.requires.length === 0 ||
+        upgrade.requires.every(r => this.prestige.hasUpgrade(r));
+
+      const card = document.createElement("div");
+      card.className = `heavenly-card ${owned ? 'heavenly-owned' : ''} ${canBuy ? 'heavenly-buyable' : ''} ${!prereqsMet && !owned ? 'heavenly-locked' : ''}`;
+
+      const costStr = formatNumberInWords(upgrade.cost);
+      const prereqNames = (upgrade.requires || []).map(r => {
+        const u = heavenlyUpgrades.find(h => h.id === r);
+        return u ? u.name : r;
+      });
+
+      card.innerHTML = `
+        <div class="heavenly-card-header">
+          <span class="heavenly-card-name">${upgrade.name}</span>
+          <span class="heavenly-card-cost">${owned ? '✓' : `💎 ${costStr}`}</span>
+        </div>
+        <div class="heavenly-card-desc">${upgrade.desc}</div>
+        ${!prereqsMet && !owned ? `<div class="heavenly-card-prereq">Requires: ${prereqNames.join(', ')}</div>` : ''}
+      `;
+
+      if (!owned && canBuy) {
+        card.addEventListener("click", () => {
+          if (this.prestige.buyUpgrade(upgrade.id)) {
+            this.renderHeavenlyShop();
+            this.calculateCPS();
+            this.updateLeftPanel();
+            this.saveGame();
+          }
+        });
+      }
+
+      grid.appendChild(card);
+    });
+  }
+
+  updateHeavenlyShopButton() {
+    const btn = document.getElementById("heavenly-shop-btn");
+    if (btn) {
+      btn.style.display = this.prestige.timesPrestiged >= 1 ? '' : 'none';
+    }
+  }
+
   setupUpgradeNav() {
     const prev = document.getElementById("upgrade-prev");
     const next = document.getElementById("upgrade-next");
@@ -553,6 +650,7 @@ export class Game {
       wipeBtn.addEventListener("click", () => {
         if (confirm("Are you sure? This will permanently delete ALL your progress!")) {
           if (confirm("Really? There is no undo. All cookies, buildings, and upgrades will be gone.")) {
+            this._wipedSave = true; // Prevent auto-save from re-writing
             localStorage.removeItem("cookieClickerSave");
             location.reload();
           }
@@ -820,7 +918,9 @@ export class Game {
   }
 
   resetForPrestige() {
-    this.cookies = GAME.startingCookies;
+    // Heavenly Cookies: start with more cookies
+    const startingMultiplier = this.prestige.getStartingCookiesMultiplier();
+    this.cookies = GAME.startingCookies * startingMultiplier;
     this.cookiesPerClick = GAME.startingCookiesPerClick;
     this.cookiesPerSecond = 0;
     this.globalCpsMultiplier = 1;
@@ -833,13 +933,64 @@ export class Game {
     this.frenzyEndTime = 0;
     this.frenzyType = null;
 
+    // Persistent Memory: save upgrade levels before reset (use higher of the two tiers)
+    const memoryFraction = Math.max(this.prestige.getPersistentMemoryFraction(), this.prestige.getPersistentMemoryFraction2());
+    const savedUpgradeLevels = [];
+    if (memoryFraction > 0) {
+      this.upgrades.forEach((u, i) => {
+        if (u.type !== 'tieredUpgrade' && u.level > 0) {
+          const retainedLevels = Math.floor(u.level * memoryFraction);
+          if (retainedLevels > 0) {
+            savedUpgradeLevels.push({ index: i, level: retainedLevels });
+          }
+        }
+      });
+    }
+
     // Reset buildings
     this.buildings = buildings.map((_, index) => new Building(index, this));
     // Reset upgrades
     this.upgrades = upgrades.map((_, index) => new Upgrade(index, this));
 
+    // Twin Gates: apply building cost reduction
+    const buildingDiscount = this.prestige.getBuildingCostReduction();
+    if (buildingDiscount > 0) {
+      this.buildings.forEach(b => {
+        b.baseCost = Math.floor(b.baseCost * (1 - buildingDiscount));
+        b.cost = b.baseCost;
+      });
+    }
+
+    // Starter Kit: give free buildings
+    const starterBuildings = this.prestige.getStarterBuildings();
+    starterBuildings.forEach(idx => {
+      if (this.buildings[idx]) {
+        this.buildings[idx].count = 1;
+        this.buildings[idx].recalculateCost();
+      }
+    });
+
+    // Persistent Memory: restore retained upgrade levels
+    savedUpgradeLevels.forEach(({ index, level }) => {
+      const upgrade = this.upgrades[index];
+      if (upgrade) {
+        for (let i = 0; i < level; i++) {
+          upgrade.level++;
+          upgrade.applyEffect();
+          let costMult = upgrade.level > upgrade.base_max_level ? upgrade.prestige_cost_multiplier : upgrade.cost_multiplier;
+          if (upgrade.accel_start && upgrade.cost_acceleration && upgrade.level >= upgrade.accel_start) {
+            const extra = upgrade.level - upgrade.accel_start + 1;
+            costMult *= Math.pow(upgrade.cost_acceleration, extra);
+          }
+          upgrade.cost = Math.floor(upgrade.cost * costMult);
+        }
+      }
+    });
+
+    // Cosmic Grandma: apply grandma multiplier
+    this.prestige.applyAllEffects();
+
     // Reset stats for this run (but keep prestige stats)
-    const timesPrestiged = this.stats.timesPrestiged;
     this.stats = {
       totalCookiesBaked: 0,
       totalClicks: 0,
@@ -851,6 +1002,7 @@ export class Game {
       handmadeCookies: 0,
     };
 
+    this.calculateCPS();
     this.saveGame();
     this.updateUI();
     this.updateLeftPanel();
@@ -910,8 +1062,9 @@ export class Game {
       }
       button.classList.remove('upgrade-locked');
 
+      const effectiveCost = upgrade.getEffectiveCost();
       if (upgrade.type === "tieredUpgrade") {
-        if (this.cookies < upgrade.cost) {
+        if (this.cookies < effectiveCost) {
           button.disabled = true;
           button.dataset.disabledReason = "Not Enough Cookies";
         } else if (upgrade.level > 0 && !upgrade.canUpgradeTier()) {
@@ -932,7 +1085,7 @@ export class Game {
           anyUpgradeAffordable = true;
         }
       } else {
-        if (this.cookies < upgrade.cost) {
+        if (this.cookies < effectiveCost) {
           button.disabled = true;
           button.dataset.disabledReason = "Not Enough Cookies";
         } else if (upgrade.level >= upgrade.max_level) {
@@ -1092,14 +1245,23 @@ export class Game {
     // Base CPS from buildings
     let baseCps = this.buildings.reduce((acc, b) => acc + b.count * b.cps, 0);
 
+    // Divine Bakeries: +X% CPS per prestige level to all buildings
+    const buildingPrestigeBonus = this.prestige.getBuildingCpsPerPrestige();
+    if (buildingPrestigeBonus > 0) {
+      baseCps *= (1 + buildingPrestigeBonus);
+    }
+
+    // Synergy multiplier from Synergy Vol. II and Cosmic Synergy heavenly upgrades
+    const synergyMult = this.prestige.getSynergyMultiplier() * this.prestige.getSynergyMultiplier2();
+
     // Add synergy bonuses
     this.upgrades.forEach(upgrade => {
       if (upgrade.type === "synergy" && upgrade.level > 0) {
         const sourceBuilding = this.buildings.find(b => b.name === upgrade.source);
         const targetBuilding = this.buildings.find(b => b.name === upgrade.target);
         if (sourceBuilding && targetBuilding) {
-          // Each level multiplies the bonus
-          const synergyBonus = sourceBuilding.count * upgrade.bonus * upgrade.level;
+          // Each level multiplies the bonus, doubled by Synergy Vol. II
+          const synergyBonus = sourceBuilding.count * upgrade.bonus * upgrade.level * synergyMult;
           baseCps += targetBuilding.count * synergyBonus;
         }
       }
@@ -1174,6 +1336,7 @@ export class Game {
     const prestEl = document.getElementById("left-prestige");
     if (prestEl) {
       const potentialChips = this.prestige.calculateHeavenlyChipsOnReset();
+      const spendable = this.prestige.getSpendableChips();
       prestEl.innerHTML = `
         <div class="prestige-chips">
           <span class="chip-icon">💎</span>
@@ -1181,6 +1344,7 @@ export class Game {
         </div>
         <div class="prestige-row"><span>Ascended</span><span>${this.prestige.timesPrestiged}x</span></div>
         <div class="prestige-row"><span>On reset</span><span>+${formatNumberInWords(potentialChips)}</span></div>
+        ${this.prestige.spentChips > 0 ? `<div class="prestige-row"><span>Available</span><span>💎 ${formatNumberInWords(spendable)}</span></div>` : ''}
       `;
       
       const btn = document.getElementById("prestige-btn");
@@ -1196,12 +1360,16 @@ export class Game {
       }
     }
 
+    // Heavenly shop button visibility
+    this.updateHeavenlyShopButton();
+
     // Frenzy indicator
     this.updateFrenzyIndicator();
   }
 
   // === Save / Load ===
   saveGame() {
+    if (this._wipedSave) return; // Don't save after wipe
     let saveData = {
       cookies: this.cookies,
       cookiesPerClick: this.cookiesPerClick,
@@ -1230,7 +1398,7 @@ export class Game {
       tutorial: this.tutorial.getSaveData(),
       settings: this.settings,
       lastSavedTime: Date.now(),
-      saveVersion: 2,
+      saveVersion: 4,
     };
     const jsonStr = JSON.stringify(saveData);
     encryptSave(jsonStr).then(encrypted => {
@@ -1310,6 +1478,15 @@ export class Game {
     if (!data.saveVersion || data.saveVersion < 2) {
       data.upgrades = this._migrateUpgradesV1(data.upgrades);
     }
+    // V2 → V3: heavenly upgrades & new buildings/upgrades (arrays just grow; new entries auto-initialize)
+    if (data.saveVersion && data.saveVersion < 3) {
+      // Prestige save data gains new fields — handled by loadSaveData defaults
+      if (data.prestige && !data.prestige.purchasedUpgrades) {
+        data.prestige.purchasedUpgrades = [];
+        data.prestige.spentChips = 0;
+      }
+    }
+    // V3 → V4: more upgrades, buildings adjustments, new heavenly upgrades — arrays grow, auto-initialized
 
     this.cookies = parseFloat(data.cookies || 0);
     this.cookiesPerClick = 1;
@@ -1394,6 +1571,9 @@ export class Game {
         }
       }
     }
+
+    // Apply heavenly upgrade effects (e.g. Cosmic Grandma)
+    this.prestige.applyAllEffects();
 
     // Restore exact saved values after reapply
     this.cookiesPerClick = parseFloat(data.cookiesPerClick || 1);

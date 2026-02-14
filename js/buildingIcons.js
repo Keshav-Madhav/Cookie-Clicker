@@ -949,6 +949,180 @@ const iconDrawers = {
     ctx.bezierCurveTo(cx + 2 * sc, s - 12 * sc, cx + 12 * sc, s - 12 * sc, cx + 6 * sc, s - 6 * sc);
     ctx.stroke();
   },
+
+  /* ── Idleverse ── Parallel universe portal with floating cookies */
+  Idleverse(ctx, s) {
+    const cx = s / 2, cy = s / 2;
+    const sc = s / 48;
+
+    // Dark purple void background
+    circle(ctx, cx, cy, 18 * sc);
+    const voidGrad = ctx.createRadialGradient(cx, cy, 2 * sc, cx, cy, 18 * sc);
+    voidGrad.addColorStop(0, '#6b21a8');
+    voidGrad.addColorStop(0.5, '#3b0764');
+    voidGrad.addColorStop(1, '#1e0338');
+    ctx.fillStyle = voidGrad;
+    ctx.fill();
+
+    // Swirling ring (portal edge)
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 2.5 * sc;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 16 * sc, 14 * sc, 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner glow ring
+    ctx.strokeStyle = 'rgba(192,132,252,0.5)';
+    ctx.lineWidth = 1.5 * sc;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 12 * sc, 10 * sc, -0.2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Floating mini cookies inside portal
+    ctx.globalAlpha = 0.7;
+    miniCookie(ctx, cx - 4 * sc, cy - 3 * sc, 3 * sc);
+    miniCookie(ctx, cx + 5 * sc, cy + 2 * sc, 2.5 * sc);
+    miniCookie(ctx, cx + 1 * sc, cy + 5 * sc, 2 * sc);
+    ctx.globalAlpha = 1;
+
+    // Sparkle dots
+    ctx.fillStyle = '#e9d5ff';
+    circle(ctx, cx - 8 * sc, cy - 8 * sc, 1 * sc); ctx.fill();
+    circle(ctx, cx + 10 * sc, cy - 5 * sc, 0.8 * sc); ctx.fill();
+    circle(ctx, cx - 6 * sc, cy + 9 * sc, 0.7 * sc); ctx.fill();
+    circle(ctx, cx + 7 * sc, cy + 8 * sc, 1.2 * sc); ctx.fill();
+  },
+
+  /* ── Cortex Baker ── Brain-shaped cookie processor */
+  'Cortex Baker'(ctx, s) {
+    const cx = s / 2, cy = s / 2;
+    const sc = s / 48;
+
+    // Brain shape (two hemispheres)
+    const brainGrad = ctx.createRadialGradient(cx, cy - 2 * sc, 2 * sc, cx, cy, 16 * sc);
+    brainGrad.addColorStop(0, '#fca5a5');
+    brainGrad.addColorStop(0.6, '#ef4444');
+    brainGrad.addColorStop(1, '#991b1b');
+
+    // Left hemisphere
+    ctx.beginPath();
+    ctx.ellipse(cx - 5 * sc, cy - 2 * sc, 12 * sc, 14 * sc, -0.15, 0, Math.PI * 2);
+    ctx.fillStyle = brainGrad;
+    ctx.fill();
+
+    // Right hemisphere
+    ctx.beginPath();
+    ctx.ellipse(cx + 5 * sc, cy - 2 * sc, 12 * sc, 14 * sc, 0.15, 0, Math.PI * 2);
+    ctx.fillStyle = brainGrad;
+    ctx.fill();
+
+    // Central fissure (dividing line)
+    ctx.strokeStyle = '#7f1d1d';
+    ctx.lineWidth = 1.5 * sc;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 16 * sc);
+    ctx.bezierCurveTo(cx - 1 * sc, cy - 6 * sc, cx + 1 * sc, cy + 4 * sc, cx, cy + 12 * sc);
+    ctx.stroke();
+
+    // Brain folds (wavy lines)
+    ctx.strokeStyle = 'rgba(127,29,29,0.5)';
+    ctx.lineWidth = 1 * sc;
+    // Left folds
+    ctx.beginPath();
+    ctx.moveTo(cx - 14 * sc, cy - 4 * sc);
+    ctx.bezierCurveTo(cx - 10 * sc, cy - 8 * sc, cx - 6 * sc, cy, cx - 2 * sc, cy - 4 * sc);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 12 * sc, cy + 4 * sc);
+    ctx.bezierCurveTo(cx - 8 * sc, cy, cx - 4 * sc, cy + 8 * sc, cx - 1 * sc, cy + 4 * sc);
+    ctx.stroke();
+    // Right folds
+    ctx.beginPath();
+    ctx.moveTo(cx + 2 * sc, cy - 4 * sc);
+    ctx.bezierCurveTo(cx + 6 * sc, cy - 8 * sc, cx + 10 * sc, cy, cx + 14 * sc, cy - 4 * sc);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 1 * sc, cy + 4 * sc);
+    ctx.bezierCurveTo(cx + 4 * sc, cy + 8 * sc, cx + 8 * sc, cy, cx + 12 * sc, cy + 4 * sc);
+    ctx.stroke();
+
+    // Neural glow spots (cookie-colored neurons)
+    ctx.fillStyle = '#fbbf24';
+    circle(ctx, cx - 7 * sc, cy - 6 * sc, 1.5 * sc); ctx.fill();
+    circle(ctx, cx + 8 * sc, cy - 3 * sc, 1.2 * sc); ctx.fill();
+    circle(ctx, cx - 3 * sc, cy + 6 * sc, 1.3 * sc); ctx.fill();
+    circle(ctx, cx + 5 * sc, cy + 7 * sc, 1 * sc); ctx.fill();
+
+    // Stem
+    ctx.fillStyle = '#dc2626';
+    roundRect(ctx, cx - 3 * sc, cy + 11 * sc, 6 * sc, 6 * sc, 2 * sc);
+    ctx.fill();
+  },
+
+  /* ── Reality Bender ── Reality-warping cube/tesseract */
+  'Reality Bender'(ctx, s) {
+    const cx = s / 2, cy = s / 2;
+    const sc = s / 48;
+
+    // Outer distortion aura
+    const auraGrad = ctx.createRadialGradient(cx, cy, 4 * sc, cx, cy, 20 * sc);
+    auraGrad.addColorStop(0, 'rgba(14,165,233,0.3)');
+    auraGrad.addColorStop(0.6, 'rgba(139,92,246,0.15)');
+    auraGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    circle(ctx, cx, cy, 20 * sc);
+    ctx.fillStyle = auraGrad;
+    ctx.fill();
+
+    // Inner cube (front face)
+    const cubeSize = 14 * sc;
+    const offset = 5 * sc;
+    ctx.fillStyle = 'rgba(14,165,233,0.4)';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.5 * sc;
+    roundRect(ctx, cx - cubeSize / 2, cy - cubeSize / 2, cubeSize, cubeSize, 2 * sc);
+    ctx.fill();
+    ctx.stroke();
+
+    // Back face (offset)
+    ctx.fillStyle = 'rgba(139,92,246,0.25)';
+    ctx.strokeStyle = '#a78bfa';
+    ctx.lineWidth = 1 * sc;
+    roundRect(ctx, cx - cubeSize / 2 + offset, cy - cubeSize / 2 - offset, cubeSize, cubeSize, 2 * sc);
+    ctx.fill();
+    ctx.stroke();
+
+    // Connect corners (tesseract edges)
+    ctx.strokeStyle = 'rgba(167,139,250,0.5)';
+    ctx.lineWidth = 0.8 * sc;
+    const corners = [
+      [-cubeSize / 2, -cubeSize / 2],
+      [cubeSize / 2, -cubeSize / 2],
+      [cubeSize / 2, cubeSize / 2],
+      [-cubeSize / 2, cubeSize / 2],
+    ];
+    corners.forEach(([dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(cx + dx, cy + dy);
+      ctx.lineTo(cx + dx + offset, cy + dy - offset);
+      ctx.stroke();
+    });
+
+    // Central glowing cookie
+    ctx.globalAlpha = 0.9;
+    miniCookie(ctx, cx + offset / 3, cy - offset / 3, 4 * sc);
+    ctx.globalAlpha = 1;
+
+    // Reality crack lines radiating out
+    ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+    ctx.lineWidth = 0.7 * sc;
+    for (let i = 0; i < 6; i++) {
+      const angle = (i * Math.PI * 2) / 6 + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 10 * sc * Math.cos(angle), cy + 10 * sc * Math.sin(angle));
+      ctx.lineTo(cx + 18 * sc * Math.cos(angle), cy + 18 * sc * Math.sin(angle));
+      ctx.stroke();
+    }
+  },
 };
 
 /* ── Default fallback icon ── */
@@ -2208,6 +2382,223 @@ const rowBgDrawers = {
     }
 
     // (recursive squares, math symbols, golden dust drawn by animation overlay)
+  },
+
+  /* ── Idleverse: Parallel universe void with floating portals ── */
+  Idleverse(ctx, w, h) {
+    // Deep purple-black void
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#0a0020');
+    bg.addColorStop(0.4, '#1a0040');
+    bg.addColorStop(0.7, '#120030');
+    bg.addColorStop(1, '#080018');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Distant stars / universe dots
+    for (let i = 0; i < Math.floor(w / 8); i++) {
+      const sx = Math.random() * w;
+      const sy = Math.random() * h;
+      const sr = Math.random() * 1.5 + 0.3;
+      ctx.fillStyle = `rgba(192,132,252,${Math.random() * 0.3 + 0.1})`;
+      circle(ctx, sx, sy, sr);
+      ctx.fill();
+    }
+
+    // Portal circles at intervals
+    const portalCount = Math.max(2, Math.floor(w / 140));
+    for (let i = 0; i < portalCount; i++) {
+      const px = (i + 0.5) * (w / portalCount);
+      const py = h * 0.45 + Math.sin(i * 1.7) * h * 0.15;
+      const pr = 18 + Math.sin(i * 2.3) * 6;
+
+      // Portal glow
+      const glow = ctx.createRadialGradient(px, py, pr * 0.2, px, py, pr * 1.5);
+      glow.addColorStop(0, 'rgba(139,92,246,0.2)');
+      glow.addColorStop(1, 'rgba(139,92,246,0)');
+      circle(ctx, px, py, pr * 1.5);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Portal ring
+      ctx.strokeStyle = 'rgba(168,85,247,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr, pr * 0.7, i * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner ring
+      ctx.strokeStyle = 'rgba(192,132,252,0.2)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr * 0.6, pr * 0.4, -i * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Mini cookie inside portal
+      ctx.globalAlpha = 0.4;
+      miniCookie(ctx, px, py, 4);
+      ctx.globalAlpha = 1;
+    }
+
+    // Wispy connection lines between portals
+    ctx.strokeStyle = 'rgba(139,92,246,0.06)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < portalCount - 1; i++) {
+      const x1 = (i + 0.5) * (w / portalCount);
+      const x2 = (i + 1.5) * (w / portalCount);
+      ctx.beginPath();
+      ctx.moveTo(x1, h * 0.5);
+      ctx.bezierCurveTo(x1 + 30, h * 0.3, x2 - 30, h * 0.6, x2, h * 0.5);
+      ctx.stroke();
+    }
+  },
+
+  /* ── Cortex Baker: Neural network / brain landscape ── */
+  'Cortex Baker'(ctx, w, h) {
+    // Warm pinkish-red background
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#1a0505');
+    bg.addColorStop(0.3, '#2a0808');
+    bg.addColorStop(0.7, '#200a0a');
+    bg.addColorStop(1, '#150404');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Neural network: nodes and connections
+    const nodeCount = Math.max(8, Math.floor(w / 50));
+    const nodes = [];
+    for (let i = 0; i < nodeCount; i++) {
+      nodes.push({
+        x: (i + 0.3 + Math.random() * 0.4) * (w / nodeCount),
+        y: h * (0.2 + Math.random() * 0.6),
+        r: 3 + Math.random() * 4,
+      });
+    }
+
+    // Connections (dendrites)
+    ctx.strokeStyle = 'rgba(239,68,68,0.08)';
+    ctx.lineWidth = 0.6;
+    nodes.forEach((n, i) => {
+      for (let j = i + 1; j < Math.min(i + 4, nodes.length); j++) {
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        const mx = (n.x + nodes[j].x) / 2 + (Math.random() - 0.5) * 30;
+        const my = (n.y + nodes[j].y) / 2 + (Math.random() - 0.5) * 20;
+        ctx.quadraticCurveTo(mx, my, nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    });
+
+    // Neuron nodes (cookie-colored synapses)
+    nodes.forEach(n => {
+      const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 2);
+      glow.addColorStop(0, 'rgba(251,191,36,0.15)');
+      glow.addColorStop(1, 'rgba(251,191,36,0)');
+      circle(ctx, n.x, n.y, n.r * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      circle(ctx, n.x, n.y, n.r);
+      ctx.fillStyle = 'rgba(239,68,68,0.25)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(252,165,165,0.2)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    });
+
+    // Brain wave pattern along bottom
+    ctx.strokeStyle = 'rgba(252,165,165,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.85);
+    for (let x = 0; x < w; x += 3) {
+      ctx.lineTo(x, h * 0.85 + Math.sin(x * 0.05) * 8 + Math.sin(x * 0.13) * 4);
+    }
+    ctx.stroke();
+  },
+
+  /* ── Reality Bender: Warped spacetime with tesseract geometry ── */
+  'Reality Bender'(ctx, w, h) {
+    // Deep cyan-purple void
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#020617');
+    bg.addColorStop(0.3, '#0c1631');
+    bg.addColorStop(0.6, '#0f0b2e');
+    bg.addColorStop(1, '#020617');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Warped grid (perspective distortion)
+    ctx.strokeStyle = 'rgba(56,189,248,0.06)';
+    ctx.lineWidth = 0.5;
+    const gridSize = 40;
+    for (let x = 0; x < w; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      for (let y = 0; y < h; y += 5) {
+        const warp = Math.sin((x + y) * 0.01) * 8;
+        ctx.lineTo(x + warp, y);
+      }
+      ctx.stroke();
+    }
+    for (let y = 0; y < h; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x < w; x += 5) {
+        const warp = Math.cos((x + y) * 0.01) * 8;
+        ctx.lineTo(x, y + warp);
+      }
+      ctx.stroke();
+    }
+
+    // Tesseract cubes at intervals
+    const cubeCount = Math.max(2, Math.floor(w / 180));
+    for (let i = 0; i < cubeCount; i++) {
+      const tx = (i + 0.5) * (w / cubeCount);
+      const ty = h * 0.5 + Math.sin(i * 2.1) * h * 0.12;
+      const ts = 16 + Math.sin(i * 1.4) * 4;
+      const off = ts * 0.5;
+
+      // Inner cube
+      ctx.strokeStyle = 'rgba(56,189,248,0.2)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(tx - ts / 2, ty - ts / 2, ts, ts);
+
+      // Outer cube
+      ctx.strokeStyle = 'rgba(139,92,246,0.15)';
+      ctx.strokeRect(tx - ts / 2 + off, ty - ts / 2 - off, ts, ts);
+
+      // Connecting edges
+      ctx.strokeStyle = 'rgba(167,139,250,0.1)';
+      ctx.lineWidth = 0.5;
+      [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
+        ctx.beginPath();
+        ctx.moveTo(tx + dx * ts / 2, ty + dy * ts / 2);
+        ctx.lineTo(tx + dx * ts / 2 + off, ty + dy * ts / 2 - off);
+        ctx.stroke();
+      });
+
+      // Center cookie
+      ctx.globalAlpha = 0.3;
+      miniCookie(ctx, tx + off / 3, ty - off / 3, 3);
+      ctx.globalAlpha = 1;
+    }
+
+    // Reality cracks (golden lightning)
+    ctx.strokeStyle = 'rgba(251,191,36,0.12)';
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 3; i++) {
+      let sx = Math.random() * w;
+      let sy = 0;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      while (sy < h) {
+        sx += (Math.random() - 0.5) * 30;
+        sy += 10 + Math.random() * 15;
+        ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+    }
   },
 };
 
