@@ -1,4 +1,5 @@
 import { formatNumberInWords } from "./utils.js";
+import { PRESTIGE } from "./config.js";
 
 export class PrestigeManager {
   constructor(game) {
@@ -11,13 +12,13 @@ export class PrestigeManager {
   // Heavenly chips earned = cube root of (total cookies / 1 trillion)
   calculateHeavenlyChipsOnReset() {
     const total = this.totalCookiesBakedAllTime + this.game.stats.totalCookiesBaked;
-    const chips = Math.floor(Math.pow(total / 1e12, 0.45));
+    const chips = Math.floor(Math.pow(total / PRESTIGE.chipDivisor, PRESTIGE.chipExponent));
     return Math.max(0, chips - this.heavenlyChips); // Only new chips
   }
 
   getPrestigeMultiplier() {
     // Each heavenly chip = +1% CPS
-    return 1 + (this.heavenlyChips * 0.01);
+    return 1 + (this.heavenlyChips * PRESTIGE.bonusPerChip);
   }
 
   canPrestige() {

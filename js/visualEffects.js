@@ -1,6 +1,7 @@
 import { formatNumberInWords } from "./utils.js";
 import { MiniGames } from "./miniGames.js";
 import { getBuildingIcon } from "./buildingIcons.js";
+import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN } from "./config.js";
 
 /**
  * VisualEffects — manages the middle-panel "viewport" with
@@ -22,12 +23,12 @@ export class VisualEffects {
 
     // Dynamic rain intensity state
     this._rainSpeedMult = 1;
-    this._rainTargetCount = 40;
-    this._rainBaseCount = 40;
+    this._rainTargetCount = VISUAL.rain.baseCount;
+    this._rainBaseCount = VISUAL.rain.baseCount;
     this._lastIntensityUpdate = 0;
 
     // Pre-allocated burst pool (avoids per-burst GC)
-    this._burstPoolCap = 200;
+    this._burstPoolCap = VISUAL.burst.poolCap;
     this._burstPool = new Array(this._burstPoolCap);
     this._burstCount = 0;  // active burst drops = _burstPool[0.._burstCount-1]
     for (let i = 0; i < this._burstPoolCap; i++) {
@@ -41,58 +42,7 @@ export class VisualEffects {
     this.particlesEnabled = true;
     this.shimmersEnabled = true;
 
-    this.newsMessages = [
-      "News: cookie production is at an all-time high!",
-      "Tip: click the golden cookie for massive bonuses!",
-      "Grandma says: \"Back in my day, we baked by hand.\"",
-      "Scientists discover cookie-based energy source.",
-      "Breaking: local bakery can't keep up with demand!",
-      "Cookie stocks soar as production accelerates.",
-      "Rumor: ancient cookie recipe found in forgotten temple.",
-      "Weather forecast: scattered cookie crumbs with a chance of sprinkles.",
-      "Economists baffled by cookie-based economy.",
-      "New study: clicking cookies is great exercise.",
-      "Alert: cookie reserves reaching critical mass!",
-      "Grandma's secret: always use real butter.",
-      "Archaeologists unearth prehistoric cookie mold.",
-      "Cookie monster sighted near factory district.",
-      "Breaking: cookies declared the fifth food group.",
-      "Local farms report record chocolate chip harvests.",
-      "The cookie singularity approaches...",
-      "Experts warn: too many cookies may cause happiness.",
-      "Portal technology now powered entirely by cookies.",
-      "Time travelers confirm: cookies are eternal.",
-      "Breaking: world's largest cookie measured at 40 feet across.",
-      "Grandma just unlocked a new recipe. She won't share it.",
-      "Cookie dough futures hit record high on the stock exchange.",
-      "Tip: upgrades stack multiplicatively. Buy them early!",
-      "Scientists confirm: the universe smells faintly of vanilla.",
-      "Local cursor union demands shorter clicking hours.",
-      "New flavor discovered: quantum chocolate chip.",
-      "Warning: cookie output exceeds local storage capacity.",
-      "Grandma's advice: never trust a cookie that doesn't crumble.",
-      "Shipment of cookies intercepted by hungry delivery drivers.",
-      "Mining operation uncovers vast underground cookie vein.",
-      "Factory workers report cookies are baking themselves now.",
-      "Alchemy lab successfully turns lead into cookie dough.",
-      "Portal malfunction sends cookies to parallel universe.",
-      "Time machine retrieves cookies from the far future. They're still fresh.",
-      "Antimatter condenser creates cookies from pure energy.",
-      "Prism refracts sunlight into rainbow-flavored cookies.",
-      "Chancemaker rolls a natural 20. Double cookie output!",
-      "Fractal engine generates infinite cookie recursion. Delicious.",
-      "Survey: 9 out of 10 grandmas recommend more grandmas.",
-      "Cookie-based cryptocurrency launches. Somehow less volatile than Bitcoin.",
-      "Motivational poster in factory reads: 'Every cookie counts.'",
-      "Fun fact: if you stacked all your cookies, they'd reach the moon. Twice.",
-      "Intern accidentally eats prototype cookie. Gains temporary omniscience.",
-      "New law requires all buildings to be made of at least 30% cookie.",
-      "Cookies per second now classified as a unit of measurement.",
-      "Your cursor has filed a restraining order against your mouse.",
-      "Grandma's book club is now just a cookie exchange ring.",
-      "R&D team invents self-clicking cookie. Patent pending.",
-      "Local news: residents complain about constant cookie smell. Secretly love it.",
-    ];
+    this.newsMessages = NEWS.messages;
   }
 
   /* ───────────────────────── bootstrap ───────────────────────── */
@@ -164,8 +114,8 @@ export class VisualEffects {
     this._resize();
     window.addEventListener("resize", () => this._resize());
 
-    this._seedRain(40);
-    this._seedShimmers(12);
+    this._seedRain(VISUAL.rain.seedCount);
+    this._seedShimmers(VISUAL.shimmers.seedCount);
     this._startAnimLoop();
     this._startNewsTicker();
     this.miniGames = new MiniGames(this.game);
@@ -218,23 +168,23 @@ export class VisualEffects {
 
     // Smooth log-based scaling — rain grows with income
     const logCps = cps > 0 ? Math.log10(cps) : 0;
-    let targetCount = Math.floor(this._rainBaseCount + logCps * 8);
-    let speedMult   = 1 + logCps * 0.08;
+    let targetCount = Math.floor(this._rainBaseCount + logCps * VISUAL.rain.countScale);
+    let speedMult   = 1 + logCps * VISUAL.rain.speedScale;
 
     // Frenzy overlay — income spike = rain spike
     if (g.frenzyActive) {
       if (g.frenzyType === 'click') {
-        targetCount += 40;
-        speedMult  *= 2.5;
+        targetCount += VISUAL.rainFrenzy.clickExtraDrops;
+        speedMult  *= VISUAL.rainFrenzy.clickSpeedMult;
       } else {
-        targetCount += 25;
-        speedMult  *= 2.0;
+        targetCount += VISUAL.rainFrenzy.cpsExtraDrops;
+        speedMult  *= VISUAL.rainFrenzy.cpsSpeedMult;
       }
     }
 
     // Clamp to reasonable values (raised cap — canvas rendering is cheap)
-    targetCount = Math.min(200, Math.max(this._rainBaseCount, targetCount));
-    speedMult   = Math.min(3, speedMult);
+    targetCount = Math.min(VISUAL.rain.maxCount, Math.max(this._rainBaseCount, targetCount));
+    speedMult   = Math.min(VISUAL.rain.maxSpeedMult, speedMult);
 
     this._rainTargetCount = targetCount;
     this._rainSpeedMult   = speedMult;
@@ -256,7 +206,7 @@ export class VisualEffects {
    * @param {number} count      how many burst cookies to spawn
    * @param {number} speedMult  speed multiplier for the burst (e.g. 2 = twice default)
    */
-  triggerCookieBurst(count = 20, speedMult = 2.5) {
+  triggerCookieBurst(count = VISUAL.burst.defaultCount, speedMult = VISUAL.burst.defaultSpeed) {
     for (let i = 0; i < count; i++) {
       if (this._burstCount >= this._burstPoolCap) break; // pool full
       const d = this._burstPool[this._burstCount];
@@ -272,17 +222,18 @@ export class VisualEffects {
   _makeRaindrop(randomY = false) {
     const w = this.canvas ? this.canvas.width : 600;
     const h = this.canvas ? this.canvas.height : 400;
+    const rd = VISUAL.raindrop;
     return {
       x: Math.random() * w,
       y: randomY ? Math.random() * h : -20,
-      size: Math.random() * 14 + 8,
-      speed: Math.random() * 1.2 + 0.4,
-      wobbleAmp: Math.random() * 1.5 + 0.3,
-      wobbleSpeed: Math.random() * 0.03 + 0.01,
+      size: Math.random() * rd.sizeRange + rd.sizeMin,
+      speed: Math.random() * rd.speedRange + rd.speedMin,
+      wobbleAmp: Math.random() * rd.wobbleAmpRange + rd.wobbleAmpMin,
+      wobbleSpeed: Math.random() * rd.wobbleSpeedRange + rd.wobbleSpeedMin,
       wobblePhase: Math.random() * Math.PI * 2,
       rotation: Math.random() * Math.PI * 2,
       rotSpeed: (Math.random() - 0.5) * 0.02,
-      opacity: Math.random() * 0.35 + 0.15,
+      opacity: Math.random() * rd.opacityRange + rd.opacityMin,
     };
   }
 
@@ -290,16 +241,17 @@ export class VisualEffects {
   _resetDrop(d, randomY) {
     const w = this.canvas ? this.canvas.width : 600;
     const h = this.canvas ? this.canvas.height : 400;
+    const rd = VISUAL.raindrop;
     d.x = Math.random() * w;
     d.y = randomY ? Math.random() * h : -20;
-    d.size = Math.random() * 14 + 8;
-    d.speed = Math.random() * 1.2 + 0.4;
-    d.wobbleAmp = Math.random() * 1.5 + 0.3;
-    d.wobbleSpeed = Math.random() * 0.03 + 0.01;
+    d.size = Math.random() * rd.sizeRange + rd.sizeMin;
+    d.speed = Math.random() * rd.speedRange + rd.speedMin;
+    d.wobbleAmp = Math.random() * rd.wobbleAmpRange + rd.wobbleAmpMin;
+    d.wobbleSpeed = Math.random() * rd.wobbleSpeedRange + rd.wobbleSpeedMin;
     d.wobblePhase = Math.random() * Math.PI * 2;
     d.rotation = Math.random() * Math.PI * 2;
     d.rotSpeed = (Math.random() - 0.5) * 0.02;
-    d.opacity = Math.random() * 0.35 + 0.15;
+    d.opacity = Math.random() * rd.opacityRange + rd.opacityMin;
   }
 
   /* ─── shimmer sparkles ─── */
@@ -315,9 +267,9 @@ export class VisualEffects {
     return {
       x: Math.random() * w,
       y: Math.random() * h,
-      r: Math.random() * 2.5 + 1,
+      r: Math.random() * VISUAL.shimmers.radiusRange + VISUAL.shimmers.radiusMin,
       phase: Math.random() * Math.PI * 2,
-      speed: Math.random() * 0.04 + 0.02,
+      speed: Math.random() * VISUAL.shimmers.speedRange + VISUAL.shimmers.speedMin,
       color: ['#ffd700','#f8c471','#fff8dc','#ffe082'][Math.floor(Math.random()*4)],
     };
   }
@@ -338,7 +290,7 @@ export class VisualEffects {
     const loop = (timestamp) => {
       this._animFrame = requestAnimationFrame(loop);
       // Throttle to ~30fps for perf
-      if (timestamp - lastTime < 32) return;
+      if (timestamp - lastTime < VISUAL.frameThrottleMs) return;
       lastTime = timestamp;
 
       if (!this.ctx || !this.canvas) return;
@@ -346,7 +298,7 @@ export class VisualEffects {
       this.ctx.clearRect(0, 0, W, H);
 
       /* update rain intensity every ~500 ms */
-      if (timestamp - this._lastIntensityUpdate > 500) {
+      if (timestamp - this._lastIntensityUpdate > VISUAL.rain.intensityUpdateMs) {
         this._lastIntensityUpdate = timestamp;
         this._updateRainIntensity();
       }
@@ -460,29 +412,8 @@ export class VisualEffects {
       const pool = [...this.newsMessages, ...dynamic];
 
       // 1-in-100 chance of a rare news article
-      if (Math.random() < 0.01) {
-        const rarePool = [
-          "BREAKING: Cookie discovered on Mars. NASA denies involvement.",
-          "Grandma spotted bench-pressing a rolling pin. Authorities baffled.",
-          "Time travelers warn: do NOT eat the cookie from 3024.",
-          "Local man claims cookie talked to him. Cookie declines interview.",
-          "Scientists prove cookies are 4th-dimensional objects. Nobody understands the paper.",
-          "Cookie rain reported in downtown area. Citizens advised to bring plates.",
-          "Philosopher asks: if a cookie crumbles and no one is around, does it make a sound?",
-          "Aliens make first contact. They want the cookie recipe.",
-          "Underground cookie fight club exposed. First rule: always share crumbs.",
-          "Researchers find that 99.7% of the universe is made of cookies. The rest is milk.",
-          "Portal to cookie dimension discovered in grandma's basement.",
-          "EXCLUSIVE: Cookie monster reveals he's actually a cookie all along.",
-          "Ancient prophecy foretold: 'When the cookies number as the stars, the baker shall ascend.'",
-          "Quantum physicist bakes Schrodinger's Cookie. It's both delicious and stale.",
-          "Cookie-powered spacecraft achieves light speed. Tastes slightly burnt.",
-          "Breaking: the moon is actually a giant cookie. Always has been.",
-          "Stock exchange replaced by cookie exchange. Economy thrives.",
-          "Grandma achieves enlightenment through baking. Opens monastery.",
-          "ERROR: Reality.js line 42: too many cookies. Wrapping to negative infinity.",
-          "The simulation theory is true and we're all inside a cookie clicker game.",
-        ];
+      if (Math.random() < NEWS.rareChance) {
+        const rarePool = NEWS.rareMessages;
         const rareMsg = rarePool[Math.floor(Math.random() * rarePool.length)];
         this.newsIndex = pool.length; // doesn't matter, we override
         el.classList.add("news-exit");
@@ -513,15 +444,15 @@ export class VisualEffects {
             el.classList.remove("news-rare");
             if (anchor) anchor.classList.remove("anchor-excited");
             if (broadcast) broadcast.classList.remove("broadcast-rare");
-          }, 14000);
+          }, NEWS.rareStylingMs);
         }, 400);
         // Easter egg: rare news spotted
         if (this.game.tutorial) this.game.tutorial.triggerEvent('rareNews');
         // Rare headlines stay visible longer — skip the next 2 rotations
         clearInterval(this.newsTimer);
         setTimeout(() => {
-          this.newsTimer = setInterval(rotate, 9000);
-        }, 15000);
+          this.newsTimer = setInterval(rotate, NEWS.rotationIntervalMs);
+        }, NEWS.rareLingerMs);
         return;
       }
 
@@ -539,7 +470,7 @@ export class VisualEffects {
       }, 400);
     };
 
-    this.newsTimer = setInterval(rotate, 9000);
+    this.newsTimer = setInterval(rotate, NEWS.rotationIntervalMs);
   }
 
   _getDynamicNews() {
@@ -560,7 +491,7 @@ export class VisualEffects {
   /* ───────────────────────── golden cookie ──────────────────── */
   _scheduleGoldenCookie() {
     // Appear every 60-180 seconds
-    const delay = (Math.random() * 120 + 60) * 1000;
+    const delay = (Math.random() * GOLDEN_COOKIE.delayRangeSec + GOLDEN_COOKIE.delayMinSec) * 1000;
     this.goldenCookieTimer = setTimeout(() => this._spawnGoldenCookie(), delay);
   }
 
@@ -572,8 +503,8 @@ export class VisualEffects {
     // Constrain golden cookie to the center region of the viewport
     const wW = wrap.clientWidth;
     const wH = wrap.clientHeight;
-    const marginX = wW * 0.25;
-    const marginY = wH * 0.25;
+    const marginX = wW * GOLDEN_COOKIE.positionMargin;
+    const marginY = wH * GOLDEN_COOKIE.positionMargin;
     const rangeX = wW * 0.5 - 70;
     const rangeY = wH * 0.5 - 70;
     el.style.left = (marginX + Math.random() * Math.max(rangeX, 40)) + "px";
@@ -602,7 +533,7 @@ export class VisualEffects {
         this._scheduleGoldenCookie();
       }, 600);
     };
-    this._goldenTimeout = setTimeout(fadeGolden, 12000);
+    this._goldenTimeout = setTimeout(fadeGolden, GOLDEN_COOKIE.lifetimeMs);
   }
 
   _setupGoldenCookieClick() {
@@ -618,20 +549,20 @@ export class VisualEffects {
       const g = this.game;
       let msg = "";
       let incomeAmount = 0;
-      if (roll < 0.45) {
-        const bonus = Math.max(200, g.getEffectiveCPS() * 600);
+      if (roll < GOLDEN_COOKIE.luckyRollMax) {
+        const bonus = Math.max(GOLDEN_COOKIE.lucky.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.lucky.cpsMultiplier);
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `🍀 Lucky! +${formatNumberInWords(bonus)}`;
         incomeAmount = bonus;
-      } else if (roll < 0.75) {
-        g.startFrenzy('cps', 7, 77);
-        msg = "🔥 Frenzy! 7x CPS for 77s!";
-      } else if (roll < 0.9) {
-        g.startFrenzy('click', 777, 13);
-        msg = "⚡ Click Frenzy! 777x for 13s!";
+      } else if (roll < GOLDEN_COOKIE.frenzyRollMax) {
+        g.startFrenzy('cps', GOLDEN_COOKIE.cpsFrenzy.multiplier, GOLDEN_COOKIE.cpsFrenzy.durationSec);
+        msg = `🔥 Frenzy! ${GOLDEN_COOKIE.cpsFrenzy.multiplier}x CPS for ${GOLDEN_COOKIE.cpsFrenzy.durationSec}s!`;
+      } else if (roll < GOLDEN_COOKIE.clickRollMax) {
+        g.startFrenzy('click', GOLDEN_COOKIE.clickFrenzy.multiplier, GOLDEN_COOKIE.clickFrenzy.durationSec);
+        msg = `⚡ Click Frenzy! ${GOLDEN_COOKIE.clickFrenzy.multiplier}x for ${GOLDEN_COOKIE.clickFrenzy.durationSec}s!`;
       } else {
-        const bonus = Math.max(5000, g.getEffectiveCPS() * 3600);
+        const bonus = Math.max(GOLDEN_COOKIE.cookieStorm.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.cookieStorm.cpsMultiplier);
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `💎 Cookie Storm! +${formatNumberInWords(bonus)}`;
@@ -646,7 +577,7 @@ export class VisualEffects {
       if (incomeAmount > 0) {
         this.triggerIncomeRain(incomeAmount);
       } else {
-        this.triggerCookieBurst(20, 2.5);
+        this.triggerCookieBurst(VISUAL.burst.defaultCount, VISUAL.burst.defaultSpeed);
       }
 
       // Burst particles
@@ -672,17 +603,18 @@ export class VisualEffects {
     const cy = rect.top - wrapRect.top + rect.height / 2;
     const wrap = document.getElementById("viewport-wrap");
 
-    for (let i = 0; i < 18; i++) {
+    const gc = GOLDEN_COOKIE.clickBurst;
+    for (let i = 0; i < gc.sparkCount; i++) {
       const spark = document.createElement("div");
       spark.className = "golden-spark";
-      const angle = (Math.PI * 2 * i) / 18;
-      const dist = Math.random() * 80 + 40;
+      const angle = (Math.PI * 2 * i) / gc.sparkCount;
+      const dist = Math.random() * gc.sparkDistRange + gc.sparkDistMin;
       spark.style.setProperty("--tx", `${Math.cos(angle) * dist}px`);
       spark.style.setProperty("--ty", `${Math.sin(angle) * dist}px`);
       spark.style.left = cx + "px";
       spark.style.top  = cy + "px";
       wrap.appendChild(spark);
-      setTimeout(() => spark.remove(), 700);
+      setTimeout(() => spark.remove(), gc.sparkRemovalMs);
     }
   }
 
@@ -692,7 +624,7 @@ export class VisualEffects {
     el.className = "golden-reward-text";
     el.textContent = msg;
     wrap.appendChild(el);
-    setTimeout(() => el.remove(), 2500);
+    setTimeout(() => el.remove(), GOLDEN_COOKIE.rewardTextMs);
   }
 
   /* ───────────────────────── building showcase ──────────────── */
@@ -739,7 +671,7 @@ export class VisualEffects {
     const total = achvMgr.getTotalCount();
     const pct = total > 0 ? (unlocked / total) * 100 : 0;
     // Milk rises from 0% to max 45% of panel height
-    const milkHeight = Math.min(45, pct * 0.65);
+    const milkHeight = Math.min(MILK.maxHeightPct, pct * MILK.heightFactor);
     el.style.height = milkHeight + "%";
 
     // Tutorial: milk rising event (once when milk first appears)
@@ -754,15 +686,15 @@ export class VisualEffects {
 
     // Milk color shifts — solid, no transparency fade
     const wavePath = document.querySelector("#milk-wave path");
-    if (pct > 80) {
+    if (pct > MILK.goldenThreshold) {
       // Golden milk
       el.style.background = "linear-gradient(to top, rgba(255,223,100,0.95), rgba(255,235,160,0.80))";
       if (wavePath) wavePath.style.fill = "rgba(255,235,160,0.80)";
-    } else if (pct > 50) {
+    } else if (pct > MILK.lavenderThreshold) {
       // Lavender milk
       el.style.background = "linear-gradient(to top, rgba(220,210,255,0.95), rgba(230,220,255,0.80))";
       if (wavePath) wavePath.style.fill = "rgba(230,220,255,0.80)";
-    } else if (pct > 25) {
+    } else if (pct > MILK.warmThreshold) {
       // Warm milk
       el.style.background = "linear-gradient(to top, rgba(255,240,220,0.95), rgba(255,245,230,0.80))";
       if (wavePath) wavePath.style.fill = "rgba(255,245,230,0.80)";
@@ -775,7 +707,7 @@ export class VisualEffects {
     // Update label
     if (label) {
       if (pct > 0) {
-        const milkName = pct > 80 ? "Golden Milk" : pct > 50 ? "Lavender Milk" : pct > 25 ? "Caramel Milk" : "Plain Milk";
+        const milkName = pct > MILK.goldenThreshold ? "Golden Milk" : pct > MILK.lavenderThreshold ? "Lavender Milk" : pct > MILK.warmThreshold ? "Caramel Milk" : "Plain Milk";
         label.textContent = `🥛 ${milkName} | ${Math.floor(pct)}% achievements`;
         label.classList.add("visible");
       } else {
@@ -808,10 +740,10 @@ export class VisualEffects {
     const secondsWorth = cookiesReceived / cps;
 
     // Burst count: log2 scaling, 5–120 range (pool supports up to 200)
-    const count = Math.floor(Math.min(120, Math.max(5, Math.log2(secondsWorth + 1) * 15)));
+    const count = Math.floor(Math.min(INCOME_RAIN.maxCount, Math.max(INCOME_RAIN.minCount, Math.log2(secondsWorth + 1) * INCOME_RAIN.countScale)));
 
-    // Speed: bigger bonuses fall faster, 2–4× range
-    const speed = Math.min(4, Math.max(2, 1.5 + Math.log10(secondsWorth + 1) * 0.8));
+    // Speed: bigger bonuses fall faster
+    const speed = Math.min(INCOME_RAIN.maxSpeed, Math.max(INCOME_RAIN.minSpeed, 1.5 + Math.log10(secondsWorth + 1) * INCOME_RAIN.speedScale));
 
     this.triggerCookieBurst(count, speed);
   }

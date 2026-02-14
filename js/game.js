@@ -7,11 +7,15 @@ import { Tutorial } from "./tutorial.js";
 import { buildings, upgrades } from "./gameData.js";
 import { formatNumberInWords, setShortNumbers } from "./utils.js";
 import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
+import {
+  GAME, LUCKY_CLICK, FRENZY_BURSTS, PARTICLES,
+  EASTER_EGGS, GOLDEN_COOKIE
+} from "./config.js";
 
 export class Game {
   constructor() {
-    this.cookies = 15;
-    this.cookiesPerClick = 1;
+    this.cookies = GAME.startingCookies;
+    this.cookiesPerClick = GAME.startingCookiesPerClick;
     this.cookiesPerSecond = 0;
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
@@ -103,17 +107,17 @@ export class Game {
       this.updateLeftPanel();
       this.visualEffects.update();
 
-      // Easter egg: night owl (playing between 1am and 5am)
+      // Easter egg: night owl (playing between configured hours)
       const hr = new Date().getHours();
-      if (hr >= 1 && hr < 5 && this.tutorial) {
+      if (hr >= EASTER_EGGS.nightOwlStartHour && hr < EASTER_EGGS.nightOwlEndHour && this.tutorial) {
         this.tutorial.triggerEvent('nightOwl');
       }
 
 
-    }, 1000);
+    }, GAME.tickIntervalMs);
 
-    // Save every 5 seconds
-    setInterval(() => this.saveGame(), 5000);
+    // Auto-save
+    setInterval(() => this.saveGame(), GAME.saveIntervalMs);
 
     // Initial left panel render
     this.updateLeftPanel();
@@ -160,18 +164,18 @@ export class Game {
 
 
 
-    // Easter egg: rapid clicker (15 clicks in 2 seconds)
+    // Easter egg: rapid clicker
     if (this.tutorial) {
       const now = Date.now();
       this.tutorial._clickTimestamps = this.tutorial._clickTimestamps || [];
       this.tutorial._clickTimestamps.push(now);
-      // Keep only last 15 timestamps
-      if (this.tutorial._clickTimestamps.length > 15) {
+      // Keep only last N timestamps
+      if (this.tutorial._clickTimestamps.length > EASTER_EGGS.rapidClicker.clickThreshold) {
         this.tutorial._clickTimestamps.shift();
       }
-      if (this.tutorial._clickTimestamps.length >= 15) {
+      if (this.tutorial._clickTimestamps.length >= EASTER_EGGS.rapidClicker.clickThreshold) {
         const elapsed = now - this.tutorial._clickTimestamps[0];
-        if (elapsed <= 2000) {
+        if (elapsed <= EASTER_EGGS.rapidClicker.windowMs) {
           this.tutorial.triggerEvent('rapidClicker');
         }
       }
@@ -188,7 +192,7 @@ export class Game {
       const flash = document.createElement("div");
       flash.classList.add("cookie-flash");
       container.appendChild(flash);
-      setTimeout(() => flash.remove(), 300);
+      setTimeout(() => flash.remove(), PARTICLES.flashDurationMs);
     }
 
     // Bounce animation on cookie
@@ -206,7 +210,7 @@ export class Game {
     this.checkLuckyClick(event);
 
     // Check achievements periodically on click
-    if (this.stats.totalClicks % 10 === 0) {
+    if (this.stats.totalClicks % EASTER_EGGS.achievementCheckInterval === 0) {
       this.achievementManager.check();
     }
 
@@ -227,21 +231,21 @@ export class Game {
       
       // Random bonus type
       const roll = Math.random();
-      if (roll < 0.5) {
-        // Lucky: 10 min of CPS (minimum 100 cookies)
-        const bonus = Math.max(100, this.getEffectiveCPS() * 600);
+      if (roll < LUCKY_CLICK.cookieRollMax) {
+        // Lucky: CPS bonus (minimum floor)
+        const bonus = Math.max(LUCKY_CLICK.cookie.minCookies, this.getEffectiveCPS() * LUCKY_CLICK.cookie.cpsMultiplier);
         this.cookies += bonus;
         this.stats.totalCookiesBaked += bonus;
         this.createFloatingText(event, `🍀 LUCKY! +${formatNumberInWords(bonus)}`, true);
         if (this.visualEffects) this.visualEffects.triggerIncomeRain(bonus);
-      } else if (roll < 0.8) {
-        // Frenzy: 7x CPS for 30 seconds
-        this.startFrenzy('cps', 7, 30);
-        this.createFloatingText(event, `🔥 FRENZY! 7x CPS!`, true);
+      } else if (roll < LUCKY_CLICK.frenzyRollMax) {
+        // CPS Frenzy
+        this.startFrenzy('cps', LUCKY_CLICK.cpsFrenzy.multiplier, LUCKY_CLICK.cpsFrenzy.durationSec);
+        this.createFloatingText(event, `🔥 FRENZY! ${LUCKY_CLICK.cpsFrenzy.multiplier}x CPS!`, true);
       } else {
-        // Click frenzy: 777x clicks for 15 seconds
-        this.startFrenzy('click', 777, 15);
-        this.createFloatingText(event, `⚡ CLICK FRENZY! 777x!`, true);
+        // Click frenzy
+        this.startFrenzy('click', LUCKY_CLICK.clickFrenzy.multiplier, LUCKY_CLICK.clickFrenzy.durationSec);
+        this.createFloatingText(event, `⚡ CLICK FRENZY! ${LUCKY_CLICK.clickFrenzy.multiplier}x!`, true);
         // Easter egg: 777x click frenzy
         if (this.tutorial) this.tutorial.triggerEvent('clickFrenzy777');
       }
@@ -264,9 +268,9 @@ export class Game {
     // Cookie rain burst on frenzy start
     if (this.visualEffects) {
       if (type === 'click') {
-        this.visualEffects.triggerCookieBurst(35, 3.5);   // big burst for click frenzy
+        this.visualEffects.triggerCookieBurst(FRENZY_BURSTS.clickFrenzy.count, FRENZY_BURSTS.clickFrenzy.speed);
       } else {
-        this.visualEffects.triggerCookieBurst(25, 2.5);   // medium burst for CPS frenzy
+        this.visualEffects.triggerCookieBurst(FRENZY_BURSTS.cpsFrenzy.count, FRENZY_BURSTS.cpsFrenzy.speed);
       }
     }
 
@@ -310,7 +314,7 @@ export class Game {
     // Easter egg: indecisive clicker (changed amount 6+ times)
     if (this.tutorial) {
       this.tutorial._purchaseChanges = (this.tutorial._purchaseChanges || 0) + 1;
-      if (this.tutorial._purchaseChanges >= 6) {
+      if (this.tutorial._purchaseChanges >= EASTER_EGGS.indecisiveClickerThreshold) {
         this.tutorial.triggerEvent('indecisiveClicker');
       }
     }
@@ -328,7 +332,7 @@ export class Game {
     if (this.tutorial) {
       this.tutorial._usedSorts = this.tutorial._usedSorts || new Set();
       this.tutorial._usedSorts.add(sortKey);
-      if (this.tutorial._usedSorts.size >= 5) {
+      if (this.tutorial._usedSorts.size >= EASTER_EGGS.ocdSorterThreshold) {
         this.tutorial.triggerEvent('ocdSorter');
       }
     }
@@ -389,7 +393,7 @@ export class Game {
       buyLabel.classList.add('toolbar-label');
       buyGroup.appendChild(buyLabel);
       
-      const amounts = [1, 10, 25, 100, 'Max'];
+      const amounts = GAME.purchaseAmounts;
       amounts.forEach(amount => {
         const btn = document.createElement('button');
         btn.textContent = amount.toString();
@@ -688,7 +692,7 @@ export class Game {
     const ctx = canvas.getContext("2d");
 
     // Ambient floating particles
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < PARTICLES.ambientCount; i++) {
       this._particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -741,9 +745,9 @@ export class Game {
     const cx = event.clientX - rect.left;
     const cy = event.clientY - rect.top;
     const colors = ['#f8c471', '#e67e22', '#ffd700', '#fff8dc', '#d4a76a', '#ffe082', '#ffb347'];
-    // Big burst: 20 particles with varied sizes and slight gravity
-    for (let i = 0; i < 20; i++) {
-      const angle = (Math.PI * 2 * i) / 20 + (Math.random() - 0.5) * 0.6;
+    // Big burst particles with varied sizes and slight gravity
+    for (let i = 0; i < PARTICLES.clickBurstCount; i++) {
+      const angle = (Math.PI * 2 * i) / PARTICLES.clickBurstCount + (Math.random() - 0.5) * 0.6;
       const speed = Math.random() * 4 + 2;
       const size = Math.random() * 4 + 1;
       this._particles.push({
@@ -756,11 +760,11 @@ export class Game {
         life: 1,
         maxLife: 1,
         ambient: false,
-        gravity: 0.04,
+        gravity: PARTICLES.burstGravity,
       });
     }
     // Larger "sparkle" particles
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < PARTICLES.clickSparkleCount; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = Math.random() * 2 + 0.8;
       this._particles.push({
@@ -773,7 +777,7 @@ export class Game {
         life: 1,
         maxLife: 1,
         ambient: false,
-        gravity: 0.02,
+        gravity: PARTICLES.sparkleGravity,
       });
     }
   }
@@ -793,8 +797,8 @@ export class Game {
         ripple.style.left = x + "px";
         ripple.style.top = y + "px";
         container.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 700);
-      }, i * 80);
+        setTimeout(() => ripple.remove(), PARTICLES.rippleRemovalMs);
+      }, i * PARTICLES.rippleLayerDelayMs);
     }
   }
 
@@ -807,7 +811,7 @@ export class Game {
 
       // Massive cookie rain burst on prestige
       if (this.visualEffects) {
-        this.visualEffects.triggerCookieBurst(50, 4);
+        this.visualEffects.triggerCookieBurst(FRENZY_BURSTS.prestige.count, FRENZY_BURSTS.prestige.speed);
       }
 
       // Easter egg: first prestige
@@ -816,8 +820,8 @@ export class Game {
   }
 
   resetForPrestige() {
-    this.cookies = 15;
-    this.cookiesPerClick = 1;
+    this.cookies = GAME.startingCookies;
+    this.cookiesPerClick = GAME.startingCookiesPerClick;
     this.cookiesPerSecond = 0;
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
@@ -863,7 +867,7 @@ export class Game {
     floatingText.style.top = `${event.clientY}px`;
   
     document.body.appendChild(floatingText);
-    setTimeout(() => floatingText.remove(), 1500);
+    setTimeout(() => floatingText.remove(), PARTICLES.floatingTextDurationMs);
   }
   
   // Offline earnings are now shown via Tutorial.showOfflineEarnings() popup
@@ -997,7 +1001,7 @@ export class Game {
   }
 
   // === Paginated Upgrades ===
-  get upgradePageSize() { return 9; } // 3 cols x 3 rows per page
+  get upgradePageSize() { return GAME.upgradePageSize; }
 
   renderUpgradePage(animated = false) {
     if (this._upgradePage === undefined) this._upgradePage = 0;
@@ -1082,7 +1086,7 @@ export class Game {
     this._upgradeSortTimer = setTimeout(() => {
       this._upgradeSortTimer = null;
       this.sortUpgradesByCost();
-    }, 10000);
+    }, GAME.upgradeSortDelayMs);
   }
 
   calculateCPS() {
@@ -1135,7 +1139,7 @@ export class Game {
       const prestVal = this.prestige.getPrestigeMultiplier();
       const combined = globalVal * achVal * prestVal;
       // Bar width: capped at 100%, scaled so x5 = full bar
-      const barPct = (v) => Math.min(100, ((v - 1) / 4) * 100).toFixed(0);
+      const barPct = (v) => Math.min(100, ((v - 1) / GAME.multiplierBarScale) * 100).toFixed(0);
 
       multEl.innerHTML = `
         <div class="mult-row">
@@ -1324,7 +1328,7 @@ export class Game {
       if (elapsedTime > 0) {
         this.calculateCPS();
 
-        let offlineMultiplier = 0.5;
+        let offlineMultiplier = GAME.offlineMultiplier;
         this.upgrades.forEach(upgrade => {
           if (upgrade.name && upgrade.name.startsWith("Offline Production") && upgrade.level > 0) {
             offlineMultiplier = upgrade.multiplier;

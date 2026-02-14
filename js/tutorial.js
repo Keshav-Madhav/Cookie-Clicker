@@ -1,3 +1,5 @@
+import { TUTORIAL } from "./config.js";
+
 /**
  * Tutorial System — guided onboarding + contextual event tips.
  *
@@ -19,7 +21,7 @@ export class Tutorial {
     /* ── event tip queue ── */
     this._eventQueue = [];          // pending {eventKey, dynamicTarget}
     this._eventBusy = false;        // true while a tip is on-screen
-    this._eventCooldown = 3500;     // min ms between tips
+    this._eventCooldown = TUTORIAL.eventCooldownMs;     // min ms between tips
 
     /* ── timing guards ── */
     this._waitTimer = null;
@@ -301,7 +303,7 @@ export class Tutorial {
   init() {
     this._buildDOM();
     if (!this.completed) {
-      setTimeout(() => this.startOnboarding(), 800);
+      setTimeout(() => this.startOnboarding(), TUTORIAL.onboardingDelayMs);
     }
   }
 
@@ -377,7 +379,7 @@ export class Tutorial {
   advanceStep() {
     if (this._advanceLock) return;
     this._advanceLock = true;
-    setTimeout(() => this._advanceLock = false, 300);
+    setTimeout(() => this._advanceLock = false, TUTORIAL.advanceLockMs);
 
     if (!this.activeSequence) return;
 

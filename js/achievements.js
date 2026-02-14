@@ -1,4 +1,5 @@
 import { achievements } from "./gameData.js";
+import { ACHIEVEMENTS } from "./config.js";
 
 export class AchievementManager {
   constructor(game) {
@@ -8,7 +9,7 @@ export class AchievementManager {
       unlocked: false,
       unlockedAt: null
     }));
-    this.bonusPerAchievement = 0.02; // +2% CPS per achievement
+    this.bonusPerAchievement = ACHIEVEMENTS.bonusPerAchievement; // +CPS per achievement
     this.newlyUnlocked = []; // Queue for showing notifications
   }
 
@@ -73,7 +74,7 @@ export class AchievementManager {
           break;
         case "speedrunner": {
           const sessionSec = (Date.now() - stats.startTime) / 1000;
-          met = sessionSec < 300 && this.game.getEffectiveCPS() >= achievement.requirement;
+          met = sessionSec < ACHIEVEMENTS.speedrunnerTimeSec && this.game.getEffectiveCPS() >= achievement.requirement;
           break;
         }
         case "bulkBuyer":
@@ -99,7 +100,7 @@ export class AchievementManager {
 
       // Cookie rain burst on achievement unlock
       if (this.game.visualEffects) {
-        this.game.visualEffects.triggerCookieBurst(15, 2);
+        this.game.visualEffects.triggerCookieBurst(ACHIEVEMENTS.unlockBurst.count, ACHIEVEMENTS.unlockBurst.speed);
       }
 
       // Tutorial: first achievement event
@@ -122,8 +123,8 @@ export class AchievementManager {
 
     setTimeout(() => {
       notif.classList.remove("show");
-      setTimeout(() => notif.remove(), 500);
-    }, 3000);
+      setTimeout(() => notif.remove(), ACHIEVEMENTS.notificationFadeMs);
+    }, ACHIEVEMENTS.notificationDurationMs);
   }
 
   getSaveData() {
