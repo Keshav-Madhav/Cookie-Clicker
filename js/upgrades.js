@@ -25,6 +25,7 @@ export class Upgrade {
     this.cost_acceleration = this.upgrade.cost_acceleration || null;
 
     this.tiers = this.upgrade.tiers || null;
+    this.subtype = this.upgrade.subtype || null;
     this.currentTier = 0;
     
     // If this is a tiered upgrade, set initial properties from the first tier
@@ -38,8 +39,10 @@ export class Upgrade {
     const tier = this.tiers[this.currentTier] || this.tiers[this.tiers.length - 1]; 
     this.name = tier.name;
     this.effect = tier.effect;
-    this.multiplier = tier.multiplier;
+    if (tier.multiplier !== undefined) this.multiplier = tier.multiplier;
     this.cost = tier.cost;
+    if (tier.bonus !== undefined) this.bonus = tier.bonus;
+    if (tier.chance !== undefined) this.chance = tier.chance;
   }
   
   canUpgradeTier() {
@@ -198,11 +201,12 @@ export class Upgrade {
     const t = this.game.tutorial;
     switch (this.type) {
       case "tieredUpgrade":
-        // Check if it's a touch upgrade or offline upgrade by name
-        if (this.name && this.name.includes("Touch")) {
+        if (this.subtype === "clickMultiplier") {
           t.triggerEvent('touchUpgrade');
-        } else if (this.name && this.name.includes("Offline")) {
+        } else if (this.subtype === "offlineProduction") {
           t.triggerEvent('offlineUpgrade');
+        } else if (this.subtype === "cursorScaling") {
+          t.triggerEvent('cursorScaling');
         }
         break;
       case "globalCpsMultiplier":
@@ -210,9 +214,6 @@ export class Upgrade {
         break;
       case "synergy":
         t.triggerEvent('synergyUpgrade');
-        break;
-      case "cursorScaling":
-        t.triggerEvent('cursorScaling');
         break;
       case "frenzyDuration":
         t.triggerEvent('frenzyDuration');
@@ -231,12 +232,22 @@ export class Upgrade {
         });
         break;
 
-      case "tieredUpgrade":
-        // Offline production tiers are looked up by name during load, not click power
-        if (this.name && this.name.includes("Offline")) break;
-        // Click-related tiers (Touch upgrades) multiply click power
+      case "tieredUpgrade": {
+        const sub = this.subtype;
+        if (sub === "offlineProduction") break;
+        if (sub === "cursorScaling") break; // recalculated dynamically in calculateCPS
+        if (sub === "cpsClick") {
+          this.game.cpsClickBonus += this.bonus;
+          break;
+        }
+        if (sub === "luckyChance") {
+          this.game.luckyClickChance += this.chance;
+          break;
+        }
+        // Default: click multiplier (Touch upgrades)
         this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
         break;
+      }
 
       case "buildingBoost":
         if (this.target) {

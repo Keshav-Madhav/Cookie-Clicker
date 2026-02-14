@@ -80,6 +80,7 @@ export const upgrades = [
   // === Tiered Click Upgrade ===
   {
     type: "tieredUpgrade",
+    subtype: "clickMultiplier",
     tiers: [
       { name: "Iron Touch", effect: "Clicking gives 2x cookies", multiplier: 2, cost: 50000, buildingsRequired: 50 },
       { name: "Silver Touch", effect: "Clicking gives 2.5x cookies", multiplier: 2.5, cost: 2500000, buildingsRequired: 125 },
@@ -122,19 +123,19 @@ export const upgrades = [
     accel_start: 4, cost_acceleration: 3,
     prestige_bonus_levels: 1, prestige_cost_multiplier: 30,
     requires: [{ type: "building", name: "Time Machine", min: 15 }, { type: "totalBuildings", min: 225 }] },
-  { name: "Antimatter Boost", cost: 500000000000, effect: "Antimatter Condensers produce 2.5x", type: "buildingBoost", target: "Antimatter Condenser", multiplier: 2.5, max_level: 6, cost_multiplier: 10,
+  { name: "Antimatter Boost", cost: 1000000000000, effect: "Antimatter Condensers produce 2.5x", type: "buildingBoost", target: "Antimatter Condenser", multiplier: 2.5, max_level: 6, cost_multiplier: 10,
     accel_start: 4, cost_acceleration: 3,
     prestige_bonus_levels: 1, prestige_cost_multiplier: 30,
     requires: [{ type: "building", name: "Antimatter Condenser", min: 15 }, { type: "totalBuildings", min: 280 }] },
-  { name: "Prism Enhancement", cost: 8000000000000, effect: "Prisms are 3x as efficient", type: "buildingBoost", target: "Prism", multiplier: 3, max_level: 6, cost_multiplier: 12,
+  { name: "Prism Enhancement", cost: 15000000000000, effect: "Prisms are 3x as efficient", type: "buildingBoost", target: "Prism", multiplier: 3, max_level: 6, cost_multiplier: 12,
     accel_start: 4, cost_acceleration: 3,
     prestige_bonus_levels: 1, prestige_cost_multiplier: 35,
     requires: [{ type: "building", name: "Prism", min: 15 }, { type: "totalBuildings", min: 360 }] },
-  { name: "Lucky Day", cost: 150000000000000, effect: "Chancemakers produce 3x", type: "buildingBoost", target: "Chancemaker", multiplier: 3, max_level: 6, cost_multiplier: 12,
+  { name: "Lucky Day", cost: 400000000000000, effect: "Chancemakers produce 3x", type: "buildingBoost", target: "Chancemaker", multiplier: 3, max_level: 6, cost_multiplier: 12,
     accel_start: 4, cost_acceleration: 3,
     prestige_bonus_levels: 1, prestige_cost_multiplier: 35,
     requires: [{ type: "building", name: "Chancemaker", min: 15 }, { type: "totalBuildings", min: 450 }] },
-  { name: "Fractal Boost", cost: 2500000000000000, effect: "Fractal Engines produce 3x", type: "buildingBoost", target: "Fractal Engine", multiplier: 3, max_level: 6, cost_multiplier: 15,
+  { name: "Fractal Boost", cost: 8000000000000000, effect: "Fractal Engines produce 3x", type: "buildingBoost", target: "Fractal Engine", multiplier: 3, max_level: 6, cost_multiplier: 15,
     accel_start: 4, cost_acceleration: 3,
     prestige_bonus_levels: 1, prestige_cost_multiplier: 40,
     requires: [{ type: "building", name: "Fractal Engine", min: 15 }, { type: "totalBuildings", min: 560 }] },
@@ -175,37 +176,45 @@ export const upgrades = [
     prestige_bonus_levels: 1, prestige_cost_multiplier: 30,
     requires: [{ type: "building", name: "Fractal Engine", min: 10 }, { type: "building", name: "Prism", min: 20 }] },
 
-  // === Cursor Scaling (Cursor CPS scales with total non-cursor buildings) ===
-  { name: "Thousand Fingers", cost: 500000, effect: "Cursors gain +0.5 CPS per non-cursor building", type: "cursorScaling", bonus: 0.5, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "building", name: "Cursor", min: 50 }, { type: "totalBuildings", min: 75 }] },
-  { name: "Million Fingers", cost: 100000000, effect: "Cursors gain +2.5 CPS per non-cursor building", type: "cursorScaling", bonus: 2.5, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "building", name: "Cursor", min: 100 }, { type: "totalBuildings", min: 200 }] },
-  { name: "Billion Fingers", cost: 25000000000, effect: "Cursors gain +25 CPS per non-cursor building", type: "cursorScaling", bonus: 25, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "building", name: "Cursor", min: 120 }, { type: "totalBuildings", min: 330 }] },
-  { name: "Trillion Fingers", cost: 5000000000000, effect: "Cursors gain +250 CPS per non-cursor building", type: "cursorScaling", bonus: 250, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "building", name: "Cursor", min: 160 }, { type: "totalBuildings", min: 450 }] },
+  // === Cursor Scaling (tiered — Cursor CPS scales with total non-cursor buildings) ===
+  {
+    type: "tieredUpgrade",
+    subtype: "cursorScaling",
+    requires: [{ type: "building", name: "Cursor", min: 25 }],
+    tiers: [
+      { name: "Thousand Fingers", effect: "Cursors gain +0.5 CPS per non-cursor building", bonus: 0.5, cost: 500000, buildingsRequired: 75 },
+      { name: "Million Fingers", effect: "Cursors gain +3 CPS per non-cursor building", bonus: 2.5, cost: 100000000, buildingsRequired: 200 },
+      { name: "Billion Fingers", effect: "Cursors gain +28 CPS per non-cursor building", bonus: 25, cost: 25000000000, buildingsRequired: 330 },
+      { name: "Trillion Fingers", effect: "Cursors gain +278 CPS per non-cursor building", bonus: 250, cost: 5000000000000, buildingsRequired: 450 },
+    ]
+  },
 
-  // === Lucky Click Chance ===
-  { name: "Lucky Cookies", cost: 250000, effect: "1.5% chance for bonus cookies on click", type: "luckyChance", chance: 0.015, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 500 }] },
-  { name: "Serendipity", cost: 50000000, effect: "+1.5% lucky click chance", type: "luckyChance", chance: 0.015, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 2500 }, { type: "totalUpgradesPurchased", min: 15 }] },
-  { name: "Fortune", cost: 10000000000, effect: "+2% lucky click chance", type: "luckyChance", chance: 0.02, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 5000 }, { type: "achievements", min: 20 }] },
-  { name: "Jackpot", cost: 1000000000000, effect: "+3% lucky click chance", type: "luckyChance", chance: 0.03, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 10000 }, { type: "achievements", min: 30 }] },
+  // === Lucky Click Chance (tiered) ===
+  {
+    type: "tieredUpgrade",
+    subtype: "luckyChance",
+    requires: [{ type: "totalClicks", min: 250 }],
+    tiers: [
+      { name: "Lucky Cookies", effect: "1.5% lucky click chance", chance: 0.015, cost: 250000, buildingsRequired: 25 },
+      { name: "Serendipity", effect: "3% lucky click chance", chance: 0.015, cost: 50000000, buildingsRequired: 125 },
+      { name: "Fortune", effect: "5% lucky click chance", chance: 0.02, cost: 10000000000, buildingsRequired: 275 },
+      { name: "Jackpot", effect: "8% lucky click chance", chance: 0.03, cost: 1000000000000, buildingsRequired: 425 },
+    ]
+  },
 
-  // === Click CPS Scaling (clicking gives % of CPS — keeps clicking relevant) ===
-  { name: "Plastic Mouse", cost: 500000, effect: "Each click gains +2% of your CPS", type: "cpsClick", bonus: 0.02, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 500 }, { type: "totalBuildings", min: 50 }] },
-  { name: "Bronze Mouse", cost: 50000000, effect: "Each click gains +3% of your CPS", type: "cpsClick", bonus: 0.03, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 2500 }, { type: "totalBuildings", min: 150 }] },
-  { name: "Silver Mouse", cost: 10000000000, effect: "Each click gains +3% of your CPS", type: "cpsClick", bonus: 0.03, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 7500 }, { type: "totalBuildings", min: 250 }] },
-  { name: "Golden Mouse", cost: 2000000000000, effect: "Each click gains +4% of your CPS", type: "cpsClick", bonus: 0.04, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 12000 }, { type: "totalBuildings", min: 375 }] },
-  { name: "Diamond Mouse", cost: 500000000000000, effect: "Each click gains +5% of your CPS", type: "cpsClick", bonus: 0.05, max_level: 1, cost_multiplier: 1,
-    requires: [{ type: "totalClicks", min: 20000 }, { type: "totalBuildings", min: 500 }] },
+  // === Click CPS Scaling (tiered — clicking gives % of CPS, keeps clicking relevant) ===
+  {
+    type: "tieredUpgrade",
+    subtype: "cpsClick",
+    requires: [{ type: "totalClicks", min: 250 }],
+    tiers: [
+      { name: "Plastic Mouse", effect: "Each click gains +2% of your CPS", bonus: 0.02, cost: 500000, buildingsRequired: 50 },
+      { name: "Bronze Mouse", effect: "Each click gains +5% of your CPS", bonus: 0.03, cost: 50000000, buildingsRequired: 150 },
+      { name: "Silver Mouse", effect: "Each click gains +8% of your CPS", bonus: 0.03, cost: 10000000000, buildingsRequired: 250 },
+      { name: "Golden Mouse", effect: "Each click gains +12% of your CPS", bonus: 0.04, cost: 2000000000000, buildingsRequired: 375 },
+      { name: "Diamond Mouse", effect: "Each click gains +17% of your CPS", bonus: 0.05, cost: 500000000000000, buildingsRequired: 500 },
+    ]
+  },
 
   // === Mini-Game Reward Bonus ===
   { name: "Game Master", cost: 500000, effect: "Minigame rewards +25%", type: "miniGameBonus", multiplier: 1.25, max_level: 8, cost_multiplier: 6,
@@ -222,6 +231,7 @@ export const upgrades = [
   // === Offline Production (tiered) ===
   {
     type: "tieredUpgrade",
+    subtype: "offlineProduction",
     tiers: [
       { name: "Offline Production I", effect: "Offline production: 0.5x → 0.75x", multiplier: 0.75, cost: 100000, buildingsRequired: 50 },
       { name: "Offline Production II", effect: "Offline production: 0.75x → 1x", multiplier: 1, cost: 2000000, buildingsRequired: 125 },

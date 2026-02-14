@@ -1114,6 +1114,12 @@ export class Game {
         if (upgrade.type === "cursorScaling" && upgrade.level > 0) {
           cursorBonusPerBuilding += upgrade.bonus;
         }
+        // Tiered cursor scaling: sum all unlocked tier bonuses
+        if (upgrade.type === "tieredUpgrade" && upgrade.subtype === "cursorScaling" && upgrade.level > 0) {
+          for (let t = 0; t <= upgrade.currentTier; t++) {
+            cursorBonusPerBuilding += upgrade.tiers[t].bonus;
+          }
+        }
       });
       if (cursorBonusPerBuilding > 0) {
         const nonCursorBuildings = this.buildings.filter(b => b.name !== "Cursor").reduce((sum, b) => sum + b.count, 0);
@@ -1214,6 +1220,8 @@ export class Game {
         if (u.type === "tieredUpgrade") {
           data.currentTier = u.currentTier;
           data.multiplier = u.multiplier;
+          if (u.bonus !== undefined) data.bonus = u.bonus;
+          if (u.chance !== undefined) data.chance = u.chance;
         }
         return data;
       }),
@@ -1223,6 +1231,7 @@ export class Game {
       tutorial: this.tutorial.getSaveData(),
       settings: this.settings,
       lastSavedTime: Date.now(),
+      saveVersion: 2,
     };
     const jsonStr = JSON.stringify(saveData);
     encryptSave(jsonStr).then(encrypted => {
@@ -1247,7 +1256,58 @@ export class Game {
     }
   }
 
+  /**
+   * Migrate v1 saves (before tiered cursor/lucky/cpsClick) to v2 format.
+   * Old: 39 upgrades with individual cursorScaling (22-25), luckyChance (26-29), cpsClick (30-34)
+   * New: 29 upgrades with those collapsed into tiered upgrades at indices 22-24
+   */
+  _migrateUpgradesV1(oldUpgrades) {
+    if (!oldUpgrades) return oldUpgrades;
+    const migrated = [];
+
+    // Indices 0-21 are unchanged
+    for (let i = 0; i <= 21 && i < oldUpgrades.length; i++) {
+      migrated.push(oldUpgrades[i]);
+    }
+    // Pad if old save was shorter
+    while (migrated.length < 22) migrated.push({ level: 0 });
+
+    // Old 22-25 (cursorScaling) → new 22 (tiered cursorScaling)
+    const cursorBought = [22, 23, 24, 25].reduce((n, i) => n + ((oldUpgrades[i] && oldUpgrades[i].level) || 0), 0);
+    migrated.push(cursorBought > 0
+      ? { level: 1, currentTier: cursorBought - 1 }
+      : { level: 0 });
+
+    // Old 26-29 (luckyChance) → new 23 (tiered luckyChance)
+    const luckyBought = [26, 27, 28, 29].reduce((n, i) => n + ((oldUpgrades[i] && oldUpgrades[i].level) || 0), 0);
+    migrated.push(luckyBought > 0
+      ? { level: 1, currentTier: luckyBought - 1 }
+      : { level: 0 });
+
+    // Old 30-34 (cpsClick) → new 24 (tiered cpsClick)
+    const clickBought = [30, 31, 32, 33, 34].reduce((n, i) => n + ((oldUpgrades[i] && oldUpgrades[i].level) || 0), 0);
+    migrated.push(clickBought > 0
+      ? { level: 1, currentTier: clickBought - 1 }
+      : { level: 0 });
+
+    // Old 35 → new 25 (Game Master)
+    migrated.push(oldUpgrades[35] || { level: 0 });
+    // Old 36 → new 26 (Extended Frenzy)
+    migrated.push(oldUpgrades[36] || { level: 0 });
+    // Old 37 → new 27 (Mega Frenzy)
+    migrated.push(oldUpgrades[37] || { level: 0 });
+    // Old 38 → new 28 (Offline Production tiered)
+    migrated.push(oldUpgrades[38] || { level: 0 });
+
+    return migrated;
+  }
+
   _restoreSave(data) {
+    // Migrate old save formats
+    if (!data.saveVersion || data.saveVersion < 2) {
+      data.upgrades = this._migrateUpgradesV1(data.upgrades);
+    }
+
     this.cookies = parseFloat(data.cookies || 0);
     this.cookiesPerClick = 1;
     this.globalCpsMultiplier = 1;
@@ -1300,7 +1360,9 @@ export class Game {
         if (upgrade.type === "tieredUpgrade" && upgrade.tiers) {
           upgrade.currentTier = savedUpgrade.currentTier || 0;
           upgrade.updateTierProperties();
-          upgrade.multiplier = savedUpgrade.multiplier || upgrade.multiplier;
+          if (savedUpgrade.multiplier !== undefined) upgrade.multiplier = savedUpgrade.multiplier;
+          if (savedUpgrade.bonus !== undefined) upgrade.bonus = savedUpgrade.bonus;
+          if (savedUpgrade.chance !== undefined) upgrade.chance = savedUpgrade.chance;
         }
 
         // Re-apply effects
