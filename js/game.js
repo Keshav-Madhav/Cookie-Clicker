@@ -69,6 +69,11 @@ export class Game {
   start() {
     document.getElementById("cookie-button").addEventListener("click", (event) => this.clickCookie(event));
 
+    // Count ALL clicks (cookie, buy, navigate, upgrade) toward totalClicks
+    document.addEventListener("click", () => {
+      this.stats.totalClicks++;
+    });
+
     this.createPurchaseAmountButtons();
     this.setupPrestigeButton();
     this.setupUpgradeNav();
@@ -152,7 +157,6 @@ export class Game {
     this.cookies = parseFloat(this.cookies.toFixed(1));
     this.stats.totalCookiesBaked += clickAmount;
     this.stats.handmadeCookies += clickAmount;
-    this.stats.totalClicks++;
 
 
 
