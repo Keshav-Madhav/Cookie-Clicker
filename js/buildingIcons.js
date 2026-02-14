@@ -1047,34 +1047,14 @@ const rowBgDrawers = {
       // Screen
       ctx.fillStyle = i % 3 === 0 ? '#0a2a1a' : i % 3 === 1 ? '#1a0a2a' : '#0a1a2a';
       ctx.fillRect(mx + 2, my + 2, mw - 4, mh - 5);
-      // Green text lines
-      ctx.fillStyle = 'rgba(0,255,100,0.3)';
-      for (let l = 0; l < 3; l++) {
-        const lw = 8 + Math.sin(i + l) * 6;
-        ctx.fillRect(mx + 4, my + 4 + l * 4, lw, 1.5);
-      }
+      // (text lines drawn by animation overlay)
       // Stand
       ctx.fillStyle = '#444';
       ctx.fillRect(mx + mw / 2 - 2, my + mh, 4, 6);
       ctx.fillRect(mx + mw / 2 - 6, my + mh + 5, 12, 2);
     }
 
-    // Scattered mouse cursors
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    for (let i = 0; i < Math.floor(w / 100); i++) {
-      const cx2 = 50 + i * 95;
-      const cy2 = h * 0.7 + Math.sin(i * 3) * 5;
-      ctx.beginPath();
-      ctx.moveTo(cx2, cy2);
-      ctx.lineTo(cx2, cy2 + 10);
-      ctx.lineTo(cx2 + 4, cy2 + 7);
-      ctx.lineTo(cx2 + 7, cy2 + 12);
-      ctx.lineTo(cx2 + 9, cy2 + 11);
-      ctx.lineTo(cx2 + 6, cy2 + 6);
-      ctx.lineTo(cx2 + 10, cy2 + 5);
-      ctx.closePath();
-      ctx.fill();
-    }
+    // (mouse cursors drawn by animation overlay)
   },
 
   /* ── Grandma: Bakery kitchen with shelves & pies ── */
@@ -1150,16 +1130,7 @@ const rowBgDrawers = {
       }
     }
 
-    // Steam/warmth wisps
-    ctx.strokeStyle = 'rgba(255,240,220,0.1)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 4; i++) {
-      const sx = w * 0.15 + i * w * 0.22;
-      ctx.beginPath();
-      ctx.moveTo(sx, h * 0.55);
-      ctx.quadraticCurveTo(sx + 5, h * 0.45, sx - 3, h * 0.35);
-      ctx.stroke();
-    }
+    // (steam wisps drawn by animation overlay)
   },
 
   /* ── Farm: Seamless field — icons sit on the ground as cookie plants ── */
@@ -1171,13 +1142,7 @@ const rowBgDrawers = {
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, h * 0.35);
 
-    // Sun (subtle)
-    const sunGlow = ctx.createRadialGradient(w * 0.88, h * 0.08, 0, w * 0.88, h * 0.08, h * 0.18);
-    sunGlow.addColorStop(0, 'rgba(255,240,100,0.35)');
-    sunGlow.addColorStop(1, 'rgba(255,240,100,0)');
-    circle(ctx, w * 0.88, h * 0.08, h * 0.18);
-    ctx.fillStyle = sunGlow;
-    ctx.fill();
+    // (sun glow drawn by animation overlay)
 
     // Distant hills at horizon
     ctx.fillStyle = '#6a9a30';
@@ -1210,12 +1175,7 @@ const rowBgDrawers = {
       ctx.stroke();
     }
 
-    // Green grass tufts along the ground line — icons "grow" from here
-    ctx.fillStyle = '#4a8a20';
-    for (let x = 0; x < w; x += 6) {
-      const gh = 3 + Math.sin(x * 0.4) * 2;
-      ctx.fillRect(x, h * 0.38 - gh, 3, gh);
-    }
+    // (grass tufts drawn by animation overlay)
 
     // Fence at the back
     ctx.fillStyle = 'rgba(90,60,20,0.3)';
@@ -1270,17 +1230,7 @@ const rowBgDrawers = {
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, h * 0.7); ctx.lineTo(w, h * 0.7); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, h * 0.85); ctx.lineTo(w, h * 0.85); ctx.stroke();
-    // Belt rollers
-    for (let x = 0; x < w; x += 15) {
-      ctx.strokeStyle = 'rgba(100,100,100,0.4)';
-      ctx.beginPath(); ctx.moveTo(x, h * 0.7); ctx.lineTo(x, h * 0.85); ctx.stroke();
-    }
-
-    // Cookies on conveyor
-    const cookieCount = Math.floor(w / 40);
-    for (let i = 0; i < cookieCount; i++) {
-      miniCookie(ctx, 20 + i * 38 + Math.sin(i * 1.7) * 8, h * 0.72, 4);
-    }
+    // (belt rollers & cookies drawn by animation overlay)
 
     // Pipes along top
     ctx.fillStyle = '#666';
@@ -1306,26 +1256,7 @@ const rowBgDrawers = {
     ctx.closePath();
     ctx.fill();
 
-    // Gears
-    for (let i = 0; i < Math.floor(w / 120); i++) {
-      const gx = 60 + i * 110;
-      const gy = h * 0.45;
-      ctx.strokeStyle = 'rgba(150,130,100,0.25)';
-      ctx.lineWidth = 2;
-      circle(ctx, gx, gy, 10);
-      ctx.stroke();
-      circle(ctx, gx, gy, 3);
-      ctx.fillStyle = 'rgba(150,130,100,0.2)';
-      ctx.fill();
-      // Teeth
-      for (let t = 0; t < 8; t++) {
-        const angle = (t * Math.PI * 2) / 8;
-        ctx.beginPath();
-        ctx.moveTo(gx + 9 * Math.cos(angle), gy + 9 * Math.sin(angle));
-        ctx.lineTo(gx + 13 * Math.cos(angle), gy + 13 * Math.sin(angle));
-        ctx.stroke();
-      }
-    }
+    // (gears drawn by animation overlay)
   },
 
   /* ── Mine: Underground cavern with ore veins ── */
@@ -1356,10 +1287,7 @@ const rowBgDrawers = {
       ctx.beginPath();
       ctx.ellipse(ox, oy, 8, 4, Math.sin(i) * 0.5, 0, Math.PI * 2);
       ctx.fill();
-      // Sparkle
-      ctx.fillStyle = 'rgba(255,215,0,0.3)';
-      circle(ctx, ox + 3, oy - 2, 1.5);
-      ctx.fill();
+      // (sparkle drawn by animation overlay)
       ctx.fillStyle = 'rgba(255,200,80,0.2)';
     }
 
@@ -1375,17 +1303,11 @@ const rowBgDrawers = {
       ctx.beginPath(); ctx.moveTo(x, h * 0.83); ctx.lineTo(x, h * 0.94); ctx.stroke();
     }
 
-    // Lanterns
+    // Lantern housings (glow drawn by animation overlay)
     for (let i = 0; i < Math.floor(w / 100); i++) {
       const lx = 50 + i * 90;
       const ly = h * 0.15;
-      const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, 15);
-      glow.addColorStop(0, 'rgba(255,200,80,0.25)');
-      glow.addColorStop(1, 'rgba(255,160,40,0)');
-      circle(ctx, lx, ly, 15);
-      ctx.fillStyle = glow;
-      ctx.fill();
-      ctx.fillStyle = '#ffc040';
+      ctx.fillStyle = '#997030';
       ctx.fillRect(lx - 2, ly - 3, 4, 6);
     }
 
@@ -1558,17 +1480,7 @@ const rowBgDrawers = {
       ctx.save();
       ctx.translate(rx, ry);
       ctx.rotate(-0.4 + i * 0.2);
-      // Flame
-      ctx.fillStyle = 'rgba(255,140,40,0.3)';
-      ctx.beginPath();
-      ctx.moveTo(-2, 5);
-      ctx.quadraticCurveTo(0, 12, 2, 5);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,220,80,0.25)';
-      ctx.beginPath();
-      ctx.moveTo(-1, 5);
-      ctx.quadraticCurveTo(0, 9, 1, 5);
-      ctx.fill();
+      // (flame drawn by animation overlay)
       // Body
       ctx.fillStyle = 'rgba(220,220,230,0.35)';
       ctx.beginPath();
@@ -1709,60 +1621,7 @@ const rowBgDrawers = {
       }
     }
 
-    // Floating sparkle motes — brighter
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#d0b0ff';
-    for (let i = 0; i < Math.floor(w / 35); i++) {
-      const sx = 20 + i * 32;
-      const sy = h * 0.35 + Math.sin(i * 2.7) * h * 0.15;
-      star(ctx, sx, sy, 2.5, 1, 4);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    // Glowing alchemical circles on floor (no pentagrams)
-    for (let i = 0; i < Math.floor(w / 80); i++) {
-      const cx2 = 40 + i * 75;
-      const cy2 = h * 0.86;
-      // Outer glow
-      const cGlow = ctx.createRadialGradient(cx2, cy2, 6, cx2, cy2, 16);
-      cGlow.addColorStop(0, 'rgba(160,80,255,0.1)');
-      cGlow.addColorStop(1, 'rgba(160,80,255,0)');
-      circle(ctx, cx2, cy2, 16);
-      ctx.fillStyle = cGlow;
-      ctx.fill();
-      // Outer ring
-      ctx.strokeStyle = 'rgba(160,80,255,0.18)';
-      ctx.lineWidth = 1;
-      circle(ctx, cx2, cy2, 14);
-      ctx.stroke();
-      // Inner ring
-      ctx.strokeStyle = 'rgba(160,80,255,0.12)';
-      circle(ctx, cx2, cy2, 9);
-      ctx.stroke();
-      // Center dot
-      circle(ctx, cx2, cy2, 2);
-      ctx.fillStyle = 'rgba(180,100,255,0.2)';
-      ctx.fill();
-      // Cardinal dots around inner ring
-      for (let d = 0; d < 4; d++) {
-        const angle = (d * Math.PI * 2) / 4;
-        circle(ctx, cx2 + 9 * Math.cos(angle), cy2 + 9 * Math.sin(angle), 1.2);
-        ctx.fillStyle = 'rgba(180,100,255,0.15)';
-        ctx.fill();
-      }
-    }
-
-    // Dripping liquid from shelf edges — brighter
-    ctx.fillStyle = 'rgba(140,60,220,0.2)';
-    for (let i = 0; i < Math.floor(w / 70); i++) {
-      const dx = 35 + i * 65;
-      ctx.beginPath();
-      ctx.moveTo(dx, h * 0.56);
-      ctx.quadraticCurveTo(dx + 1, h * 0.62, dx, h * 0.65);
-      ctx.quadraticCurveTo(dx - 1, h * 0.62, dx, h * 0.56);
-      ctx.fill();
-    }
+    // (sparkle motes, floor circles, and drips drawn by animation overlay)
   },
 
   /* ── Portal: Eldritch void with rifts, floating islands, tentacles ── */
@@ -1775,9 +1634,9 @@ const rowBgDrawers = {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Dimensional rift cracks — brighter
-    ctx.strokeStyle = 'rgba(220,100,255,0.22)';
-    ctx.lineWidth = 1.5;
+    // Dimensional rift crack shapes (glow/pulse drawn by animation overlay)
+    ctx.strokeStyle = 'rgba(220,100,255,0.12)';
+    ctx.lineWidth = 1;
     for (let i = 0; i < Math.floor(w / 60); i++) {
       const rx = i * 55 + 20;
       ctx.beginPath();
@@ -1786,12 +1645,6 @@ const rowBgDrawers = {
       ctx.lineTo(rx + 3, h * 0.35);
       ctx.lineTo(rx + 12, h * 0.5);
       ctx.stroke();
-      const riftGlow = ctx.createLinearGradient(rx - 5, 0, rx + 15, h * 0.5);
-      riftGlow.addColorStop(0, 'rgba(200,80,255,0)');
-      riftGlow.addColorStop(0.5, 'rgba(200,80,255,0.1)');
-      riftGlow.addColorStop(1, 'rgba(200,80,255,0)');
-      ctx.fillStyle = riftGlow;
-      ctx.fillRect(rx - 8, 0, 28, h * 0.5);
     }
 
     // Floating stone platforms — brighter
@@ -1845,60 +1698,7 @@ const rowBgDrawers = {
       ctx.fillStyle = inner;
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(220,160,255,0.25)';
-      ctx.lineWidth = 0.8;
-      for (let arm = 0; arm < 4; arm++) {
-        ctx.beginPath();
-        for (let t = 0; t < 1; t += 0.03) {
-          const angle = t * Math.PI * 3 + arm * Math.PI * 0.5 + p;
-          const r = t * pr * 0.65;
-          const x = px + r * Math.cos(angle);
-          const y = py + r * Math.sin(angle);
-          if (t === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-
-      ctx.strokeStyle = 'rgba(200,120,255,0.15)';
-      ctx.lineWidth = 1;
-      for (let t = 0; t < 5; t++) {
-        const angle = (t * Math.PI * 2) / 5 + p * 0.7;
-        ctx.beginPath();
-        ctx.moveTo(px + pr * Math.cos(angle), py + pr * Math.sin(angle));
-        ctx.quadraticCurveTo(
-          px + pr * 2.2 * Math.cos(angle + 0.3),
-          py + pr * 2.2 * Math.sin(angle + 0.3),
-          px + pr * 3 * Math.cos(angle + 0.15),
-          py + pr * 3 * Math.sin(angle + 0.15)
-        );
-        ctx.stroke();
-      }
-    }
-
-    // Floating particles — brighter
-    ctx.fillStyle = 'rgba(200,120,255,0.18)';
-    for (let i = 0; i < Math.floor(w / 8); i++) {
-      const px = Math.sin(i * 5.7) * w * 0.5 + w * 0.5;
-      const py = Math.cos(i * 3.2) * h * 0.5 + h * 0.5;
-      const size = 0.6 + Math.sin(i * 1.3) * 0.5;
-      circle(ctx, px, py, size);
-      ctx.fill();
-    }
-
-    // Eldritch tentacle hints — brighter
-    ctx.strokeStyle = 'rgba(140,60,200,0.15)';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 3; i++) {
-      const ty = h * 0.6 + i * 12;
-      ctx.beginPath();
-      ctx.moveTo(0, ty);
-      ctx.bezierCurveTo(15, ty - 10, 25, ty + 10, 40, ty - 5);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(w, ty + 5);
-      ctx.bezierCurveTo(w - 15, ty - 5, w - 25, ty + 15, w - 40, ty);
-      ctx.stroke();
+      // (spiral arms, tendrils, particles, tentacles drawn by animation overlay)
     }
   },
 
@@ -1949,24 +1749,7 @@ const rowBgDrawers = {
       circle(ctx, g.x, g.y, g.r * 0.15);
       ctx.fillStyle = `rgba(184,160,96,${g.alpha * 0.8})`;
       ctx.fill();
-      // Spokes
-      ctx.lineWidth = 1;
-      for (let s = 0; s < 4; s++) {
-        const angle = (s * Math.PI) / 2;
-        ctx.beginPath();
-        ctx.moveTo(g.x + g.r * 0.15 * Math.cos(angle), g.y + g.r * 0.15 * Math.sin(angle));
-        ctx.lineTo(g.x + g.r * 0.6 * Math.cos(angle), g.y + g.r * 0.6 * Math.sin(angle));
-        ctx.stroke();
-      }
-      // Teeth
-      ctx.lineWidth = 1.5;
-      for (let t = 0; t < g.t; t++) {
-        const angle = (t * Math.PI * 2) / g.t;
-        ctx.beginPath();
-        ctx.moveTo(g.x + g.r * Math.cos(angle), g.y + g.r * Math.sin(angle));
-        ctx.lineTo(g.x + (g.r + 4) * Math.cos(angle), g.y + (g.r + 4) * Math.sin(angle));
-        ctx.stroke();
-      }
+      // (teeth & spokes drawn by animation overlay)
     });
 
     // Clock faces scattered at different sizes
@@ -1990,37 +1773,10 @@ const rowBgDrawers = {
         ctx.fillStyle = 'rgba(200,175,110,0.35)';
         ctx.fill();
       }
-      ctx.strokeStyle = 'rgba(200,175,110,0.4)';
-      ctx.lineWidth = 1;
-      const h1 = -Math.PI / 3 + c.x * 0.01;
-      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + c.r * 0.5 * Math.cos(h1), c.y + c.r * 0.5 * Math.sin(h1)); ctx.stroke();
-      const h2 = Math.PI / 5 + c.x * 0.02;
-      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + c.r * 0.7 * Math.cos(h2), c.y + c.r * 0.7 * Math.sin(h2)); ctx.stroke();
+      // (clock hands drawn by animation overlay)
     });
 
-    // Time vortex ripples — brighter
-    const vcx = w * 0.5, vcy = h * 0.5;
-    for (let i = 0; i < 8; i++) {
-      ctx.strokeStyle = `rgba(120,200,255,${0.06 + i * 0.008})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(vcx, vcy, 15 + i * 12, i * 0.6, i * 0.6 + 1.2);
-      ctx.stroke();
-    }
-
-    // Lightning/energy sparks — brighter
-    ctx.strokeStyle = 'rgba(120,220,255,0.18)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < Math.floor(w / 100); i++) {
-      const lx = 50 + i * 90;
-      const ly = h * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly);
-      ctx.lineTo(lx + 4, ly + 6);
-      ctx.lineTo(lx - 2, ly + 8);
-      ctx.lineTo(lx + 5, ly + 16);
-      ctx.stroke();
-    }
+    // (vortex ripples & lightning drawn by animation overlay)
 
     // Floating Roman numeral hints — brighter
     ctx.fillStyle = 'rgba(200,175,110,0.12)';
@@ -2055,15 +1811,9 @@ const rowBgDrawers = {
     ctx.ellipse(w * 0.5, h * 2, w * 0.45, h * 1.5, 0, Math.PI * 1.1, Math.PI * 1.9);
     ctx.stroke();
 
-    // Energy beams — brighter with glow
-    ctx.strokeStyle = 'rgba(255,80,120,0.18)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, h * 0.5); ctx.lineTo(w, h * 0.5); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,60,100,0.06)';
-    ctx.lineWidth = 8;
-    ctx.beginPath(); ctx.moveTo(0, h * 0.5); ctx.lineTo(w, h * 0.5); ctx.stroke();
+    // (energy beams drawn by animation overlay)
 
-    // Atom symbols — brighter
+    // Atom orbital rings (static structure)
     for (let i = 0; i < Math.floor(w / 90); i++) {
       const ax = 45 + i * 85;
       const ay = h * 0.4 + Math.sin(i * 2.5) * h * 0.15;
@@ -2090,24 +1840,7 @@ const rowBgDrawers = {
       ctx.fill();
     }
 
-    // Particle trails — brighter
-    ctx.strokeStyle = 'rgba(0,220,255,0.12)';
-    ctx.lineWidth = 0.5;
-    for (let i = 0; i < 8; i++) {
-      ctx.beginPath();
-      ctx.moveTo(Math.sin(i * 3.7) * w, 0);
-      ctx.quadraticCurveTo(w * 0.5, h * 0.5, Math.cos(i * 2.3) * w, h);
-      ctx.stroke();
-    }
-
-    // Extra energy sparks
-    ctx.fillStyle = 'rgba(0,220,255,0.15)';
-    for (let i = 0; i < Math.floor(w / 15); i++) {
-      const sx = Math.sin(i * 4.3) * w * 0.5 + w * 0.5;
-      const sy = Math.cos(i * 2.9) * h * 0.5 + h * 0.5;
-      circle(ctx, sx, sy, 0.8);
-      ctx.fill();
-    }
+    // (particle trails & sparks drawn by animation overlay)
   },
 
   /* ── Prism: Luminous crystal gallery — light refracting everywhere ── */
@@ -2140,35 +1873,7 @@ const rowBgDrawers = {
     ctx.fillStyle = floor;
     ctx.fillRect(0, h * 0.72, w, h * 0.28);
 
-    // Continuous rainbow light beams — sweeping diagonally across the scene
-    const beamColors = [
-      { r: 255, g: 60, b: 60 },
-      { r: 255, g: 150, b: 40 },
-      { r: 255, g: 240, b: 60 },
-      { r: 60, g: 220, b: 90 },
-      { r: 60, g: 130, b: 255 },
-      { r: 150, g: 60, b: 255 },
-    ];
-    // Beams from left side fanning across
-    for (let b = 0; b < beamColors.length; b++) {
-      const { r, g, b: bl } = beamColors[b];
-      const startY = h * 0.35;
-      const endY = h * 0.1 + b * (h * 0.14);
-      // Main beam
-      ctx.strokeStyle = `rgba(${r},${g},${bl},0.14)`;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(0, startY);
-      ctx.lineTo(w, endY);
-      ctx.stroke();
-      // Beam glow haze
-      ctx.strokeStyle = `rgba(${r},${g},${bl},0.04)`;
-      ctx.lineWidth = 10;
-      ctx.beginPath();
-      ctx.moveTo(0, startY);
-      ctx.lineTo(w, endY);
-      ctx.stroke();
-    }
+    // (rainbow beams drawn by animation overlay)
 
     // Crystal cluster formations rising from floor
     const crystalCount = Math.floor(w / 40);
@@ -2211,39 +1916,10 @@ const rowBgDrawers = {
         ctx.fill();
       }
 
-      // Tiny glow at crystal tips
-      const tipGlow = ctx.createRadialGradient(cx2, baseY - 22, 0, cx2, baseY - 22, 6);
-      tipGlow.addColorStop(0, `hsla(${hue}, 80%, 70%, 0.15)`);
-      tipGlow.addColorStop(1, `hsla(${hue}, 80%, 70%, 0)`);
-      circle(ctx, cx2, baseY - 22, 6);
-      ctx.fillStyle = tipGlow;
-      ctx.fill();
+      // (tip glow drawn by animation overlay)
     }
 
-    // Prismatic light pools on floor — larger, more vivid
-    for (let i = 0; i < Math.floor(w / 25); i++) {
-      const lx = 10 + i * 23 + Math.sin(i * 1.7) * 4;
-      const ly = h * 0.84 + Math.sin(i * 2.1) * 4;
-      const hue = (i * 50) % 360;
-      const poolR = 6 + Math.sin(i * 1.3) * 3;
-      const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, poolR);
-      glow.addColorStop(0, `hsla(${hue}, 85%, 65%, 0.2)`);
-      glow.addColorStop(0.6, `hsla(${hue}, 85%, 65%, 0.06)`);
-      glow.addColorStop(1, `hsla(${hue}, 85%, 65%, 0)`);
-      circle(ctx, lx, ly, poolR);
-      ctx.fillStyle = glow;
-      ctx.fill();
-    }
-
-    // Floating prismatic sparkles
-    for (let i = 0; i < Math.floor(w / 15); i++) {
-      const sx = Math.sin(i * 6.3) * w * 0.5 + w * 0.5;
-      const sy = Math.cos(i * 3.7) * h * 0.5 + h * 0.5;
-      const sparkHue = (i * 45) % 360;
-      ctx.fillStyle = `hsla(${sparkHue}, 80%, 80%, 0.25)`;
-      star(ctx, sx, sy, 1.5, 0.6, 4);
-      ctx.fill();
-    }
+    // (light pools, sparkles drawn by animation overlay)
 
     // Ceiling stalactite crystals (hanging down)
     for (let i = 0; i < Math.floor(w / 70); i++) {
@@ -2451,24 +2127,7 @@ const rowBgDrawers = {
       ctx.fill();
     }
 
-    // Gold sparkle stars — brighter, more numerous
-    ctx.fillStyle = 'rgba(255,220,50,0.35)';
-    for (let i = 0; i < Math.floor(w / 30); i++) {
-      const sx = 15 + i * 28 + Math.sin(i * 4.3) * 5;
-      const sy = h * 0.15 + Math.cos(i * 1.7) * h * 0.12 + Math.sin(i * 2.9) * h * 0.08;
-      const sr = 2 + Math.sin(i * 1.9) * 1.2;
-      star(ctx, sx, sy, sr, sr * 0.4, 4);
-      ctx.fill();
-    }
-
-    // Magical particle trail
-    ctx.fillStyle = 'rgba(255,215,0,0.1)';
-    for (let i = 0; i < Math.floor(w / 12); i++) {
-      const px = Math.sin(i * 5.1) * w * 0.5 + w * 0.5;
-      const py = Math.cos(i * 3.3) * h * 0.5 + h * 0.5;
-      circle(ctx, px, py, 0.8);
-      ctx.fill();
-    }
+    // (sparkle stars & particle trail drawn by animation overlay)
   },
 
   /* ── Fractal Engine: Mathematical fractal cosmos ── */
@@ -2519,32 +2178,7 @@ const rowBgDrawers = {
       drawSierpinski(80 + i * 180, h * 0.38, 32, 3);
     }
 
-    // Golden spiral (Fibonacci)
-    function drawGoldenSpiral(cx, cy, maxR, turns) {
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(255,210,80,0.15)';
-      ctx.lineWidth = 1.2;
-      const phi = 1.618033988749;
-      for (let t = 0; t < turns * Math.PI * 2; t += 0.05) {
-        const r = maxR * Math.pow(phi, t / (Math.PI * 2)) / Math.pow(phi, turns);
-        const px = cx + r * Math.cos(t);
-        const py = cy + r * Math.sin(t);
-        if (t === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.stroke();
-    }
-    const spiralCount = Math.max(1, Math.floor(w / 240));
-    for (let i = 0; i < spiralCount; i++) {
-      drawGoldenSpiral(110 + i * 230, h * 0.5, 28, 3);
-      // Glow behind spiral center
-      const glow = ctx.createRadialGradient(110 + i * 230, h * 0.5, 0, 110 + i * 230, h * 0.5, 30);
-      glow.addColorStop(0, 'rgba(255,200,60,0.06)');
-      glow.addColorStop(1, 'rgba(255,200,60,0)');
-      circle(ctx, 110 + i * 230, h * 0.5, 30);
-      ctx.fillStyle = glow;
-      ctx.fill();
-    }
+    // (golden spiral drawn by animation overlay)
 
     // Koch snowflake segments along the bottom
     function drawKochLine(x1, y1, x2, y2, depth) {
@@ -2573,58 +2207,7 @@ const rowBgDrawers = {
       drawKochLine(i * kochSegW + 10, h * 0.82, (i + 1) * kochSegW - 10, h * 0.82, 3);
     }
 
-    // Recursive square fractals — squares within squares, rotated
-    function drawRecursiveSquare(x, y, size, depth, rot) {
-      if (depth <= 0 || size < 2) return;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(rot);
-      ctx.strokeStyle = `rgba(220,180,60,${0.06 + depth * 0.03})`;
-      ctx.lineWidth = 0.6;
-      ctx.strokeRect(-size / 2, -size / 2, size, size);
-      ctx.restore();
-      // 4 smaller squares at corners, each rotated
-      if (depth > 1) {
-        const sub = size * 0.42;
-        const off = size * 0.38;
-        const nextRot = rot + Math.PI / 6;
-        drawRecursiveSquare(x - off, y - off, sub, depth - 1, nextRot);
-        drawRecursiveSquare(x + off, y - off, sub, depth - 1, nextRot);
-        drawRecursiveSquare(x - off, y + off, sub, depth - 1, nextRot);
-        drawRecursiveSquare(x + off, y + off, sub, depth - 1, nextRot);
-      }
-    }
-    const sqCount = Math.max(1, Math.floor(w / 155));
-    for (let i = 0; i < sqCount; i++) {
-      drawRecursiveSquare(75 + i * 150, h * 0.55, 24, 3, Math.PI / 8 + i * 0.2);
-    }
-
-    // Mathematical symbols — larger, more visible, varied fonts
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const mathSymbols = [
-      { s: '∞', size: 14 }, { s: 'π', size: 12 }, { s: '∑', size: 13 },
-      { s: '∫', size: 14 }, { s: 'φ', size: 12 }, { s: '√', size: 12 },
-      { s: 'Δ', size: 11 }, { s: 'Ω', size: 11 }, { s: 'λ', size: 12 },
-      { s: '∂', size: 12 }
-    ];
-    for (let i = 0; i < Math.min(mathSymbols.length, Math.floor(w / 65)); i++) {
-      const sym = mathSymbols[i % mathSymbols.length];
-      ctx.font = `${sym.size}px serif`;
-      ctx.fillStyle = `rgba(220,190,100,${0.1 + Math.sin(i * 1.3) * 0.03})`;
-      const sx = 30 + i * 62 + Math.sin(i * 2.1) * 8;
-      const sy = h * 0.18 + Math.cos(i * 1.7) * h * 0.08;
-      ctx.fillText(sym.s, sx, sy);
-    }
-
-    // Floating golden dust
-    ctx.fillStyle = 'rgba(255,210,60,0.1)';
-    for (let i = 0; i < Math.floor(w / 12); i++) {
-      const px = Math.sin(i * 4.7) * w * 0.5 + w * 0.5;
-      const py = Math.cos(i * 3.1) * h * 0.5 + h * 0.5;
-      circle(ctx, px, py, 0.6 + Math.sin(i * 2.3) * 0.3);
-      ctx.fill();
-    }
+    // (recursive squares, math symbols, golden dust drawn by animation overlay)
   },
 };
 

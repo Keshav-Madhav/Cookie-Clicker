@@ -2,6 +2,7 @@ import { formatNumberInWords } from "./utils.js";
 import { MiniGames } from "./miniGames.js";
 import { getBuildingIcon, getRowBackground, clearRowBgCache } from "./buildingIcons.js";
 import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN } from "./config.js";
+import { RowAnimator } from "./rowAnimations.js";
 
 /**
  * VisualEffects — manages the middle-panel "viewport" with
@@ -41,6 +42,9 @@ export class VisualEffects {
     // User-togglable flags (synced with game.settings)
     this.particlesEnabled = true;
     this.shimmersEnabled = true;
+
+    // Animated row backgrounds
+    this.rowAnimator = new RowAnimator();
 
     this.newsMessages = NEWS.messages;
   }
@@ -102,7 +106,12 @@ export class VisualEffects {
     this.canvas = document.getElementById("viewport-canvas");
     this.ctx = this.canvas.getContext("2d");
     this._resize();
-    window.addEventListener("resize", () => { this._resize(); clearRowBgCache(); });
+    window.addEventListener("resize", () => {
+      this._resize();
+      clearRowBgCache();
+      // Re-scan rows for animation overlays after resize
+      requestAnimationFrame(() => this.rowAnimator.refresh());
+    });
 
     this._drawNewsBgCanvas();
     this._seedRain(VISUAL.rain.seedCount);
@@ -113,6 +122,9 @@ export class VisualEffects {
     this.miniGames.init();
     this._scheduleGoldenCookie();
     this._setupGoldenCookieClick();
+
+    // Animated row backgrounds
+    this.rowAnimator.init();
 
     // initial render
     this.updateBuildingShowcase();
@@ -829,9 +841,15 @@ export class VisualEffects {
 
         container.appendChild(row);
         // Draw bg after append so dimensions are available
-        requestAnimationFrame(() => this._ensureRowBg(row, b.name));
+        requestAnimationFrame(() => {
+          this._ensureRowBg(row, b.name);
+          this.rowAnimator.refresh();
+        });
       }
     });
+
+    // Refresh animated overlays for any rows that changed
+    this.rowAnimator.refresh();
   }
 
   /** Ensure the row has a canvas background matching its current dimensions */
@@ -841,14 +859,22 @@ export class VisualEffects {
     const rw = row.clientWidth;
     const rh = row.clientHeight;
     if (rw <= 0 || rh <= 0) return;
-    // Check if we already have a canvas at this size
-    const existing = bgWrap.querySelector('canvas');
+    // Check if we already have a static bg canvas at this size (skip anim overlay)
+    const existing = bgWrap.querySelector('canvas:not(.baker-row-anim)');
     if (existing && parseInt(existing.style.width) === rw && parseInt(existing.style.height) === rh) return;
-    bgWrap.innerHTML = '';
+    // Remove old static bg canvas only (preserve animation overlay)
+    const oldBg = bgWrap.querySelector('canvas:not(.baker-row-anim)');
+    if (oldBg) oldBg.remove();
     const canvas = getRowBackground(buildingName, rw, rh);
     canvas.style.position = 'absolute';
     canvas.style.inset = '0';
-    bgWrap.appendChild(canvas);
+    // Insert static bg before animation overlay so it stays behind
+    const animOverlay = bgWrap.querySelector('.baker-row-anim');
+    if (animOverlay) {
+      bgWrap.insertBefore(canvas, animOverlay);
+    } else {
+      bgWrap.appendChild(canvas);
+    }
   }
 
   /**
@@ -990,5 +1016,6 @@ export class VisualEffects {
     clearInterval(this.newsTimer);
     clearTimeout(this.goldenCookieTimer);
     clearTimeout(this._goldenTimeout);
+    if (this.rowAnimator) this.rowAnimator.destroy();
   }
 }
