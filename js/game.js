@@ -1005,10 +1005,9 @@ export class Game {
 
   renderUpgradePage(animated = false) {
     if (this._upgradePage === undefined) this._upgradePage = 0;
-    // Initialize sort order if not set
+    // Initialize sort order if not set — use full maxed-aware sort
     if (!this._upgradeOrder || this._upgradeOrder.length !== this.upgrades.length) {
-      this._upgradeOrder = this.upgrades.map((_, i) => i);
-      this._upgradeOrder.sort((a, b) => this.upgrades[a].cost - this.upgrades[b].cost);
+      this.sortUpgradesByCost(false);
     }
     const pageSize = this.upgradePageSize;
     const totalPages = Math.max(1, Math.ceil(this._upgradeOrder.length / pageSize));
@@ -1062,7 +1061,7 @@ export class Game {
   }
 
   // === Upgrade sorting by cost ===
-  sortUpgradesByCost() {
+  sortUpgradesByCost(render = true) {
     this._upgradeOrder = this.upgrades.map((_, i) => i);
     this._upgradeOrder.sort((a, b) => {
       const upA = this.upgrades[a];
@@ -1070,15 +1069,15 @@ export class Game {
       // Maxed upgrades go to the end
       const maxedA = upA.type === 'tieredUpgrade'
         ? (upA.level > 0 && upA.currentTier >= upA.tiers.length - 1)
-        : (upA.level >= upA.max_level);
+        : (upA.level >= upA.getEffectiveMaxLevel());
       const maxedB = upB.type === 'tieredUpgrade'
         ? (upB.level > 0 && upB.currentTier >= upB.tiers.length - 1)
-        : (upB.level >= upB.max_level);
+        : (upB.level >= upB.getEffectiveMaxLevel());
       if (maxedA !== maxedB) return maxedA ? 1 : -1;
       return upA.cost - upB.cost;
     });
     this._upgradePage = 0;
-    this.renderUpgradePage(true);
+    if (render) this.renderUpgradePage(true);
   }
 
   scheduleUpgradeSort() {
@@ -1265,9 +1264,10 @@ export class Game {
     if (!oldUpgrades) return oldUpgrades;
     const migrated = [];
 
-    // Indices 0-21 are unchanged
+    // Indices 0-21 are unchanged — carry over level but strip stale cost
     for (let i = 0; i <= 21 && i < oldUpgrades.length; i++) {
-      migrated.push(oldUpgrades[i]);
+      const { cost, ...rest } = oldUpgrades[i];
+      migrated.push(rest);
     }
     // Pad if old save was shorter
     while (migrated.length < 22) migrated.push({ level: 0 });
@@ -1290,12 +1290,15 @@ export class Game {
       ? { level: 1, currentTier: clickBought - 1 }
       : { level: 0 });
 
-    // Old 35 → new 25 (Game Master)
-    migrated.push(oldUpgrades[35] || { level: 0 });
+    // Old 35 → new 25 (Game Master) — strip cost
+    const gm = oldUpgrades[35] ? (({ cost, ...r }) => r)(oldUpgrades[35]) : { level: 0 };
+    migrated.push(gm);
     // Old 36 → new 26 (Extended Frenzy)
-    migrated.push(oldUpgrades[36] || { level: 0 });
+    const ef = oldUpgrades[36] ? (({ cost, ...r }) => r)(oldUpgrades[36]) : { level: 0 };
+    migrated.push(ef);
     // Old 37 → new 27 (Mega Frenzy)
-    migrated.push(oldUpgrades[37] || { level: 0 });
+    const mf = oldUpgrades[37] ? (({ cost, ...r }) => r)(oldUpgrades[37]) : { level: 0 };
+    migrated.push(mf);
     // Old 38 → new 28 (Offline Production tiered)
     migrated.push(oldUpgrades[38] || { level: 0 });
 
@@ -1355,7 +1358,25 @@ export class Game {
         const upgrade = this.upgrades[i];
 
         upgrade.level = savedUpgrade.level || 0;
-        upgrade.cost = savedUpgrade.cost || upgrade.cost;
+
+        // Restore saved cost, or recalculate from definition if missing
+        if (savedUpgrade.cost) {
+          upgrade.cost = savedUpgrade.cost;
+        } else if (upgrade.level > 0 && upgrade.type !== 'tieredUpgrade') {
+          // Recalculate cost from definition for leveled non-tiered upgrades
+          let c = upgrade.upgrade.cost;
+          for (let lv = 1; lv <= upgrade.level; lv++) {
+            let cm = lv > upgrade.base_max_level
+              ? (upgrade.prestige_cost_multiplier || upgrade.cost_multiplier)
+              : upgrade.cost_multiplier;
+            if (upgrade.accel_start && upgrade.cost_acceleration && lv >= upgrade.accel_start) {
+              const extra = lv - upgrade.accel_start + 1;
+              cm *= Math.pow(upgrade.cost_acceleration, extra);
+            }
+            c = Math.floor(c * cm);
+          }
+          upgrade.cost = c;
+        }
 
         if (upgrade.type === "tieredUpgrade" && upgrade.tiers) {
           upgrade.currentTier = savedUpgrade.currentTier || 0;
