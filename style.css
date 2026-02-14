@@ -565,7 +565,7 @@ html {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 /* ─── Milk layer ─── */
@@ -1652,6 +1652,113 @@ html {
   text-align: center;
   position: absolute;
   top: 40%;
+}
+
+/* ─── Locked building rows ─── */
+.baker-row-locked {
+  position: relative;
+}
+
+.baker-row-locked .baker-row-bg {
+  filter: grayscale(0.8) brightness(0.3);
+  transition: filter 0.6s ease, opacity 0.6s ease;
+}
+
+.baker-row-locked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 5, 2, 0.7) 0%,
+    rgba(15, 8, 3, 0.85) 50%,
+    rgba(10, 5, 2, 0.75) 100%
+  );
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.baker-row-locked .baker-row-label {
+  z-index: 5;
+  color: rgba(184, 160, 128, 0.45);
+  font-style: italic;
+  letter-spacing: 0.5px;
+  transition: color 0.5s ease, font-style 0.5s ease;
+}
+
+.baker-row-locked .baker-row-count {
+  z-index: 5;
+  font-size: 1rem;
+  color: rgba(184, 160, 128, 0.35);
+  background: rgba(0, 0, 0, 0.4);
+  transition: color 0.5s ease, opacity 0.5s ease;
+}
+
+.baker-row-locked .baker-row-icons {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+/* Progressively darker for later buildings */
+.baker-row-locked:nth-child(n+6)::after {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 4, 1, 0.78) 0%,
+    rgba(12, 6, 2, 0.9) 50%,
+    rgba(8, 4, 1, 0.82) 100%
+  );
+}
+
+.baker-row-locked:nth-child(n+10)::after {
+  background: linear-gradient(
+    180deg,
+    rgba(5, 2, 0, 0.85) 0%,
+    rgba(8, 4, 1, 0.93) 50%,
+    rgba(5, 2, 0, 0.88) 100%
+  );
+}
+
+/* ─── Unlock transition ─── */
+.baker-row-unlocking {
+  animation: rowUnlock 0.8s ease forwards;
+}
+
+.baker-row-unlocking .baker-row-bg {
+  filter: grayscale(0) brightness(1);
+}
+
+.baker-row-unlocking::after {
+  opacity: 0;
+}
+
+.baker-row-unlocking .baker-row-icons {
+  opacity: 1;
+  animation: iconsAppear 0.6s ease 0.3s forwards;
+}
+
+@keyframes rowUnlock {
+  0% {
+    box-shadow: inset 0 0 30px rgba(248, 196, 113, 0.6);
+  }
+  50% {
+    box-shadow: inset 0 0 50px rgba(248, 196, 113, 0.9), 0 0 20px rgba(248, 196, 113, 0.4);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+@keyframes iconsAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ============================

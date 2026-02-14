@@ -84,9 +84,6 @@ export class VisualEffects {
         <!-- mini-game overlay -->
         <div id="mini-game-overlay" class="hidden"></div>
 
-        <!-- main viewport canvas (rain + shimmers) -->
-        <canvas id="viewport-canvas"></canvas>
-
         <!-- golden cookie (hidden initially) -->
         <div id="golden-cookie" class="hidden">🍪</div>
 
@@ -124,7 +121,8 @@ export class VisualEffects {
   /* ───────────────────────── canvas helpers ───────────────────── */
   _resize() {
     if (!this.canvas) return;
-    const wrap = this.canvas.parentElement;
+    const wrap = document.getElementById("click-area");
+    if (!wrap) return;
     this.canvas.width  = wrap.clientWidth;
     this.canvas.height = wrap.clientHeight;
   }
@@ -631,14 +629,22 @@ export class VisualEffects {
     const container = document.getElementById("building-showcase");
     if (!container) return;
 
-    const ownedBuildings = this.game.buildings.filter(b => b.count > 0);
-
-    if (ownedBuildings.length === 0) {
-      if (!container.querySelector('.showcase-empty')) {
-        container.innerHTML = `<div class="showcase-empty">Purchase buildings to see them here!</div>`;
-      }
-      return;
-    }
+    // Mystery hints for locked rows — vague teasers for each building
+    const mysteryHints = {
+      'Cursor':               'Something clicks...',
+      'Grandma':              'A familiar aroma...',
+      'Farm':                 'Seeds of something sweet...',
+      'Factory':              'Gears turning in darkness...',
+      'Mine':                 'Deep treasures below...',
+      'Shipment':             'Distant deliveries...',
+      'Alchemy Lab':          'Ancient transmutations...',
+      'Portal':               'A door to elsewhere...',
+      'Time Machine':         'Echoes of the past...',
+      'Antimatter Condenser': 'The void beckons...',
+      'Prism':                'Light splits and shimmers...',
+      'Chancemaker':          'Fortune favors the bold...',
+      'Fractal Engine':       'Infinite recursion...'
+    };
 
     // Build a map of current row states to diff against
     const existingRows = {};
@@ -650,72 +656,93 @@ export class VisualEffects {
     const emptyMsg = container.querySelector('.showcase-empty');
     if (emptyMsg) emptyMsg.remove();
 
-    // Track which types are still present
-    const activeTypes = new Set();
     const defaultIconSize = 36;
     const largerIcons = { 'Portal': 50, 'Alchemy Lab': 44, 'Time Machine': 44, 'Antimatter Condenser': 44, 'Shipment': 42, 'Prism': 46 };
     const rowH = 80;
 
-    ownedBuildings.forEach((b) => {
-      activeTypes.add(b.name);
-      const iconCount = Math.min(20, Math.max(1, Math.floor(b.count / 5)));
+    // Loop over ALL buildings (not just owned ones)
+    this.game.buildings.forEach((b) => {
+      const owned = b.count > 0;
+      const iconCount = owned ? Math.min(20, Math.max(1, Math.floor(b.count / 5))) : 0;
 
       let row = existingRows[b.name];
       if (row) {
-        // Update existing row — only if count changed
+        // Update existing row
         const prevCount = parseInt(row.dataset.count, 10);
+        const wasLocked = row.classList.contains('baker-row-locked');
+
         if (prevCount === b.count) return;
         row.dataset.count = b.count;
 
-        // Update count badge
-        const countEl = row.querySelector('.baker-row-count');
-        if (countEl) countEl.textContent = `×${b.count}`;
-
-        // Rebuild canvas bg if row resized
-        this._ensureRowBg(row, b.name);
-
-        // Update icons
-        const iconsWrap = row.querySelector('.baker-row-icons');
-        if (iconsWrap) {
-          const currentIcons = iconsWrap.children.length;
-          if (currentIcons !== iconCount) {
-            const bIconSize = largerIcons[b.name] || defaultIconSize;
-            this._rebuildRowIcons(iconsWrap, b.name, iconCount, bIconSize, rowH);
-          }
+        // Handle unlock transition: was locked, now owned
+        if (wasLocked && owned) {
+          row.classList.remove('baker-row-locked');
+          row.classList.add('baker-row-unlocking');
+          // Update label from hint to real name
+          const label = row.querySelector('.baker-row-label');
+          if (label) label.textContent = b.name;
+          // Remove unlock animation class after transition
+          setTimeout(() => row.classList.remove('baker-row-unlocking'), 800);
         }
 
-        // Update tooltip
-        row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+        if (owned) {
+          // Update count badge
+          const countEl = row.querySelector('.baker-row-count');
+          if (countEl) countEl.textContent = `×${b.count}`;
+
+          // Rebuild canvas bg if row resized
+          this._ensureRowBg(row, b.name);
+
+          // Update icons
+          const iconsWrap = row.querySelector('.baker-row-icons');
+          if (iconsWrap) {
+            const currentIcons = iconsWrap.children.length;
+            if (currentIcons !== iconCount) {
+              const bIconSize = largerIcons[b.name] || defaultIconSize;
+              this._rebuildRowIcons(iconsWrap, b.name, iconCount, bIconSize, rowH);
+            }
+          }
+
+          // Update tooltip
+          row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+        }
       } else {
         // Create new row
         row = document.createElement('div');
-        row.className = 'baker-row';
+        row.className = owned ? 'baker-row' : 'baker-row baker-row-locked';
         row.dataset.type = b.name;
         row.dataset.count = b.count;
-        row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
 
-        // Canvas background (drawn in quirky icon style)
+        if (owned) {
+          row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+        } else {
+          row.title = 'Locked — keep baking to discover!';
+        }
+
+        // Canvas background (always drawn, even for locked — locked styling darkens it via CSS)
         const bgWrap = document.createElement('div');
         bgWrap.className = 'baker-row-bg';
         row.appendChild(bgWrap);
 
-        // Label
+        // Label — real name if owned, mystery hint if locked
         const label = document.createElement('span');
         label.className = 'baker-row-label';
-        label.textContent = b.name;
+        label.textContent = owned ? b.name : (mysteryHints[b.name] || '???');
         row.appendChild(label);
 
-        // Count badge
+        // Count badge — real count if owned, lock icon if locked
         const countBadge = document.createElement('span');
         countBadge.className = 'baker-row-count';
-        countBadge.textContent = `×${b.count}`;
+        countBadge.textContent = owned ? `×${b.count}` : '🔒';
         row.appendChild(countBadge);
 
-        // Icons container
+        // Icons container (hidden for locked via CSS)
         const iconsWrap = document.createElement('div');
         iconsWrap.className = 'baker-row-icons';
-        const bIconSize = largerIcons[b.name] || defaultIconSize;
-        this._rebuildRowIcons(iconsWrap, b.name, iconCount, bIconSize, rowH);
+        if (owned) {
+          const bIconSize = largerIcons[b.name] || defaultIconSize;
+          this._rebuildRowIcons(iconsWrap, b.name, iconCount, bIconSize, rowH);
+        }
         row.appendChild(iconsWrap);
 
         container.appendChild(row);
@@ -723,13 +750,6 @@ export class VisualEffects {
         requestAnimationFrame(() => this._ensureRowBg(row, b.name));
       }
     });
-
-    // Remove rows for buildings that are no longer owned (shouldn't happen, but safe)
-    for (const type in existingRows) {
-      if (!activeTypes.has(type)) {
-        existingRows[type].remove();
-      }
-    }
   }
 
   /** Ensure the row has a canvas background matching its current dimensions */
