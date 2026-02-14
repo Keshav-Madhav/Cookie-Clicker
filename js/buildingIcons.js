@@ -2295,39 +2295,108 @@ const rowBgDrawers = {
       ctx.stroke();
     }
 
-    // Large four-leaf clovers
-    const cloverCount = Math.floor(w / 60);
-    for (let i = 0; i < cloverCount; i++) {
-      const cx2 = 25 + i * 55;
-      const cy2 = h * 0.5 + Math.sin(i * 2.3) * h * 0.12;
-      const pr = 5 + (i % 3);
-      // Clover glow
-      const cGlow = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, pr * 3);
-      cGlow.addColorStop(0, 'rgba(46,204,64,0.08)');
-      cGlow.addColorStop(1, 'rgba(46,204,64,0)');
-      circle(ctx, cx2, cy2, pr * 3);
-      ctx.fillStyle = cGlow;
-      ctx.fill();
-
-      // Leaves
-      ctx.fillStyle = `rgba(46,210,64,${0.3 + (i % 2) * 0.08})`;
-      [[0, -pr * 0.7], [0, pr * 0.7], [-pr * 0.7, 0], [pr * 0.7, 0]].forEach(([ox, oy]) => {
-        circle(ctx, cx2 + ox, cy2 + oy, pr);
-        ctx.fill();
-      });
-      // Darker centers
-      ctx.fillStyle = 'rgba(30,160,45,0.3)';
-      [[0, -pr * 0.7], [0, pr * 0.7], [-pr * 0.7, 0], [pr * 0.7, 0]].forEach(([ox, oy]) => {
-        circle(ctx, cx2 + ox, cy2 + oy, pr * 0.45);
-        ctx.fill();
-      });
-      // Stem
-      ctx.strokeStyle = 'rgba(30,150,45,0.35)';
-      ctx.lineWidth = 1.8;
+    // Top hats — scattered lucky gentleman hats
+    for (let i = 0; i < Math.floor(w / 90); i++) {
+      const hx = 30 + i * 85 + Math.sin(i * 2.7) * 10;
+      const hy = h * 0.42 + Math.cos(i * 1.9) * h * 0.08;
+      const hs = 12 + (i % 3) * 2;
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate((Math.sin(i * 1.3) * 0.15));
+      // Hat brim
+      ctx.fillStyle = `rgba(15,12,8,${0.6 + (i % 2) * 0.08})`;
       ctx.beginPath();
-      ctx.moveTo(cx2, cy2 + pr);
-      ctx.quadraticCurveTo(cx2 + 3, cy2 + pr + 6, cx2 - 1, cy2 + pr + 12);
+      ctx.ellipse(0, hs * 0.4, hs * 1.2, hs * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Hat body
+      roundRect(ctx, -hs * 0.55, -hs * 0.7, hs * 1.1, hs * 1.1, 1);
+      const hatGrad = ctx.createLinearGradient(-hs * 0.55, -hs * 0.7, -hs * 0.55, hs * 0.4);
+      hatGrad.addColorStop(0, `rgba(25,20,15,${0.55 + (i % 2) * 0.08})`);
+      hatGrad.addColorStop(1, `rgba(10,8,5,${0.65 + (i % 2) * 0.08})`);
+      ctx.fillStyle = hatGrad;
+      ctx.fill();
+      // Hat outline
+      ctx.strokeStyle = `rgba(60,50,30,${0.35 + (i % 2) * 0.05})`;
+      ctx.lineWidth = 0.8;
       ctx.stroke();
+      // Hat band — golden, brighter
+      ctx.fillStyle = 'rgba(220,185,50,0.5)';
+      ctx.fillRect(-hs * 0.55, hs * 0.12, hs * 1.1, hs * 0.2);
+      // Band buckle
+      ctx.strokeStyle = 'rgba(255,220,80,0.45)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-hs * 0.1, hs * 0.12, hs * 0.2, hs * 0.2);
+      // Hat shine highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(-hs * 0.35, -hs * 0.6, hs * 0.25, hs * 0.7);
+      ctx.restore();
+    }
+
+    // Beer mugs — celebratory lucky tankards
+    for (let i = 0; i < Math.floor(w / 110); i++) {
+      const mx = 65 + i * 105 + Math.sin(i * 3.5) * 8;
+      const my = h * 0.62 + Math.cos(i * 2.3) * h * 0.06;
+      const ms = 7 + (i % 2) * 2;
+      ctx.save();
+      ctx.translate(mx, my);
+      // Mug body
+      roundRect(ctx, -ms * 0.5, -ms * 0.5, ms, ms * 1.1, 1.5);
+      const mugGrad = ctx.createLinearGradient(-ms * 0.5, 0, ms * 0.5, 0);
+      mugGrad.addColorStop(0, 'rgba(180,140,50,0.22)');
+      mugGrad.addColorStop(0.5, 'rgba(220,180,70,0.28)');
+      mugGrad.addColorStop(1, 'rgba(160,120,40,0.2)');
+      ctx.fillStyle = mugGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(200,160,50,0.3)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Handle
+      ctx.strokeStyle = 'rgba(200,160,50,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(ms * 0.65, 0, ms * 0.35, -1.2, 1.2);
+      ctx.stroke();
+      // Foam on top
+      ctx.fillStyle = 'rgba(255,250,220,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(0, -ms * 0.5, ms * 0.55, ms * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Lucky boots — scattered wee boots
+    for (let i = 0; i < Math.floor(w / 130); i++) {
+      const bx = 45 + i * 125;
+      const by = h * 0.8 + Math.cos(i * 1.7) * h * 0.04;
+      const bs = 7 + (i % 2);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(i % 2 === 0 ? 1 : -1, 1);
+      // Boot shaft
+      ctx.fillStyle = `rgba(120,70,30,${0.25 + (i % 2) * 0.05})`;
+      ctx.beginPath();
+      ctx.moveTo(-bs * 0.3, -bs * 0.8);
+      ctx.lineTo(bs * 0.15, -bs * 0.8);
+      ctx.lineTo(bs * 0.15, bs * 0.15);
+      ctx.lineTo(-bs * 0.3, bs * 0.15);
+      ctx.closePath();
+      ctx.fill();
+      // Boot toe
+      ctx.beginPath();
+      ctx.moveTo(-bs * 0.3, bs * 0.15);
+      ctx.lineTo(bs * 0.6, bs * 0.15);
+      ctx.quadraticCurveTo(bs * 0.7, bs * 0.4, bs * 0.5, bs * 0.45);
+      ctx.lineTo(-bs * 0.3, bs * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      // Boot top cuff
+      ctx.fillStyle = 'rgba(160,100,40,0.2)';
+      ctx.fillRect(-bs * 0.35, -bs * 0.85, bs * 0.55, bs * 0.15);
+      // Buckle
+      ctx.strokeStyle = 'rgba(220,190,60,0.3)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-bs * 0.1, -bs * 0.2, bs * 0.22, bs * 0.2);
+      ctx.restore();
     }
 
     // Golden coins scattered
@@ -2402,20 +2471,24 @@ const rowBgDrawers = {
     }
   },
 
-  /* ── Fractal Engine: Infinite recursive cookie cosmos ── */
+  /* ── Fractal Engine: Mathematical fractal cosmos ── */
   'Fractal Engine'(ctx, w, h) {
-    // Rich warm-dark background with gradient
+    // Deep dark background with warm mathematical tones
     const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#1e1408');
-    bg.addColorStop(0.5, '#241a0e');
-    bg.addColorStop(1, '#1e1408');
+    bg.addColorStop(0, '#140e06');
+    bg.addColorStop(0.3, '#1e1408');
+    bg.addColorStop(0.7, '#1a1010');
+    bg.addColorStop(1, '#140e06');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Recursive grid pattern (like infinite mirrors)
-    ctx.strokeStyle = 'rgba(200,160,60,0.06)';
-    ctx.lineWidth = 0.5;
-    for (let size = 60; size >= 10; size /= 2) {
+    // Graph paper grid — fading recursive subdivisions
+    for (let level = 0; level < 4; level++) {
+      const size = 60 / Math.pow(2, level);
+      const alpha = 0.08 - level * 0.018;
+      if (alpha <= 0) break;
+      ctx.strokeStyle = `rgba(200,160,60,${alpha})`;
+      ctx.lineWidth = level === 0 ? 0.8 : 0.4;
       for (let x = 0; x < w; x += size) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
       }
@@ -2424,106 +2497,133 @@ const rowBgDrawers = {
       }
     }
 
-    // Fractal cookie spirals — brighter with glow
-    function drawFractalCookie(x, y, r, depth) {
-      if (depth <= 0 || r < 2) return;
-
-      // Glow behind each cookie
-      if (r > 5) {
-        const glow = ctx.createRadialGradient(x, y, r * 0.5, x, y, r * 1.5);
-        glow.addColorStop(0, `rgba(255,200,60,${0.04 + depth * 0.02})`);
-        glow.addColorStop(1, 'rgba(255,200,60,0)');
-        circle(ctx, x, y, r * 1.5);
-        ctx.fillStyle = glow;
+    // Sierpinski triangles
+    function drawSierpinski(x, y, size, depth) {
+      if (depth <= 0 || size < 3) {
+        ctx.beginPath();
+        ctx.moveTo(x, y - size * 0.5);
+        ctx.lineTo(x - size * 0.5, y + size * 0.4);
+        ctx.lineTo(x + size * 0.5, y + size * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255,200,60,${0.06 + depth * 0.02})`;
         ctx.fill();
+        return;
       }
+      const half = size * 0.5;
+      drawSierpinski(x, y - half * 0.3, half, depth - 1);
+      drawSierpinski(x - half * 0.5, y + half * 0.3, half, depth - 1);
+      drawSierpinski(x + half * 0.5, y + half * 0.3, half, depth - 1);
+    }
+    const sierpCount = Math.max(1, Math.floor(w / 190));
+    for (let i = 0; i < sierpCount; i++) {
+      drawSierpinski(80 + i * 180, h * 0.38, 32, 3);
+    }
 
-      circle(ctx, x, y, r);
-      const grad = ctx.createRadialGradient(x - r * 0.2, y - r * 0.2, 0, x, y, r);
-      grad.addColorStop(0, `rgba(255,210,90,${0.15 + depth * 0.06})`);
-      grad.addColorStop(1, `rgba(200,150,50,${0.1 + depth * 0.05})`);
-      ctx.fillStyle = grad;
+    // Golden spiral (Fibonacci)
+    function drawGoldenSpiral(cx, cy, maxR, turns) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,210,80,0.15)';
+      ctx.lineWidth = 1.2;
+      const phi = 1.618033988749;
+      for (let t = 0; t < turns * Math.PI * 2; t += 0.05) {
+        const r = maxR * Math.pow(phi, t / (Math.PI * 2)) / Math.pow(phi, turns);
+        const px = cx + r * Math.cos(t);
+        const py = cy + r * Math.sin(t);
+        if (t === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+    const spiralCount = Math.max(1, Math.floor(w / 240));
+    for (let i = 0; i < spiralCount; i++) {
+      drawGoldenSpiral(110 + i * 230, h * 0.5, 28, 3);
+      // Glow behind spiral center
+      const glow = ctx.createRadialGradient(110 + i * 230, h * 0.5, 0, 110 + i * 230, h * 0.5, 30);
+      glow.addColorStop(0, 'rgba(255,200,60,0.06)');
+      glow.addColorStop(1, 'rgba(255,200,60,0)');
+      circle(ctx, 110 + i * 230, h * 0.5, 30);
+      ctx.fillStyle = glow;
       ctx.fill();
-      ctx.strokeStyle = `rgba(180,130,40,${0.18 + depth * 0.05})`;
+    }
+
+    // Koch snowflake segments along the bottom
+    function drawKochLine(x1, y1, x2, y2, depth) {
+      if (depth <= 0) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        return;
+      }
+      const dx = x2 - x1, dy = y2 - y1;
+      const ax = x1 + dx / 3, ay = y1 + dy / 3;
+      const bx = x1 + dx * 2 / 3, by = y1 + dy * 2 / 3;
+      const px = (ax + bx) / 2 - (by - ay) * 0.866;
+      const py = (ay + by) / 2 + (bx - ax) * 0.866;
+      drawKochLine(x1, y1, ax, ay, depth - 1);
+      drawKochLine(ax, ay, px, py, depth - 1);
+      drawKochLine(px, py, bx, by, depth - 1);
+      drawKochLine(bx, by, x2, y2, depth - 1);
+    }
+    ctx.strokeStyle = 'rgba(200,170,80,0.12)';
+    ctx.lineWidth = 0.6;
+    const kochSegW = Math.min(160, w / 2.5);
+    const kochCount = Math.max(1, Math.floor(w / kochSegW));
+    for (let i = 0; i < kochCount; i++) {
+      drawKochLine(i * kochSegW + 10, h * 0.82, (i + 1) * kochSegW - 10, h * 0.82, 3);
+    }
+
+    // Recursive square fractals — squares within squares, rotated
+    function drawRecursiveSquare(x, y, size, depth, rot) {
+      if (depth <= 0 || size < 2) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.strokeStyle = `rgba(220,180,60,${0.06 + depth * 0.03})`;
       ctx.lineWidth = 0.6;
-      ctx.stroke();
-
-      // Chocolate chips on larger cookies
-      if (r > 5) {
-        ctx.fillStyle = `rgba(90,56,24,${0.15 + depth * 0.05})`;
-        for (let c = 0; c < 3; c++) {
-          const angle = (c * Math.PI * 2) / 3 + 0.5;
-          circle(ctx, x + r * 0.5 * Math.cos(angle), y + r * 0.5 * Math.sin(angle), r * 0.12);
-          ctx.fill();
-        }
-      }
-
+      ctx.strokeRect(-size / 2, -size / 2, size, size);
+      ctx.restore();
+      // 4 smaller squares at corners, each rotated
       if (depth > 1) {
-        const subCount = depth > 2 ? 4 : 3;
-        for (let i = 0; i < subCount; i++) {
-          const angle = (i * Math.PI * 2) / subCount - Math.PI / 2;
-          drawFractalCookie(
-            x + r * 0.85 * Math.cos(angle),
-            y + r * 0.85 * Math.sin(angle),
-            r * 0.38, depth - 1
-          );
-        }
+        const sub = size * 0.42;
+        const off = size * 0.38;
+        const nextRot = rot + Math.PI / 6;
+        drawRecursiveSquare(x - off, y - off, sub, depth - 1, nextRot);
+        drawRecursiveSquare(x + off, y - off, sub, depth - 1, nextRot);
+        drawRecursiveSquare(x - off, y + off, sub, depth - 1, nextRot);
+        drawRecursiveSquare(x + off, y + off, sub, depth - 1, nextRot);
       }
     }
-
-    // Draw multiple fractal clusters
-    const fractalCount = Math.max(2, Math.floor(w / 85));
-    for (let i = 0; i < fractalCount; i++) {
-      drawFractalCookie(45 + i * 80, h * 0.45, 16, 3);
+    const sqCount = Math.max(1, Math.floor(w / 155));
+    for (let i = 0; i < sqCount; i++) {
+      drawRecursiveSquare(75 + i * 150, h * 0.55, 24, 3, Math.PI / 8 + i * 0.2);
     }
 
-    // Connecting energy lines between clusters
-    ctx.strokeStyle = 'rgba(255,200,60,0.08)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < fractalCount - 1; i++) {
-      const x1 = 45 + i * 80;
-      const x2 = 45 + (i + 1) * 80;
-      ctx.beginPath();
-      ctx.moveTo(x1 + 16, h * 0.45);
-      ctx.bezierCurveTo(
-        (x1 + x2) * 0.5, h * 0.25,
-        (x1 + x2) * 0.5, h * 0.65,
-        x2 - 16, h * 0.45
-      );
-      ctx.stroke();
+    // Mathematical symbols — larger, more visible, varied fonts
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const mathSymbols = [
+      { s: '∞', size: 14 }, { s: 'π', size: 12 }, { s: '∑', size: 13 },
+      { s: '∫', size: 14 }, { s: 'φ', size: 12 }, { s: '√', size: 12 },
+      { s: 'Δ', size: 11 }, { s: 'Ω', size: 11 }, { s: 'λ', size: 12 },
+      { s: '∂', size: 12 }
+    ];
+    for (let i = 0; i < Math.min(mathSymbols.length, Math.floor(w / 65)); i++) {
+      const sym = mathSymbols[i % mathSymbols.length];
+      ctx.font = `${sym.size}px serif`;
+      ctx.fillStyle = `rgba(220,190,100,${0.1 + Math.sin(i * 1.3) * 0.03})`;
+      const sx = 30 + i * 62 + Math.sin(i * 2.1) * 8;
+      const sy = h * 0.18 + Math.cos(i * 1.7) * h * 0.08;
+      ctx.fillText(sym.s, sx, sy);
     }
 
-    // Infinity symbols — brighter
-    ctx.strokeStyle = 'rgba(255,215,0,0.18)';
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < Math.floor(w / 90); i++) {
-      const ix = 45 + i * 85;
-      const iy = h * 0.85;
-      ctx.beginPath();
-      ctx.moveTo(ix - 6, iy);
-      ctx.bezierCurveTo(ix - 6, iy - 5, ix, iy - 5, ix, iy);
-      ctx.bezierCurveTo(ix, iy + 5, ix + 6, iy + 5, ix + 6, iy);
-      ctx.bezierCurveTo(ix + 6, iy - 5, ix, iy - 5, ix, iy);
-      ctx.bezierCurveTo(ix, iy + 5, ix - 6, iy + 5, ix - 6, iy);
-      ctx.stroke();
-    }
-
-    // Floating golden particles
-    ctx.fillStyle = 'rgba(255,210,60,0.12)';
-    for (let i = 0; i < Math.floor(w / 10); i++) {
+    // Floating golden dust
+    ctx.fillStyle = 'rgba(255,210,60,0.1)';
+    for (let i = 0; i < Math.floor(w / 12); i++) {
       const px = Math.sin(i * 4.7) * w * 0.5 + w * 0.5;
       const py = Math.cos(i * 3.1) * h * 0.5 + h * 0.5;
-      circle(ctx, px, py, 0.7 + Math.sin(i * 2.3) * 0.3);
+      circle(ctx, px, py, 0.6 + Math.sin(i * 2.3) * 0.3);
       ctx.fill();
-    }
-
-    // Mathematical symbols floating
-    ctx.fillStyle = 'rgba(200,170,80,0.1)';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'center';
-    const symbols = ['\u221E', '\u03C0', '\u2211', '\u221A', '\u0278', '\u03B5'];
-    for (let i = 0; i < Math.min(symbols.length, Math.floor(w / 65)); i++) {
-      ctx.fillText(symbols[i], 30 + i * 60, h * 0.18 + Math.sin(i * 1.8) * h * 0.06);
     }
   },
 };

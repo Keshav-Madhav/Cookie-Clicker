@@ -54,6 +54,7 @@ export class VisualEffects {
       <div id="viewport-wrap">
         <!-- news broadcast bar -->
         <div id="news-broadcast">
+          <canvas id="news-bg-canvas"></canvas>
           <div id="news-tv">
             <div id="news-tv-screen">
               <div id="news-anchor">
@@ -103,6 +104,7 @@ export class VisualEffects {
     this._resize();
     window.addEventListener("resize", () => { this._resize(); clearRowBgCache(); });
 
+    this._drawNewsBgCanvas();
     this._seedRain(VISUAL.rain.seedCount);
     this._seedShimmers(VISUAL.shimmers.seedCount);
     this._startAnimLoop();
@@ -112,10 +114,93 @@ export class VisualEffects {
     this._scheduleGoldenCookie();
     this._setupGoldenCookieClick();
 
+    // DEBUG: unlock all bakers for visual testing (remove later)
+    this.game.buildings.forEach(b => { if (b.count === 0) b.count = 1; });
+
     // initial render
     this.updateBuildingShowcase();
     this.updateMilk();
     this.updateCPS();
+  }
+
+  /* ───────── newspaper texture canvas for news bar ───────── */
+  _drawNewsBgCanvas() {
+    const cvs = document.getElementById('news-bg-canvas');
+    const bar = document.getElementById('news-broadcast');
+    if (!cvs || !bar) return;
+    const w = bar.clientWidth;
+    const h = bar.clientHeight;
+    cvs.width = w;
+    cvs.height = h;
+    const ctx = cvs.getContext('2d');
+
+    // Warm parchment base
+    const base = ctx.createLinearGradient(0, 0, w, 0);
+    base.addColorStop(0, 'rgba(45,30,15,0.6)');
+    base.addColorStop(0.3, 'rgba(60,42,22,0.5)');
+    base.addColorStop(0.7, 'rgba(55,38,18,0.5)');
+    base.addColorStop(1, 'rgba(45,30,15,0.6)');
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, w, h);
+
+    // Newsprint grain — tiny random noise dots
+    for (let i = 0; i < w * h * 0.03; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const bright = Math.random();
+      ctx.fillStyle = `rgba(${bright > 0.5 ? 180 : 100},${bright > 0.5 ? 150 : 80},${bright > 0.5 ? 100 : 50},${0.03 + bright * 0.03})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+
+    // Faint column rules (newspaper column dividers)
+    ctx.strokeStyle = 'rgba(165,120,71,0.08)';
+    ctx.lineWidth = 0.5;
+    const cols = Math.floor(w / 80);
+    for (let i = 1; i < cols; i++) {
+      const x = i * (w / cols);
+      ctx.beginPath();
+      ctx.moveTo(x, 4);
+      ctx.lineTo(x, h - 4);
+      ctx.stroke();
+    }
+
+    // Faint horizontal text lines — simulating newspaper text rows
+    ctx.fillStyle = 'rgba(140,110,70,0.04)';
+    for (let y = 8; y < h - 5; y += 5) {
+      // Each "line" is a series of small blocks like words
+      let x = 6;
+      while (x < w - 20) {
+        const wordW = 8 + Math.random() * 25;
+        const gap = 3 + Math.random() * 5;
+        ctx.fillRect(x, y, wordW, 2);
+        x += wordW + gap;
+        // Occasional column break
+        if (Math.random() < 0.08) x += 30;
+      }
+    }
+
+    // Subtle headline bar across the top
+    ctx.fillStyle = 'rgba(165,120,71,0.06)';
+    ctx.fillRect(0, 0, w, 3);
+
+    // Small cookie watermarks scattered faintly
+    ctx.font = '14px serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(165,120,71,0.04)';
+    for (let i = 0; i < Math.floor(w / 120); i++) {
+      ctx.fillText('🍪', 60 + i * 115 + Math.sin(i * 2.7) * 15, h * 0.5 + Math.cos(i * 1.9) * h * 0.15);
+    }
+
+    // Ink smudge effect — faint dark patches
+    for (let i = 0; i < 3; i++) {
+      const sx = Math.random() * w;
+      const sy = Math.random() * h;
+      const smudge = ctx.createRadialGradient(sx, sy, 0, sx, sy, 15 + Math.random() * 20);
+      smudge.addColorStop(0, 'rgba(30,20,10,0.04)');
+      smudge.addColorStop(1, 'rgba(30,20,10,0)');
+      ctx.fillStyle = smudge;
+      ctx.fillRect(sx - 30, sy - 30, 60, 60);
+    }
   }
 
   /* ───────────────────────── canvas helpers ───────────────────── */
@@ -657,7 +742,7 @@ export class VisualEffects {
     if (emptyMsg) emptyMsg.remove();
 
     const defaultIconSize = 36;
-    const largerIcons = { 'Portal': 50, 'Alchemy Lab': 44, 'Time Machine': 44, 'Antimatter Condenser': 44, 'Shipment': 42, 'Prism': 46 };
+    const largerIcons = { 'Portal': 50, 'Alchemy Lab': 44, 'Time Machine': 44, 'Antimatter Condenser': 44, 'Shipment': 42, 'Prism': 46, 'Chancemaker': 44, 'Fractal Engine': 52 };
     const rowH = 80;
 
     // Loop over ALL buildings (not just owned ones)

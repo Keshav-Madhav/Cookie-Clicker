@@ -173,9 +173,9 @@ html {
 
 @keyframes cookieIdle {
   0%, 100% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.02) rotate(1deg); }
-  50% { transform: scale(1.04) rotate(0deg); }
-  75% { transform: scale(1.02) rotate(-1deg); }
+  25% { transform: scale(1.01) rotate(0.5deg); }
+  50% { transform: scale(1.02) rotate(0deg); }
+  75% { transform: scale(1.01) rotate(-0.5deg); }
 }
 
 /* Glow ring on hover */
@@ -190,10 +190,10 @@ html {
 
 #cookie-button:hover {
   animation: none;
-  transform: scale(1.10);
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.6))
-          drop-shadow(0 0 50px rgba(248, 196, 113, 0.35))
-          brightness(1.1);
+  transform: scale(1.05);
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.5))
+          drop-shadow(0 0 35px rgba(248, 196, 113, 0.25))
+          brightness(1.05);
 }
 
 #cookie-button:hover::after {
@@ -203,9 +203,9 @@ html {
 
 #cookie-button:active {
   animation: none;
-  transform: scale(0.92);
+  transform: scale(0.96);
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.4))
-          brightness(0.95);
+          brightness(0.97);
 }
 
 /* Click ripple - golden shockwave */
@@ -248,14 +248,13 @@ html {
 /* Cookie click bounce */
 @keyframes cookieClickBounce {
   0% { transform: scale(1); }
-  15% { transform: scale(0.88); }
-  40% { transform: scale(1.12); }
-  65% { transform: scale(0.97); }
+  20% { transform: scale(0.95); }
+  50% { transform: scale(1.03); }
   100% { transform: scale(1); }
 }
 
 #cookie-button.clicking {
-  animation: cookieClickBounce 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) !important;
+  animation: cookieClickBounce 0.25s ease-out !important;
 }
 
 /* Frenzy Indicator */
@@ -298,6 +297,7 @@ html {
   flex-direction: column;
   gap: 6px;
   margin-top: 4px;
+  margin-bottom: 24px;
   min-height: 0;
   scroll-behavior: smooth;
 }
@@ -633,24 +633,51 @@ html {
   z-index: 5;
   display: flex;
   align-items: stretch;
-  background: linear-gradient(to right, rgba(30,18,8,0.95), rgba(55,33,18,0.9), rgba(30,18,8,0.95));
-  border-bottom: 2px solid rgba(200,144,80,0.4);
+  background: linear-gradient(to right, rgba(30,18,8,0.97), rgba(55,33,18,0.93), rgba(30,18,8,0.97));
+  border-bottom: 2px solid rgba(200,144,80,0.45);
+  border-top: 1px solid rgba(200,144,80,0.15);
   min-height: 82px;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,220,160,0.06);
+}
+
+/* Decorative top accent line — animated shimmer */
+#news-broadcast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(200,144,80,0.5) 20%, rgba(248,196,113,0.7) 50%, rgba(200,144,80,0.5) 80%, transparent 100%);
+  z-index: 6;
+}
+
+/* Newspaper texture canvas — behind all news content */
+#news-bg-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.9;
 }
 
 /* ─ TV monitor with anchor ─ */
 #news-tv {
   position: relative;
-  width: 88px;
+  z-index: 1;
+  width: 108px;
   min-height: 78px;
   flex-shrink: 0;
-  background: #2a2a3e;
+  background: linear-gradient(180deg, #2a2a3e 0%, #22223a 100%);
   border-right: 2px solid rgba(200,144,80,0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 5px;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.2);
 }
 
 /* CRT screen — bulged with curved edges */
@@ -826,20 +853,38 @@ html {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 4px 10px;
+  padding: 6px 12px;
   min-width: 0;
   position: relative;
+  z-index: 1;
 }
 
 #news-label {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #e84a4a;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   line-height: 1;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   text-shadow: 0 0 6px rgba(232,74,74,0.3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#news-label::before {
+  content: '📡';
+  font-size: 0.7rem;
+  filter: saturate(0.6) brightness(1.2);
+}
+
+#news-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(232,74,74,0.4), transparent);
+  margin-left: 4px;
 }
 
 #news-text-wrap {
@@ -867,12 +912,6 @@ html {
   height: 2px;
   background: linear-gradient(90deg, transparent, #e84a4a, #ff6b3d, #e84a4a, transparent);
   opacity: 0.6;
-  animation: tickerStrip 3s linear infinite;
-}
-
-@keyframes tickerStrip {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
 }
 
 /* Rare news styling — golden glow + sparkle */
@@ -893,6 +932,7 @@ html {
 /* Mini-game play button — CSS game controller */
 #news-play {
   position: relative;
+  z-index: 1;
   width: 44px;
   height: 28px;
   flex-shrink: 0;
@@ -3630,7 +3670,7 @@ html {
   }
 
   #news-tv {
-    width: 72px;
+    width: 88px;
     min-height: 64px;
   }
 
