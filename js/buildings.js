@@ -1,6 +1,6 @@
 import { buildings } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
-import { getBuildingIcon } from "./buildingIcons.js";
+import { getBuildingIcon, getRowBackground } from "./buildingIcons.js";
 
 export class Building {
   constructor(index, game) {
@@ -222,10 +222,17 @@ export class Building {
 
     const panel = document.createElement('div');
     panel.className = 'building-info-panel';
+    panel.dataset.buildingType = this.name.toLowerCase().replace(/\s+/g, '-');
 
-    // Header
+    // Header with canvas banner background
     const header = document.createElement('div');
     header.className = 'building-info-header';
+
+    // Canvas banner behind the header
+    const bannerWrap = document.createElement('div');
+    bannerWrap.className = 'building-info-banner';
+    header.appendChild(bannerWrap);
+
     const titleText = document.createElement('h2');
     titleText.textContent = this.name;
     header.appendChild(titleText);
@@ -234,6 +241,7 @@ export class Building {
     closeBtn.textContent = '✕';
     header.appendChild(closeBtn);
     panel.appendChild(header);
+
 
     // Body
     const body = document.createElement('div');
@@ -368,6 +376,22 @@ export class Building {
     panel.appendChild(body);
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
+
+    // Draw canvas elements after DOM append (need real dimensions)
+    requestAnimationFrame(() => {
+      // Header banner — themed scene behind the title
+      const bannerW = header.clientWidth;
+      const bannerH = header.clientHeight;
+      if (bannerW > 0 && bannerH > 0) {
+        const bannerCanvas = getRowBackground(this.name, bannerW, bannerH);
+        bannerCanvas.style.position = 'absolute';
+        bannerCanvas.style.inset = '0';
+        bannerCanvas.style.width = '100%';
+        bannerCanvas.style.height = '100%';
+        bannerWrap.appendChild(bannerCanvas);
+      }
+
+    });
 
     // Close handlers
     const close = () => overlay.remove();
