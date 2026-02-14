@@ -12,28 +12,38 @@
       <button id="menu-btn" title="Stats & Achievements">&#9881;</button>
       <!-- Left: Cookie Clicker + Info -->
       <div id="click-area">
-        <h1>Cookies: <span id="cookie-count">0</span></h1>
-        <h3>per second: <span id="cps-count">0</span></h3>
-        <h3>per click: <span id="cpc-count">1</span></h3>
-
-        <div id="frenzy-indicator"></div>
-
-        <div id="cookie-container">
-          <canvas id="cookie-particles"></canvas>
-          <div id="cookie-button"></div>
+        <!-- Milk layer (rises from bottom, behind all content) -->
+        <div id="milk-layer">
+          <svg id="milk-wave" viewBox="0 0 1200 18" preserveAspectRatio="none">
+            <path d="M0,9 C25,9 50,2 75,2 C100,2 125,9 150,9 C175,9 200,16 225,16 C250,16 275,9 300,9 C325,9 350,2 375,2 C400,2 425,9 450,9 C475,9 500,16 525,16 C550,16 575,9 600,9 C625,9 650,2 675,2 C700,2 725,9 750,9 C775,9 800,16 825,16 C850,16 875,9 900,9 C925,9 950,2 975,2 C1000,2 1025,9 1050,9 C1075,9 1100,16 1125,16 C1150,16 1175,9 1200,9 L1200,18 L0,18 Z"/>
+          </svg>
         </div>
+        <div id="milk-label"></div>
 
-        <div id="left-panel-info">
-          <!-- Multiplier bars -->
-          <div class="left-section">
-            <h4>⚡ Power</h4>
-            <div id="left-multipliers"></div>
+        <div id="click-area-content">
+          <h1>Cookies: <span id="cookie-count">0</span></h1>
+          <h3>per second: <span id="cps-count">0</span></h3>
+          <h3>per click: <span id="cpc-count">1</span></h3>
+
+          <div id="frenzy-indicator"></div>
+
+          <div id="cookie-container">
+            <canvas id="cookie-particles"></canvas>
+            <div id="cookie-button"></div>
           </div>
-          <!-- Prestige -->
-          <div class="left-section">
-            <h4>✨ Prestige</h4>
-            <div id="left-prestige"></div>
-            <button id="prestige-btn" disabled>Ascend (need more cookies)</button>
+
+          <div id="left-panel-info">
+            <!-- Multiplier bars -->
+            <div class="left-section">
+              <h4>⚡ Power</h4>
+              <div id="left-multipliers"></div>
+            </div>
+            <!-- Prestige -->
+            <div class="left-section">
+              <h4>✨ Prestige</h4>
+              <div id="left-prestige"></div>
+              <button id="prestige-btn" disabled>Ascend (need more cookies)</button>
+            </div>
           </div>
         </div>
       </div>

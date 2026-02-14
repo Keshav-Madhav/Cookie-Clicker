@@ -1,6 +1,6 @@
 import { formatNumberInWords } from "./utils.js";
 import { MiniGames } from "./miniGames.js";
-import { getBuildingIcon } from "./buildingIcons.js";
+import { getBuildingIcon, getRowBackground, clearRowBgCache } from "./buildingIcons.js";
 import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN } from "./config.js";
 
 /**
@@ -87,14 +87,6 @@ export class VisualEffects {
         <!-- main viewport canvas (rain + shimmers) -->
         <canvas id="viewport-canvas"></canvas>
 
-        <!-- milk level overlay -->
-        <div id="milk-layer">
-          <svg id="milk-wave" viewBox="0 0 1200 18" preserveAspectRatio="none">
-            <path d="M0,9 C25,9 50,2 75,2 C100,2 125,9 150,9 C175,9 200,16 225,16 C250,16 275,9 300,9 C325,9 350,2 375,2 C400,2 425,9 450,9 C475,9 500,16 525,16 C550,16 575,9 600,9 C625,9 650,2 675,2 C700,2 725,9 750,9 C775,9 800,16 825,16 C850,16 875,9 900,9 C925,9 950,2 975,2 C1000,2 1025,9 1050,9 C1075,9 1100,16 1125,16 C1150,16 1175,9 1200,9 L1200,18 L0,18 Z"/>
-          </svg>
-        </div>
-        <div id="milk-label"></div>
-
         <!-- golden cookie (hidden initially) -->
         <div id="golden-cookie" class="hidden">🍪</div>
 
@@ -112,7 +104,7 @@ export class VisualEffects {
     this.canvas = document.getElementById("viewport-canvas");
     this.ctx = this.canvas.getContext("2d");
     this._resize();
-    window.addEventListener("resize", () => this._resize());
+    window.addEventListener("resize", () => { this._resize(); clearRowBgCache(); });
 
     this._seedRain(VISUAL.rain.seedCount);
     this._seedShimmers(VISUAL.shimmers.seedCount);
@@ -627,37 +619,176 @@ export class VisualEffects {
     setTimeout(() => el.remove(), GOLDEN_COOKIE.rewardTextMs);
   }
 
-  /* ───────────────────────── building showcase ──────────────── */
+  /* ───────────────────────── building showcase (baker rows) ── */
+
+  /** How many pixels wide a row is (for icon layout math) */
+  _getRowWidth() {
+    const container = document.getElementById("building-showcase");
+    return container ? container.clientWidth : 400;
+  }
+
   updateBuildingShowcase() {
     const container = document.getElementById("building-showcase");
     if (!container) return;
-    container.innerHTML = "";
 
-    this.game.buildings.forEach((b, i) => {
-      if (b.count <= 0) return;
-      const el = document.createElement("div");
-      el.className = "showcase-building";
+    const ownedBuildings = this.game.buildings.filter(b => b.count > 0);
 
-      const iconCanvas = getBuildingIcon(b.name, 28);
-      iconCanvas.className = "showcase-icon";
-      el.appendChild(iconCanvas);
+    if (ownedBuildings.length === 0) {
+      if (!container.querySelector('.showcase-empty')) {
+        container.innerHTML = `<div class="showcase-empty">Purchase buildings to see them here!</div>`;
+      }
+      return;
+    }
 
-      const countSpan = document.createElement("span");
-      countSpan.className = "showcase-count";
-      countSpan.textContent = b.count;
-      el.appendChild(countSpan);
-
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "showcase-name";
-      nameSpan.textContent = b.name;
-      el.appendChild(nameSpan);
-
-      el.title = `${b.name}: ${b.count} owned\nProducing ${formatNumberInWords(b.count * b.cps)} CPS`;
-      container.appendChild(el);
+    // Build a map of current row states to diff against
+    const existingRows = {};
+    container.querySelectorAll('.baker-row').forEach(row => {
+      existingRows[row.dataset.type] = row;
     });
 
-    if (container.children.length === 0) {
-      container.innerHTML = `<div class="showcase-empty">Purchase buildings to see them here!</div>`;
+    // Remove the empty message if present
+    const emptyMsg = container.querySelector('.showcase-empty');
+    if (emptyMsg) emptyMsg.remove();
+
+    // Track which types are still present
+    const activeTypes = new Set();
+    const defaultIconSize = 36;
+    const largerIcons = { 'Portal': 50, 'Alchemy Lab': 44, 'Time Machine': 44, 'Antimatter Condenser': 44, 'Shipment': 42, 'Prism': 46 };
+    const rowH = 80;
+
+    ownedBuildings.forEach((b) => {
+      activeTypes.add(b.name);
+      const iconCount = Math.min(20, Math.max(1, Math.floor(b.count / 5)));
+
+      let row = existingRows[b.name];
+      if (row) {
+        // Update existing row — only if count changed
+        const prevCount = parseInt(row.dataset.count, 10);
+        if (prevCount === b.count) return;
+        row.dataset.count = b.count;
+
+        // Update count badge
+        const countEl = row.querySelector('.baker-row-count');
+        if (countEl) countEl.textContent = `×${b.count}`;
+
+        // Rebuild canvas bg if row resized
+        this._ensureRowBg(row, b.name);
+
+        // Update icons
+        const iconsWrap = row.querySelector('.baker-row-icons');
+        if (iconsWrap) {
+          const currentIcons = iconsWrap.children.length;
+          if (currentIcons !== iconCount) {
+            const bIconSize = largerIcons[b.name] || defaultIconSize;
+            this._rebuildRowIcons(iconsWrap, b.name, iconCount, bIconSize, rowH);
+          }
+        }
+
+        // Update tooltip
+        row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+      } else {
+        // Create new row
+        row = document.createElement('div');
+        row.className = 'baker-row';
+        row.dataset.type = b.name;
+        row.dataset.count = b.count;
+        row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+
+        // Canvas background (drawn in quirky icon style)
+        const bgWrap = document.createElement('div');
+        bgWrap.className = 'baker-row-bg';
+        row.appendChild(bgWrap);
+
+        // Label
+        const label = document.createElement('span');
+        label.className = 'baker-row-label';
+        label.textContent = b.name;
+        row.appendChild(label);
+
+        // Count badge
+        const countBadge = document.createElement('span');
+        countBadge.className = 'baker-row-count';
+        countBadge.textContent = `×${b.count}`;
+        row.appendChild(countBadge);
+
+        // Icons container
+        const iconsWrap = document.createElement('div');
+        iconsWrap.className = 'baker-row-icons';
+        const bIconSize = largerIcons[b.name] || defaultIconSize;
+        this._rebuildRowIcons(iconsWrap, b.name, iconCount, bIconSize, rowH);
+        row.appendChild(iconsWrap);
+
+        container.appendChild(row);
+        // Draw bg after append so dimensions are available
+        requestAnimationFrame(() => this._ensureRowBg(row, b.name));
+      }
+    });
+
+    // Remove rows for buildings that are no longer owned (shouldn't happen, but safe)
+    for (const type in existingRows) {
+      if (!activeTypes.has(type)) {
+        existingRows[type].remove();
+      }
+    }
+  }
+
+  /** Ensure the row has a canvas background matching its current dimensions */
+  _ensureRowBg(row, buildingName) {
+    const bgWrap = row.querySelector('.baker-row-bg');
+    if (!bgWrap) return;
+    const rw = row.clientWidth;
+    const rh = row.clientHeight;
+    if (rw <= 0 || rh <= 0) return;
+    // Check if we already have a canvas at this size
+    const existing = bgWrap.querySelector('canvas');
+    if (existing && parseInt(existing.style.width) === rw && parseInt(existing.style.height) === rh) return;
+    bgWrap.innerHTML = '';
+    const canvas = getRowBackground(buildingName, rw, rh);
+    canvas.style.position = 'absolute';
+    canvas.style.inset = '0';
+    bgWrap.appendChild(canvas);
+  }
+
+  /**
+   * Rebuild the icon canvases inside a row's icon container.
+   * Icons line up left-to-right with tight spacing. Once they fill the row,
+   * new ones squeeze in between existing ones with small random horizontal
+   * offsets, creating a crowded bustling feel — but all share the same Y.
+   */
+  _rebuildRowIcons(iconsWrap, buildingName, iconCount, iconSize, rowH) {
+    iconsWrap.innerHTML = '';
+    const rowW = this._getRowWidth();
+    const spacing = iconSize + 3; // tight initial gap
+    const y = (rowH - iconSize) / 2; // vertically centered, same for all
+    // How many fit neatly in a row
+    const neatFit = Math.max(1, Math.floor((rowW - 10) / spacing));
+    // Deterministic pseudo-random hash
+    const seed = buildingName.length * 137;
+
+    for (let i = 0; i < iconCount; i++) {
+      const icon = getBuildingIcon(buildingName, iconSize);
+      icon.className = 'baker-row-icon';
+
+      let x;
+      if (i < neatFit) {
+        // Neatly placed from left
+        x = 4 + i * spacing;
+      } else {
+        // Overflow: squeeze between existing icons, filling left to right
+        // Distribute across the row width with small random jitter
+        const slot = i - neatFit;
+        const overflowTotal = iconCount - neatFit;
+        // Base position: spread evenly across row width
+        const baseX = (slot / overflowTotal) * (rowW - iconSize);
+        // Small random horizontal jitter (deterministic)
+        const hash = ((seed + i * 997) % 65537) / 65537;
+        const jitter = (hash - 0.5) * iconSize * 0.6;
+        x = Math.max(0, Math.min(rowW - iconSize, baseX + jitter));
+      }
+
+      icon.style.left = x + 'px';
+      icon.style.top = y + 'px';
+      iconsWrap.appendChild(icon);
     }
   }
 

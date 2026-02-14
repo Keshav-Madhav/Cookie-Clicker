@@ -65,11 +65,22 @@ html {
   border-radius: 10px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   height: calc(100dvh - 16px);
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   border: 2px solid #a57847;
   position: relative;
+}
+
+/* Scrollable content wrapper inside click-area (above milk) */
+#click-area-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 #click-area::before {
@@ -292,16 +303,19 @@ html {
 }
 
 .left-section {
-  background: rgba(65, 40, 15, 0.4);
+  background: linear-gradient(135deg, rgba(90, 57, 33, 0.8), rgba(65, 40, 15, 0.7));
   border-radius: 8px;
   padding: 10px 12px;
-  border: 1px solid rgba(165, 120, 71, 0.25);
-  transition: background 0.3s ease, border-color 0.3s ease;
+  border: 1px solid rgba(165, 120, 71, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  backdrop-filter: blur(2px);
 }
 
 .left-section:hover {
-  background: rgba(65, 40, 15, 0.55);
-  border-color: rgba(165, 120, 71, 0.4);
+  background: linear-gradient(135deg, rgba(100, 65, 38, 0.88), rgba(75, 48, 20, 0.78));
+  border-color: rgba(165, 120, 71, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
 .left-section h4 {
@@ -551,7 +565,7 @@ html {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
 }
 
 /* ─── Milk layer ─── */
@@ -562,7 +576,7 @@ html {
   background: linear-gradient(to top, rgba(255,255,255,0.95), rgba(255,255,255,0.80));
   transition: height 2s ease, background 2s ease;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
   will-change: height;
 }
 
@@ -1512,7 +1526,7 @@ html {
 /* ─── CPS counter overlay ─── */
 #viewport-cps {
   position: absolute;
-  bottom: 70px;
+  top: 86px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -1538,65 +1552,95 @@ html {
   letter-spacing: 1px;
 }
 
-/* ─── Building Showcase (bottom bar) ─── */
+/* ─── Building Showcase (baker rows) ─── */
 #building-showcase {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  z-index: 5;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 10px;
-  background: linear-gradient(to top, rgba(44,26,12,0.9), rgba(44,26,12,0.4), transparent);
-  flex-wrap: wrap;
-  min-height: 58px;
-}
-
-.showcase-building {
+  top: 135px; /* below news bar + CPS counter */
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 4px 6px;
-  background: rgba(90,57,33,0.5);
-  border-radius: 6px;
-  border: 1px solid rgba(165,120,71,0.25);
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  cursor: default;
-  min-width: 52px;
+  justify-content: flex-start; /* top-down */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  will-change: transform;
+  -webkit-overflow-scrolling: touch;
+}
+#building-showcase::-webkit-scrollbar { display: none; }
+
+.baker-row {
+  position: relative;
+  width: 100%;
+  min-height: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-bottom: 2px solid rgba(165,120,71,0.3);
+  border-top: 1px solid rgba(255,255,255,0.04);
+  contain: layout style paint;
 }
 
-.showcase-building:hover {
-  transform: translateY(-3px);
-  background: rgba(90,57,33,0.8);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+/* Canvas-drawn themed background — slightly transparent for milk to show */
+.baker-row-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.82;
+  will-change: transform;
 }
-
-.showcase-icon {
+.baker-row-bg canvas {
   display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Row label on the left */
+.baker-row-label {
+  position: absolute;
+  left: 6px;
+  bottom: 3px;
+  z-index: 3;
+  font-size: 0.55rem;
+  color: rgba(213,196,161,0.75);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6);
+}
+
+/* Row count badge on the right */
+.baker-row-count {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  z-index: 3;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #f8c471;
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.3);
+  padding: 1px 6px;
   border-radius: 4px;
 }
 
-.showcase-count {
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: #f8c471;
-  line-height: 1;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+/* Icons container — left aligned with spacing */
+.baker-row-icons {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
 }
 
-.showcase-name {
-  font-size: 0.48rem;
-  color: #b8a080;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1;
-  max-width: 60px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Individual icon in the row — absolutely positioned for random scatter */
+.baker-row-icon {
+  position: absolute;
+  display: block;
+  border-radius: 3px;
+  contain: strict;
 }
 
 .showcase-empty {
@@ -1606,6 +1650,8 @@ html {
   padding: 8px 0;
   width: 100%;
   text-align: center;
+  position: absolute;
+  top: 40%;
 }
 
 /* ============================
@@ -2867,7 +2913,8 @@ html {
   .stat-grid {
     grid-template-columns: 1fr;
   }
-  .showcase-name { display: none; }
+  .baker-row-label { font-size: 0.45rem; }
+  .baker-row-icon { filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
 }
 
 /* ============================
@@ -3032,6 +3079,9 @@ html {
   /* ── BAKE TAB (click-area) ── */
   #click-area {
     padding: 14px 16px;
+  }
+
+  #click-area-content {
     align-items: center;
     justify-content: flex-start;
   }
@@ -3149,19 +3199,22 @@ html {
     font-size: 1.2rem;
   }
 
-  /* Building showcase */
-  .showcase-building {
-    min-width: 44px;
-    padding: 3px 4px;
+  /* Baker rows — mobile */
+  #building-showcase {
+    top: 115px; /* mobile: below smaller news bar + CPS */
   }
-
-  .showcase-icon { /* canvas icons scale via width/height attribute */ }
-  .showcase-count { font-size: 0.7rem; }
-  .showcase-name { display: none; }
+  .baker-row {
+    min-height: 60px;
+  }
+  .baker-row-icons {
+    min-height: 60px;
+  }
+  .baker-row-label { font-size: 0.42rem; }
+  .baker-row-count { font-size: 0.7rem; }
 
   /* CPS overlay */
   #viewport-cps {
-    bottom: 60px;
+    top: 72px;
   }
 
   #viewport-cps-value {
