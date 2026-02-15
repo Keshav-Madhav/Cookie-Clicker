@@ -137,19 +137,20 @@ export const ACHIEVEMENTS = {
 export const MINI_GAME_REWARDS = {
   /**
    * CPS bonus: reward += CPS × multiplier
-   *   jackpot / great / normal
+   *   legendary / epic / jackpot / great / normal
+   *   (legendary & epic for longer/harder minigames)
    */
-  cpsMultiplier:    { jackpot: 120, great: 60,  normal: 30 },
+  cpsMultiplier:    { legendary: 300, epic: 200, jackpot: 120, great: 60,  normal: 30 },
   /** Cookie percentage: reward += cookies × percentage */
-  cookiePercent:    { jackpot: 0.08, great: 0.05, normal: 0.03 },
+  cookiePercent:    { legendary: 0.15, epic: 0.12, jackpot: 0.08, great: 0.05, normal: 0.03 },
   /** Click dedication: reward += sqrt(totalClicks) × multiplier */
-  clickMultiplier:  { jackpot: 3, great: 2, normal: 1 },
+  clickMultiplier:  { legendary: 8, epic: 5, jackpot: 3, great: 2, normal: 1 },
   /** Empire bonus: reward += totalBuildings × multiplier */
-  empireMultiplier: { jackpot: 15, great: 8, normal: 4 },
+  empireMultiplier: { legendary: 40, epic: 25, jackpot: 15, great: 8, normal: 4 },
   /** Prestige bonus: reward += heavenlyChips × multiplier */
-  prestigeMultiplier: { jackpot: 5, great: 3, normal: 1 },
+  prestigeMultiplier: { legendary: 12, epic: 8, jackpot: 5, great: 3, normal: 1 },
   /** Minimum floor reward */
-  floor:            { jackpot: 500, great: 200, normal: 50 },
+  floor:            { legendary: 2000, epic: 1000, jackpot: 500, great: 200, normal: 50 },
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -223,6 +224,133 @@ export const MINI_GAME_SETTINGS = {
     resultDisplayMs: 2500,
     /** Time-up display time (ms) */
     timeUpDisplayMs: 2000,
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  //  NEW EXTENDED MINIGAMES (higher rewards for longer play)
+  // ═══════════════════════════════════════════════════════════
+
+  cookieCutter: {
+    /** Time limit (ms) */
+    durationMs: 25000,
+    /** Canvas size */
+    canvasSize: 280,
+    /** Line width for the shape outline (dashed) */
+    shapeLineWidth: 8,
+    /** User's drawing line width */
+    drawLineWidth: 4,
+    /** Points along path for scoring */
+    pathResolution: 100,
+    /** Max distance from line to still get points (pixels) - stricter scoring */
+    maxScoringDistance: 18,
+    /** Available shapes */
+    shapes: ['circle', 'star', 'heart', 'umbrella', 'triangle', 'diamond', 'hexagon', 'crescent', 'flower', 'cross'],
+    /** Score thresholds (0-100 accuracy percentage) - stricter */
+    legendaryThreshold: 85,
+    epicThreshold: 70,
+    greatThreshold: 55,
+    normalThreshold: 35,
+    /** Result display time (ms) */
+    resultDisplayMs: 3000,
+  },
+
+  cookieDefense: {
+    /** Planning phase duration (ms) - time to place towers */
+    planningPhaseMs: 60000,
+    /** Battle phase duration (ms) */
+    battlePhaseMs: 25000,
+    /** Starting lives (cookies) */
+    startingLives: 5,
+    /** Grid size for the level */
+    gridCols: 10,
+    gridRows: 7,
+    /** Enemy spawn interval during battle (ms) */
+    enemySpawnIntervalMs: 1200,
+    /** Total enemies to spawn */
+    totalEnemies: 18,
+    /** Enemy base speed (cells per second) */
+    enemyBaseSpeed: 1.0,
+    /** Tower types - distinct roles */
+    towers: [
+      { id: "cursor", emoji: "👆", name: "Cursor", damage: 1, range: 1.2, fireRate: 400, color: "#60a5fa", desc: "⚡ Rapid Fire", details: "DMG: 1 | RNG: Short | SPD: Very Fast" },
+      { id: "grandma", emoji: "👵", name: "Grandma", damage: 3, range: 2.0, fireRate: 1000, color: "#f472b6", desc: "💪 Heavy Hitter", details: "DMG: 3 | RNG: Medium | SPD: Slow" },
+      { id: "farm", emoji: "🌾", name: "Farm", damage: 1, range: 3.0, fireRate: 700, color: "#4ade80", desc: "🎯 Sniper", details: "DMG: 1 | RNG: Long | SPD: Medium" },
+    ],
+    /** Enemy types - buffed health and speed */
+    enemies: [
+      { emoji: "🐜", name: "Ant", health: 4, speed: 1.2 },
+      { emoji: "🐛", name: "Caterpillar", health: 8, speed: 0.7 },
+      { emoji: "🐁", name: "Mouse", health: 6, speed: 1.5 },
+      { emoji: "🦗", name: "Cricket", health: 3, speed: 2.0 },
+      { emoji: "🪲", name: "Beetle", health: 10, speed: 0.9 },
+    ],
+    /** Towers allowed - always 3 (one of each type) */
+    towersAllowed: 3,
+    /** Reward tiers based on lives remaining */
+    legendaryLives: 5,
+    epicLives: 4,
+    greatLives: 3,
+    normalLives: 1,
+    /** Result display time (ms) */
+    resultDisplayMs: 3000,
+  },
+
+  grandmasKitchen: {
+    /** Game duration (ms) */
+    durationMs: 18000,
+    /** Number of ovens */
+    ovenCount: 4,
+    /** Baking time range (ms) */
+    bakeTimeMin: 2000,
+    bakeTimeMax: 3500,
+    /** Perfect timing window (ms before/after optimal) */
+    perfectWindowMs: 350,
+    goodWindowMs: 700,
+    /** Time before cookie burns after optimal (ms) */
+    burnWindowMs: 900,
+    /** Points per cookie */
+    perfectPoints: 20,
+    goodPoints: 12,
+    okPoints: 5,
+    burntPoints: -8,
+    rawPoints: 0,
+    /** Score thresholds */
+    legendaryThreshold: 100,
+    epicThreshold: 70,
+    greatThreshold: 45,
+    normalThreshold: 20,
+    /** Spawn interval for new cookies (ms) */
+    cookieSpawnIntervalMin: 1200,
+    cookieSpawnIntervalMax: 2200,
+    /** Result display time (ms) */
+    resultDisplayMs: 2500,
+  },
+
+  mathBaker: {
+    /** Game duration (ms) */
+    durationMs: 18000,
+    /** Time per question (ms) */
+    questionTimeMs: 6000,
+    /** Points per correct answer */
+    correctPoints: 15,
+    /** Bonus points for fast answer (under 2 seconds) */
+    fastBonusPoints: 10,
+    /** Points lost for wrong answer */
+    wrongPenalty: 5,
+    /** Score thresholds */
+    legendaryThreshold: 80,
+    epicThreshold: 60,
+    greatThreshold: 40,
+    normalThreshold: 20,
+    /** Difficulty settings */
+    easyMaxNumber: 20,
+    mediumMaxNumber: 50,
+    hardMaxNumber: 100,
+    /** Questions ramp up difficulty over time */
+    easyQuestionsCount: 2,
+    mediumQuestionsCount: 2,
+    /** Result display time (ms) */
+    resultDisplayMs: 2500,
   },
 };
 
@@ -515,6 +643,15 @@ export const TUTORIAL = {
   onboardingDelayMs: 800,
   /** Anti-spam lock duration after advancing a step (ms) */
   advanceLockMs: 300,
+};
+
+// ─────────────────────────────────────────────────────────────
+//  MATH BAKER OPERATIONS  (used by the Math Baker mini-game)
+// ─────────────────────────────────────────────────────────────
+export const MATH_OPERATIONS = {
+  easy: ['+', '-'],
+  medium: ['+', '-', '×'],
+  hard: ['+', '-', '×', '÷'],
 };
 
 // ─────────────────────────────────────────────────────────────
