@@ -52,6 +52,12 @@ export class Game {
       startTime: Date.now(),
       handmadeCookies: 0,
       miniGamesWon: [],  // tracks which mini-games have been won
+      cutterBestAccuracy: 0,  // best accuracy in cookie cutter
+      kitchenBestStreak: 0,   // best perfect streak in grandma's kitchen
+      slotsJackpots: 0,       // number of jackpots hit in slots
+      goldenCookiesClicked: 0, // golden cookies clicked
+      sessionPrestiges: 0,    // prestiges in current session
+      miniGamesPlayed: 0,     // total minigames played
     };
 
     // Load buildings & upgrades from gameData.js
@@ -85,6 +91,43 @@ export class Game {
     this.setupMenu();
     this.initParticles();
     this.visualEffects.init();
+
+    // Easter egg: typing "cookie" anywhere
+    this._typedKeys = '';
+    document.addEventListener('keydown', (e) => {
+      // Only track letter keys
+      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        this._typedKeys += e.key.toLowerCase();
+        // Keep only last 6 characters
+        if (this._typedKeys.length > 6) {
+          this._typedKeys = this._typedKeys.slice(-6);
+        }
+        // Check if "cookie" was typed
+        if (this._typedKeys === 'cookie' && this.tutorial) {
+          this.tutorial.triggerEvent('cookieTyped');
+          this._typedKeys = ''; // Reset after triggering
+        }
+      }
+      // Reset idle timer on any key
+      this._resetIdleTimer();
+    });
+
+    // Easter egg: selecting the word "cookie" in the news
+    document.addEventListener('selectionchange', () => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().toLowerCase().trim() === 'cookie') {
+        if (this.tutorial) {
+          this.tutorial.triggerEvent('cookieSelected');
+        }
+      }
+    });
+
+    // Easter egg: the watcher (10 minutes idle)
+    this._idleTime = 0;
+    this._idleTimer = null;
+    this._resetIdleTimer();
+    document.addEventListener('click', () => this._resetIdleTimer());
+    document.addEventListener('mousemove', () => this._resetIdleTimer());
     // Apply saved settings to visual effects
     this.visualEffects.particlesEnabled = this.settings.particles;
     this.visualEffects.shimmersEnabled = this.settings.shimmers;
@@ -110,10 +153,20 @@ export class Game {
 
       // Easter egg: night owl (playing between configured hours)
       const hr = new Date().getHours();
+      const mins = new Date().getMinutes();
       if (hr >= EASTER_EGGS.nightOwlStartHour && hr < EASTER_EGGS.nightOwlEndHour && this.tutorial) {
         this.tutorial.triggerEvent('nightOwl');
       }
 
+      // Easter egg: midnight baker (exactly midnight)
+      if (hr === 0 && mins === 0 && this.tutorial) {
+        this.tutorial.triggerEvent('midnightBaker');
+      }
+
+      // Easter egg: balanced empire (all unlocked buildings have same count)
+      if (this.tutorial) {
+        this._checkBalancedEmpire();
+      }
 
     }, GAME.tickIntervalMs);
 
@@ -196,6 +249,7 @@ export class Game {
           this.tutorial.triggerEvent('rapidClicker');
         }
       }
+
     }
 
     this.updateCookieCount();
@@ -235,6 +289,34 @@ export class Game {
     if (this.stats.totalClicks === 1) {
       // First click registered — tutorial may wait for this
     }
+  }
+
+  _checkBalancedEmpire() {
+    // Get all unlocked (owned at least once) buildings
+    const unlockedBuildings = this.buildings.filter(b => b.count > 0);
+    if (unlockedBuildings.length < 5) return; // Need at least 5 buildings
+
+    // Check if all have the same count
+    const firstCount = unlockedBuildings[0].count;
+    if (firstCount < 1) return;
+    
+    const allSame = unlockedBuildings.every(b => b.count === firstCount);
+    if (allSame) {
+      this.tutorial.triggerEvent('balancedEmpire');
+    }
+  }
+
+  _resetIdleTimer() {
+    this._idleTime = 0;
+    clearInterval(this._idleTimer);
+    this._idleTimer = setInterval(() => {
+      this._idleTime++;
+      // 10 minutes = 600 seconds
+      if (this._idleTime >= 600 && this.tutorial) {
+        this.tutorial.triggerEvent('theWatcher');
+        this._idleTime = 0; // Reset so it can trigger again after another 10 min
+      }
+    }, 1000);
   }
 
   checkLuckyClick(event) {
@@ -525,7 +607,7 @@ export class Game {
       card.innerHTML = `
         <div class="heavenly-card-header">
           <span class="heavenly-card-name">${upgrade.name}</span>
-          <span class="heavenly-card-cost">${owned ? '✓' : `💎 ${costStr}`}</span>
+          <span class="heavenly-card-cost">${owned ? '✓' : `<span class="heavenly-cookie-small">🍪</span> ${costStr}`}</span>
         </div>
         <div class="heavenly-card-desc">${upgrade.desc}</div>
         ${!prereqsMet && !owned ? `<div class="heavenly-card-prereq">Requires: ${prereqNames.join(', ')}</div>` : ''}
@@ -1372,12 +1454,12 @@ export class Game {
       const spendable = this.prestige.getSpendableChips();
       prestEl.innerHTML = `
         <div class="prestige-chips">
-          <span class="chip-icon">💎</span>
+          <span class="chip-icon heavenly-cookie">🍪</span>
           <span class="chip-count">${formatNumberInWords(this.prestige.heavenlyChips)}</span>
         </div>
         <div class="prestige-row"><span>Ascended</span><span>${this.prestige.timesPrestiged}x</span></div>
         <div class="prestige-row"><span>On reset</span><span>+${formatNumberInWords(potentialChips)}</span></div>
-        ${this.prestige.spentChips > 0 ? `<div class="prestige-row"><span>Available</span><span>💎 ${formatNumberInWords(spendable)}</span></div>` : ''}
+        ${this.prestige.spentChips > 0 ? `<div class="prestige-row"><span>Available</span><span><span class="heavenly-cookie-small">🍪</span> ${formatNumberInWords(spendable)}</span></div>` : ''}
       `;
       
       const btn = document.getElementById("prestige-btn");

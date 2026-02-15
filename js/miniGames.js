@@ -85,8 +85,17 @@ export class MiniGames {
       if (!g.stats.miniGamesWon.includes(gameName)) {
         g.stats.miniGamesWon.push(gameName);
       }
-      g.achievementManager.check();
     }
+
+    // Track total minigames played
+    g.stats.miniGamesPlayed = (g.stats.miniGamesPlayed || 0) + 1;
+
+    // Easter egg: minigame addict (100 games played)
+    if (g.stats.miniGamesPlayed === 100 && g.tutorial) {
+      g.tutorial.triggerEvent('miniGameAddict');
+    }
+
+    g.achievementManager.check();
 
     return reward;
   }
@@ -176,6 +185,9 @@ export class MiniGames {
           resultEl.textContent = `✨ JACKPOT! Three ${results[0]}! +${formatNumberInWords(r)} cookies!`;
           resultEl.classList.add("mini-win");
           won = true;
+          // Track jackpots for achievement
+          this.game.stats.slotsJackpots = (this.game.stats.slotsJackpots || 0) + 1;
+          this.game.achievementManager.check();
           // Jackpot always ends
           setTimeout(() => this._close(), 2500);
           return;
@@ -1013,6 +1025,16 @@ export class MiniGames {
     // Final score combines coverage and accuracy
     const finalScore = Math.round((coverage * 0.4 + avgAccuracy * 0.6) * 100);
     
+    // Track best accuracy for achievement
+    if (finalScore > (this.game.stats.cutterBestAccuracy || 0)) {
+      this.game.stats.cutterBestAccuracy = finalScore;
+    }
+
+    // Easter egg: perfectionist (99% accuracy)
+    if (finalScore === 99 && this.game.tutorial) {
+      this.game.tutorial.triggerEvent('perfectionist99');
+    }
+
     let tier = null;
     let msg = '';
 
@@ -1042,6 +1064,7 @@ export class MiniGames {
       if (resultEl) resultEl.textContent = msg;
     }
 
+    this.game.achievementManager.check();
     setTimeout(() => this._close(), cfg.resultDisplayMs);
   }
 
@@ -1545,6 +1568,7 @@ export class MiniGames {
     let perfectCount = 0;
     let burntCount = 0;
     let active = true;
+    let currentPerfectStreak = 0; // Track consecutive perfect cookies
     const ovens = [];
 
     // Start main timer
@@ -1693,10 +1717,16 @@ export class MiniGames {
         if (timeSinceReady <= cfg.perfectWindowMs) {
           score += cfg.perfectPoints;
           perfectCount++;
+          currentPerfectStreak++;
+          // Track best streak for achievement
+          if (currentPerfectStreak > (this.game.stats.kitchenBestStreak || 0)) {
+            this.game.stats.kitchenBestStreak = currentPerfectStreak;
+          }
           if (display) display.textContent = '⭐';
           if (status) status.textContent = `+${cfg.perfectPoints} PERFECT!`;
         } else {
           score += cfg.goodPoints;
+          currentPerfectStreak = 0; // Break the streak
           if (display) display.textContent = '✨';
           if (status) status.textContent = `+${cfg.goodPoints} Good!`;
         }

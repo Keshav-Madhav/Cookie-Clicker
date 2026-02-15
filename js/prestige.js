@@ -58,6 +58,14 @@ export class PrestigeManager {
     this.totalCookiesBakedAllTime += this.game.stats.totalCookiesBaked;
     this.timesPrestiged++;
 
+    // Track session prestiges for achievement
+    this.game.stats.sessionPrestiges = (this.game.stats.sessionPrestiges || 0) + 1;
+
+    // Easter egg: ascension junkie (3 prestiges in one session)
+    if (this.game.stats.sessionPrestiges >= 3 && this.game.tutorial) {
+      this.game.tutorial.triggerEvent('ascensionJunkie');
+    }
+
     // Reset game state but keep prestige data
     this.game.resetForPrestige();
     return true;

@@ -122,6 +122,7 @@ export class VisualEffects {
     this.miniGames.init();
     this._scheduleGoldenCookie();
     this._setupGoldenCookieClick();
+    this._setupAnchorHairClick();
 
     // Animated row backgrounds
     this.rowAnimator.init();
@@ -652,12 +653,13 @@ export class VisualEffects {
         const bonus = Math.max(GOLDEN_COOKIE.cookieStorm.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.cookieStorm.cpsMultiplier);
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
-        msg = `💎 Cookie Storm! +${formatNumberInWords(bonus)}`;
+        msg = `🌟 Cookie Storm! +${formatNumberInWords(bonus)}`;
         incomeAmount = bonus;
         // Easter egg: cookie storm (rarest golden reward)
         if (this.game.tutorial) this.game.tutorial.triggerEvent('cookieStorm');
       }
       g.stats.luckyClicks++;
+      g.stats.goldenCookiesClicked = (g.stats.goldenCookiesClicked || 0) + 1;
       g.updateCookieCount();
 
       // Income-proportional cookie rain (or small burst for frenzies)
@@ -712,6 +714,33 @@ export class VisualEffects {
     el.textContent = msg;
     wrap.appendChild(el);
     setTimeout(() => el.remove(), GOLDEN_COOKIE.rewardTextMs);
+  }
+
+  /* ───────────────────────── anchor hair click easter egg ── */
+  _setupAnchorHairClick() {
+    const hair = document.querySelector('.anchor-hair');
+    if (!hair) return;
+
+    hair.style.cursor = 'pointer';
+    this._anchorHairClicked = false;
+
+    hair.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      // Add bald class to hide hair
+      hair.classList.add('anchor-bald');
+      
+      // Easter egg: first time clicking the hair
+      if (!this._anchorHairClicked && this.game.tutorial) {
+        this.game.tutorial.triggerEvent('baldAnchor');
+        this._anchorHairClicked = true;
+      }
+      
+      // Hair grows back after 5 seconds
+      setTimeout(() => {
+        hair.classList.remove('anchor-bald');
+      }, 5000);
+    });
   }
 
   /* ───────────────────────── building showcase (baker rows) ── */

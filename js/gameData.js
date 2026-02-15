@@ -509,13 +509,14 @@ export const achievements = [
   { id: "cps_1m", name: "Cookie Tsunami", desc: "Reach 1 million CPS", type: "cps", requirement: 1000000 },
   { id: "cps_1b", name: "Cookie Singularity", desc: "Reach 1 billion CPS", type: "cps", requirement: 1000000000 },
 
-  // Click milestones
+  // Click milestones (scaled down - max 15k is achievable without autoclicker)
   { id: "click_100", name: "Casual Clicker", desc: "Click 100 times", type: "totalClicks", requirement: 100 },
-  { id: "click_1k", name: "Dedicated Clicker", desc: "Click 1,000 times", type: "totalClicks", requirement: 1000 },
-  { id: "click_5k", name: "Click Enthusiast", desc: "Click 3,000 times", type: "totalClicks", requirement: 3000 },
-  { id: "click_10k", name: "Click Master", desc: "Click 5,000 times", type: "totalClicks", requirement: 5000 },
-  { id: "click_50k", name: "Click Legend", desc: "Click 20,000 times", type: "totalClicks", requirement: 20000 },
-  { id: "click_100k", name: "Click God", desc: "Click 40,000 times", type: "totalClicks", requirement: 40000 },
+  { id: "click_500", name: "Dedicated Clicker", desc: "Click 500 times", type: "totalClicks", requirement: 500 },
+  { id: "click_1k", name: "Click Enthusiast", desc: "Click 1,000 times", type: "totalClicks", requirement: 1000 },
+  { id: "click_2k", name: "Click Master", desc: "Click 2,000 times", type: "totalClicks", requirement: 2000 },
+  { id: "click_5k", name: "Click Legend", desc: "Click 5,000 times", type: "totalClicks", requirement: 5000 },
+  { id: "click_10k", name: "Click God", desc: "Click 10,000 times", type: "totalClicks", requirement: 10000 },
+  { id: "click_15k", name: "Click Transcendent", desc: "Click 15,000 times", type: "totalClicks", requirement: 15000 },
 
   // Building milestones
   { id: "buildings_10", name: "Small Business", desc: "Own 10 buildings", type: "totalBuildings", requirement: 10 },
@@ -550,7 +551,13 @@ export const achievements = [
 
   // Mini-game achievements
   { id: "mini_first", name: "Game Night", desc: "Win your first mini-game from the news ticker", type: "miniGamesWon", requirement: 1 },
-  { id: "mini_all", name: "Arcade Master", desc: "Win all 5 different mini-games at least once", type: "miniGamesWon", requirement: 5 },
+  { id: "mini_all", name: "Arcade Master", desc: "Win all 9 different mini-games at least once", type: "miniGamesWon", requirement: 9 },
+  { id: "mini_cutter_perfect", name: "Surgical Precision", desc: "Score 95%+ accuracy in Cookie Cutter", type: "cutterPerfect", requirement: 95 },
+  { id: "mini_kitchen_pro", name: "Kitchen Pro", desc: "Get 5 perfect cookies in a row in Grandma's Kitchen", type: "kitchenPerfectStreak", requirement: 5 },
+  { id: "mini_jackpot", name: "Jackpot!", desc: "Hit triple match in the slot machine", type: "slotsJackpot", requirement: 1 },
+  { id: "golden_touch", name: "Golden Touch", desc: "Click 100 golden cookies", type: "goldenCookiesClicked", requirement: 100 },
+  { id: "reality_owner", name: "Reality Bender", desc: "Own at least 1 Reality Bender", type: "buildingCount", requirement: 1, buildingIndex: 15 },
+  { id: "fresh_start", name: "Fresh Start Addiction", desc: "Prestige 3 times in one play session", type: "sessionPrestiges", requirement: 3 },
 
   // Extended cookie milestones
   { id: "bake_1q", name: "Cookie Dimension", desc: "Bake 1 quadrillion cookies", type: "totalCookies", requirement: 1000000000000000 },
@@ -595,7 +602,4 @@ export const achievements = [
   { id: "upgrades_100", name: "Upgrade Maniac", desc: "Purchase 100 upgrades", type: "totalUpgradesPurchased", requirement: 100 },
   { id: "upgrades_200", name: "Upgrade Transcendent", desc: "Purchase 200 upgrades", type: "totalUpgradesPurchased", requirement: 200 },
 
-  // Extended click milestones
-  { id: "click_100k", name: "Click Immortal", desc: "Click 100,000 times", type: "totalClicks", requirement: 100000 },
-  { id: "click_500k", name: "Click Transcendent", desc: "Click 500,000 times", type: "totalClicks", requirement: 500000 },
 ]; 

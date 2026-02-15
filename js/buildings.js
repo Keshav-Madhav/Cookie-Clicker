@@ -74,6 +74,31 @@ export class Building {
     if (!this.meetsRequirements()) return false;
     const amount = this.game.purchaseAmount;
     
+    // Check if can afford before attempting
+    const totalCost = amount === 'Max' ? this.cost : this.calculateBulkCost(amount);
+    const canAfford = this.game.cookies >= totalCost;
+    
+    // Easter egg: rage quit (clicking unaffordable building 10 times)
+    if (!canAfford && this.game.tutorial) {
+      this.game._rageClickCount = (this.game._rageClickCount || 0) + 1;
+      this.game._lastRageClick = Date.now();
+      
+      // Reset counter if it's been more than 5 seconds since last click
+      if (this.game._lastRageClickTime && Date.now() - this.game._lastRageClickTime > 5000) {
+        this.game._rageClickCount = 1;
+      }
+      this.game._lastRageClickTime = Date.now();
+      
+      if (this.game._rageClickCount >= 10) {
+        this.game.tutorial.triggerEvent('rageQuit');
+        this.game._rageClickCount = 0; // Reset after triggering
+      }
+      return false;
+    }
+    
+    // Reset rage counter on successful purchase
+    this.game._rageClickCount = 0;
+    
     if (amount === 'Max') {
       const result = this.buyMax();
       // Easter egg: efficient buyer (used Max purchase)

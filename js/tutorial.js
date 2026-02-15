@@ -258,7 +258,7 @@ export class Tutorial {
       },
       oooShiny: {
         title: "Ooo, Shiny!",
-        text: "You clicked the prestige diamond! It IS very pretty, isn't it? Those Heavenly Chips sparkle with the weight of every cookie you've ever sacrificed. Can't. Stop. Staring.",
+        text: "You clicked the Heavenly Cookie! It glows with an ethereal golden light, doesn't it? Each one represents countless cookies sacrificed to the prestige gods. It's beautiful. It's mesmerizing. It's... making you hungry.",
         target: "#left-prestige",
         position: "right",
       },
@@ -286,6 +286,78 @@ export class Tutorial {
         text: "A frenzy triggered DURING another frenzy? The cookie matrix is glitching. Your production just went absolutely nuclear. This is what peak cookie performance looks like.",
         target: "#frenzy-indicator",
         position: "right",
+      },
+
+      /* ─────────────── NEW EASTER EGGS ─────────────── */
+
+      rageQuit: {
+        title: "Rage Quit?",
+        text: "Clicking a building you can't afford 10 times? We've all been there. Staring at the price. Willing it to go down. It won't. The math doesn't care about your feelings. Maybe go click the cookie a few more times.",
+        target: "#building-list",
+        position: "left",
+      },
+
+      perfectionist99: {
+        title: "So Close Yet So Far",
+        text: "99% accuracy in Cookie Cutter? That 1% is going to haunt you forever, isn't it? The shape was RIGHT THERE. You were SO CLOSE. Do you retry, or do you live with the imperfection? This says a lot about you as a person.",
+        target: null,
+        position: "left",
+      },
+
+      balancedEmpire: {
+        title: "Perfectly Balanced",
+        text: "Every unlocked building has the exact same count? You absolute MANIAC. This is either peak OCD or you're running some kind of experiment. Either way, the symmetry is... beautiful. Thanos would be proud.",
+        target: "#building-list",
+        position: "left",
+      },
+
+      miniGameAddict: {
+        title: "Mini-Game Addict",
+        text: "100 mini-games played! At this point, are you playing Cookie Clicker or are you playing the mini-games with a cookie theme? The line has blurred. You've become the arcade. The arcade has become you.",
+        target: "#news-broadcast",
+        position: "bottom",
+      },
+
+      cookieTyped: {
+        title: "The Secret Word!",
+        text: "You typed 'cookie'! Yes, we were watching. No, we won't apologize. The fact that you're typing 'cookie' while playing Cookie Clicker is either very meta or slightly concerning. Either way, here's a virtual high-five. 🍪",
+        target: "#cookie-button",
+        position: "right",
+      },
+
+      midnightBaker: {
+        title: "The Witching Hour",
+        text: "Baking cookies at exactly midnight? Legend says that cookies baked at this hour have +0% bonus stats but 100% more existential dread. The grandmas are watching. They never sleep. Neither do you, apparently.",
+        target: "#cookie-button",
+        position: "right",
+      },
+
+      ascensionJunkie: {
+        title: "Ascension Junkie",
+        text: "3 prestiges in one session? You really love that reset button, don't you? The journey is the destination, and your destination is apparently 'start over repeatedly'. Not judging. Okay, judging a little.",
+        target: "#prestige-btn",
+        position: "right",
+      },
+
+      cookieSelected: {
+        title: "Word Detective!",
+        text: "You selected the word 'cookie' in the news! Yes, we track text selections. No, we're not proud of it. But hey, you found it! The word was right there, hiding in plain sight, just waiting to be highlighted.",
+        target: "#news-broadcast",
+        position: "bottom",
+      },
+
+      theWatcher: {
+        title: "The Watcher",
+        text: "10 minutes of idle staring? The cookies have been baking themselves while you contemplate... what exactly? Life? The universe? The optimal upgrade path? Whatever it is, welcome back. The grandmas missed you. They were watching too.",
+        target: "#cookie-button",
+        position: "right",
+      },
+
+      baldAnchor: {
+        title: "Wig Snatcher!",
+        text: "You... you clicked his hair off. That was his last remaining dignity. He's been anchoring the Cookie News for years, and you just exposed his secret. He'll forgive you. Eventually. The wig budget comes out of YOUR cookie earnings now.",
+        target: "#news-broadcast",
+        position: "bottom",
       },
     };
 

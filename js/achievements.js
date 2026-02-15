@@ -88,6 +88,21 @@ export class AchievementManager {
           met = this.game.prestige &&
                 this.game.prestige.getHeavenlyUpgradeCount() >= achievement.requirement;
           break;
+        case "cutterPerfect":
+          met = stats.cutterBestAccuracy >= achievement.requirement;
+          break;
+        case "kitchenPerfectStreak":
+          met = stats.kitchenBestStreak >= achievement.requirement;
+          break;
+        case "slotsJackpot":
+          met = stats.slotsJackpots >= achievement.requirement;
+          break;
+        case "goldenCookiesClicked":
+          met = stats.goldenCookiesClicked >= achievement.requirement;
+          break;
+        case "sessionPrestiges":
+          met = stats.sessionPrestiges >= achievement.requirement;
+          break;
       }
 
       if (met) {
