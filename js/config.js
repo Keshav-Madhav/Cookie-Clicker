@@ -109,10 +109,10 @@ export const PARTICLES = {
 // ─────────────────────────────────────────────────────────────
 export const PRESTIGE = {
   /** Heavenly chip formula: floor( (totalCookies / divisor) ^ exponent ) */
-  chipDivisor: 1e12,
-  chipExponent: 0.48,
-  /** CPS bonus per heavenly chip (0.01 = +1% each) */
-  bonusPerChip: 0.01,
+  chipDivisor: 1e13,
+  chipExponent: 0.35,
+  /** CPS bonus per heavenly chip (0.002 = +0.2% each) */
+  bonusPerChip: 0.002,
 };
 
 // ─────────────────────────────────────────────────────────────

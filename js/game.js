@@ -933,6 +933,38 @@ export class Game {
     this.frenzyEndTime = 0;
     this.frenzyType = null;
 
+    // Reset middle panel / UI state
+    this._upgradePage = 0;
+    this._upgradeOrder = [];
+    this._buildingSort = 'default';
+    this._animateBuildings = false;
+    if (this._upgradeSortTimer) {
+      clearTimeout(this._upgradeSortTimer);
+      this._upgradeSortTimer = null;
+    }
+
+    // Close heavenly overlay if open
+    const heavenlyOverlay = document.getElementById('heavenly-overlay');
+    if (heavenlyOverlay) heavenlyOverlay.classList.add('hidden');
+
+    // Reset golden cookie / frenzy timers
+    if (this.visualEffects) {
+      clearTimeout(this.visualEffects.goldenCookieTimer);
+      clearTimeout(this.visualEffects._goldenTimeout);
+      // Remove any active golden cookie element
+      if (this.visualEffects.goldenCookieEl) {
+        this.visualEffects.goldenCookieEl.remove();
+        this.visualEffects.goldenCookieEl = null;
+      }
+      // Restart golden cookie spawn cycle
+      this.visualEffects._scheduleGoldenCookie();
+    }
+
+    // Switch to default tab on mobile
+    if (this._mobileNav && this._mobileNav.isMobile()) {
+      this._mobileNav.switchTab('cookie');
+    }
+
     // Persistent Memory: save upgrade levels before reset (use higher of the two tiers)
     const memoryFraction = Math.max(this.prestige.getPersistentMemoryFraction(), this.prestige.getPersistentMemoryFraction2());
     const savedUpgradeLevels = [];
@@ -1000,6 +1032,7 @@ export class Game {
       timesPrestiged: this.prestige.timesPrestiged,
       startTime: Date.now(),
       handmadeCookies: 0,
+      miniGamesWon: [],
     };
 
     this.calculateCPS();
