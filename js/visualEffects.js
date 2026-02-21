@@ -568,7 +568,7 @@ export class VisualEffects {
     if (g.stats.totalClicks > 100) msgs.push(`You've clicked ${formatNumberInWords(g.stats.totalClicks)} times! Your fingers must be tired.`);
     const buildings = g.getTotalBuildingCount();
     if (buildings > 10) msgs.push(`You now own ${buildings} buildings across your cookie empire.`);
-    if (g.prestige.heavenlyChips > 0) msgs.push(`Your ${formatNumberInWords(g.prestige.heavenlyChips)} heavenly chips glow with prestige.`);
+    if (g.prestige.getSpendableChips() > 0) msgs.push(`Your ${formatNumberInWords(g.prestige.getSpendableChips())} heavenly chips glow with prestige.`);
     if (g.frenzyActive) msgs.push("FRENZY IS ACTIVE! Bake faster!");
     return msgs;
   }
@@ -832,6 +832,17 @@ export class VisualEffects {
 
           // Update tooltip
           row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+        } else if (!wasLocked) {
+          // Handle lock transition: was owned, now reset (e.g. prestige)
+          row.classList.add('baker-row-locked');
+          row.classList.remove('baker-row-unlocking');
+          const label = row.querySelector('.baker-row-label');
+          if (label) label.textContent = mysteryHints[b.name] || '???';
+          const countEl = row.querySelector('.baker-row-count');
+          if (countEl) countEl.textContent = '🔒';
+          const iconsWrap = row.querySelector('.baker-row-icons');
+          if (iconsWrap) iconsWrap.innerHTML = '';
+          row.title = 'Locked — keep baking to discover!';
         }
       } else {
         // Create new row
@@ -1013,6 +1024,67 @@ export class VisualEffects {
   updateCPS() {
     const el = document.getElementById("viewport-cps-value");
     if (el) el.textContent = formatNumberInWords(this.game.getEffectiveCPS());
+  }
+
+  /* ───────────────────── prestige reset (clear UI artifacts) ── */
+  resetForPrestige() {
+    // Reset news ticker to beginning
+    this.newsIndex = 0;
+    const newsText = document.getElementById("news-text");
+    if (newsText) {
+      newsText.textContent = "Welcome to Cookie Clicker!";
+      newsText.classList.remove("news-exit", "news-enter", "news-rare");
+    }
+
+    // Clear any lingering news animation classes
+    const broadcast = document.getElementById("news-broadcast");
+    if (broadcast) {
+      broadcast.classList.remove("broadcast-speak", "broadcast-rare");
+    }
+    const anchor = document.getElementById("news-anchor");
+    if (anchor) anchor.classList.remove("anchor-excited");
+    const tvScreen = document.getElementById("news-tv-screen");
+    if (tvScreen) {
+      tvScreen.classList.remove("tv-static", "tv-color-bars");
+    }
+
+    // Hide golden cookie and clear its animation classes
+    const goldenEl = document.getElementById("golden-cookie");
+    if (goldenEl) {
+      goldenEl.classList.add("hidden");
+      goldenEl.classList.remove("golden-appear", "golden-fade");
+    }
+
+    // Close any active mini-game
+    if (this.miniGames && this.miniGames._active) {
+      this.miniGames._close();
+    }
+
+    // Remove any lingering floating reward text
+    const wrap = document.getElementById("viewport-wrap");
+    if (wrap) {
+      wrap.querySelectorAll(".golden-reward-text, .golden-spark").forEach(el => el.remove());
+    }
+
+    // Clear building showcase completely so it rebuilds from scratch
+    const showcase = document.getElementById("building-showcase");
+    if (showcase) showcase.innerHTML = "";
+
+    // Reset row animator cache (entries reference removed DOM nodes)
+    if (this.rowAnimator) {
+      this.rowAnimator._entries.clear();
+      this.rowAnimator._extras.clear();
+    }
+
+    // Reset rain intensity to base (CPS is 0 after prestige)
+    this._rainTargetCount = this._rainBaseCount;
+    this._rainSpeedMult = 1;
+    if (this.raindrops.length > this._rainBaseCount) {
+      this.raindrops.length = this._rainBaseCount;
+    }
+
+    // Clear any active burst cookies
+    this._burstCount = 0;
   }
 
   /* ───────────────────────── called by game loop ────────────── */

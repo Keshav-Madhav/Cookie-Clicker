@@ -32,8 +32,10 @@ export const GAME = {
   /** Buy-amount buttons shown in the shop toolbar */
   purchaseAmounts: [1, 10, 25, 100, 'Max'],
 
-  /** Multiplier bar scaling — bar reaches 100% at this multiplier (e.g. 4 → x5 = full) */
-  multiplierBarScale: 4,
+  /** Multiplier bar log scaling — individual bars: log10(v) × this = bar%. 50 → 100% at x100 */
+  multiplierBarLogScale: 50,
+  /** Combined multiplier bar log scaling — 25 → 100% at x10000 */
+  combinedBarLogScale: 25,
 };
 
 // ─────────────────────────────────────────────────────────────

@@ -45,7 +45,7 @@ export class MiniGames {
     const cps = g.getEffectiveCPS();
     const clicks = g.stats.totalClicks;
     const buildings = g.getTotalBuildingCount();
-    const prestige = g.prestige.heavenlyChips || 0;
+    const prestige = g.prestige.getSpendableChips() || 0;
 
     // Base reward from CPS
     const cpsBonus = cps * (MINI_GAME_REWARDS.cpsMultiplier[tier] || MINI_GAME_REWARDS.cpsMultiplier.normal);

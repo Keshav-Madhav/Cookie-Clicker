@@ -365,6 +365,13 @@ export class Tutorial {
         target: "#news-broadcast",
         position: "bottom",
       },
+
+      debuggerFound: {
+        title: "Console Cowboy",
+        text: "You typed 'debugging'? Really? Most people just click cookies, but you... you went looking for the matrix. Fine, here's your debug console. Use it wisely. Or don't. We can't stop you. The cookies aren't real anyway.",
+        target: "#debug-overlay",
+        position: "right",
+      },
     };
 
     /* ── rapid-click tracking ── */

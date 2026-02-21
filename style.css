@@ -5506,3 +5506,199 @@ html {
     border-radius: 12px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DEBUG PANEL
+   ═══════════════════════════════════════════════════════════ */
+
+.debug-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.debug-overlay.hidden {
+  display: none;
+}
+
+.debug-panel {
+  background: linear-gradient(160deg, #0a1a0a, #1a2e1a);
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  border-radius: 12px;
+  width: min(520px, 92vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgba(0, 255, 65, 0.15), inset 0 1px 0 rgba(0, 255, 65, 0.05);
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+  background: rgba(0, 255, 65, 0.06);
+}
+
+.debug-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #00ff41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+}
+
+.debug-close-btn {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff5050;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.debug-close-btn:hover {
+  background: rgba(255, 80, 80, 0.3);
+}
+
+.debug-body {
+  padding: 14px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.debug-section h3 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: rgba(0, 255, 65, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.debug-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.debug-row label {
+  flex: 1;
+  font-size: 0.8rem;
+  color: #a0c8a0;
+}
+
+.debug-row input {
+  width: 120px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  border-radius: 4px;
+  color: #00ff41;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.debug-row input:focus {
+  outline: none;
+  border-color: rgba(0, 255, 65, 0.5);
+  box-shadow: 0 0 6px rgba(0, 255, 65, 0.15);
+}
+
+.debug-set-btn {
+  padding: 4px 10px;
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid rgba(0, 255, 65, 0.25);
+  border-radius: 4px;
+  color: #00ff41;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.debug-set-btn:hover {
+  background: rgba(0, 255, 65, 0.25);
+}
+
+.debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.debug-action-btn {
+  padding: 6px 12px;
+  background: rgba(0, 255, 65, 0.08);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  border-radius: 6px;
+  color: #00ff41;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.debug-action-btn:hover {
+  background: rgba(0, 255, 65, 0.2);
+  border-color: rgba(0, 255, 65, 0.4);
+}
+
+.debug-action-btn[data-action="resetSave"] {
+  background: rgba(255, 50, 50, 0.1);
+  border-color: rgba(255, 50, 50, 0.3);
+  color: #ff5050;
+}
+
+.debug-action-btn[data-action="resetSave"]:hover {
+  background: rgba(255, 50, 50, 0.25);
+}
+
+.debug-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+
+.debug-info span {
+  font-size: 0.75rem;
+  color: #78a878;
+  padding: 2px 0;
+}
+
+/* hide number input spinners */
+.debug-row input[type="number"]::-webkit-inner-spin-button,
+.debug-row input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.debug-row input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+@media (max-width: 700px) {
+  .debug-panel {
+    max-height: 90vh;
+    border-radius: 10px;
+  }
+  .debug-info {
+    grid-template-columns: 1fr;
+  }
+}

@@ -30,6 +30,17 @@ export class AchievementManager {
     return 1 + (this.getUnlockedCount() * this.bonusPerAchievement);
   }
 
+  unlockById(id) {
+    const a = this.achievements.find(a => a.id === id);
+    if (!a || a.unlocked) return;
+    a.unlocked = true;
+    a.unlockedAt = Date.now();
+    this.showNotification(a);
+    if (this.game.visualEffects) {
+      this.game.visualEffects.triggerCookieBurst(ACHIEVEMENTS.unlockBurst.count, ACHIEVEMENTS.unlockBurst.speed);
+    }
+  }
+
   check() {
     const stats = this.game.stats;
     

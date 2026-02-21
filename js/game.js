@@ -92,20 +92,25 @@ export class Game {
     this.initParticles();
     this.visualEffects.init();
 
-    // Easter egg: typing "cookie" anywhere
+    // Easter egg: typing "cookie" or "debugging" anywhere
     this._typedKeys = '';
     document.addEventListener('keydown', (e) => {
       // Only track letter keys
       if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
         this._typedKeys += e.key.toLowerCase();
-        // Keep only last 6 characters
-        if (this._typedKeys.length > 6) {
-          this._typedKeys = this._typedKeys.slice(-6);
+        // Keep only last 9 characters (longest trigger word)
+        if (this._typedKeys.length > 9) {
+          this._typedKeys = this._typedKeys.slice(-9);
         }
         // Check if "cookie" was typed
-        if (this._typedKeys === 'cookie' && this.tutorial) {
+        if (this._typedKeys.endsWith('cookie') && this.tutorial) {
           this.tutorial.triggerEvent('cookieTyped');
-          this._typedKeys = ''; // Reset after triggering
+          this._typedKeys = '';
+        }
+        // Check if "debugging" was typed — open debug panel
+        if (this._typedKeys.endsWith('debugging')) {
+          this._openDebugPanel();
+          this._typedKeys = '';
         }
       }
       // Reset idle timer on any key
@@ -651,6 +656,170 @@ export class Game {
     if (btn) btn.style.display = 'none';
   }
 
+  // === Debug Panel ===
+
+  _openDebugPanel() {
+    // Achievement + easter egg tip on first open
+    this.achievementManager.unlockById('debugger');
+    if (this.tutorial) this.tutorial.triggerEvent('debuggerFound');
+
+    const overlay = document.getElementById("debug-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    this._renderDebugPanel();
+
+    // Setup close handlers (once)
+    if (!this._debugBound) {
+      this._debugBound = true;
+      document.getElementById("debug-close").addEventListener("click", () => {
+        overlay.classList.add("hidden");
+      });
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) overlay.classList.add("hidden");
+      });
+    }
+  }
+
+  _renderDebugPanel() {
+    const body = document.getElementById("debug-body");
+    if (!body) return;
+
+    const fmt = (v) => typeof v === 'number' ? formatNumberInWords(v) : v;
+    const spendable = this.prestige.getSpendableChips();
+
+    body.innerHTML = `
+      <div class="debug-section">
+        <h3>Resources</h3>
+        <div class="debug-row">
+          <label>Cookies</label>
+          <input type="number" data-field="cookies" value="${Math.floor(this.cookies)}" />
+          <button class="debug-set-btn" data-field="cookies">Set</button>
+        </div>
+        <div class="debug-row">
+          <label>CPS Multiplier</label>
+          <input type="number" step="0.1" data-field="globalCpsMultiplier" value="${this.globalCpsMultiplier}" />
+          <button class="debug-set-btn" data-field="globalCpsMultiplier">Set</button>
+        </div>
+        <div class="debug-row">
+          <label>Cookies/Click</label>
+          <input type="number" data-field="cookiesPerClick" value="${this.cookiesPerClick}" />
+          <button class="debug-set-btn" data-field="cookiesPerClick">Set</button>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <h3>Prestige</h3>
+        <div class="debug-row">
+          <label>Heavenly Chips (total)</label>
+          <input type="number" data-field="heavenlyChips" value="${this.prestige.heavenlyChips}" />
+          <button class="debug-set-btn" data-field="heavenlyChips">Set</button>
+        </div>
+        <div class="debug-row">
+          <label>Spent Chips</label>
+          <input type="number" data-field="spentChips" value="${this.prestige.spentChips}" />
+          <button class="debug-set-btn" data-field="spentChips">Set</button>
+        </div>
+        <div class="debug-row">
+          <label>Times Prestiged</label>
+          <input type="number" data-field="timesPrestiged" value="${this.prestige.timesPrestiged}" />
+          <button class="debug-set-btn" data-field="timesPrestiged">Set</button>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <h3>Quick Actions</h3>
+        <div class="debug-actions">
+          <button class="debug-action-btn" data-action="addCookies">+1M Cookies</button>
+          <button class="debug-action-btn" data-action="addChips">+100 Chips</button>
+          <button class="debug-action-btn" data-action="maxBuildings">Max Buildings</button>
+          <button class="debug-action-btn" data-action="unlockAll">Unlock All Upgrades</button>
+          <button class="debug-action-btn" data-action="triggerFrenzy">Trigger Frenzy</button>
+          <button class="debug-action-btn" data-action="resetSave">Reset Save</button>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <h3>State</h3>
+        <div class="debug-info">
+          <span>Effective CPS: ${fmt(this.getEffectiveCPS())}</span>
+          <span>Effective CPC: ${fmt(this.getEffectiveCPC())}</span>
+          <span>Buildings: ${this.getTotalBuildingCount()}</span>
+          <span>Upgrades bought: ${this.upgrades.filter(u => u.level > 0).length}</span>
+          <span>Achievements: ${this.achievementManager.getUnlockedCount()}/${this.achievementManager.getTotalCount()}</span>
+          <span>Prestige mult: x${this.prestige.getPrestigeMultiplier().toFixed(2)}</span>
+          <span>Achievement mult: x${this.achievementManager.getMultiplier().toFixed(2)}</span>
+          <span>Chips balance: ${fmt(spendable)}</span>
+          <span>Frenzy: ${this.frenzyActive ? this.frenzyType + ' x' + this.frenzyMultiplier : 'none'}</span>
+        </div>
+      </div>
+    `;
+
+    // Wire up Set buttons
+    body.querySelectorAll('.debug-set-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = btn.dataset.field;
+        const input = body.querySelector(`input[data-field="${field}"]`);
+        const val = parseFloat(input.value);
+        if (isNaN(val)) return;
+
+        switch (field) {
+          case 'cookies': this.cookies = val; break;
+          case 'globalCpsMultiplier': this.globalCpsMultiplier = val; break;
+          case 'cookiesPerClick': this.cookiesPerClick = val; break;
+          case 'heavenlyChips': this.prestige.heavenlyChips = val; break;
+          case 'spentChips': this.prestige.spentChips = val; break;
+          case 'timesPrestiged': this.prestige.timesPrestiged = val; break;
+        }
+
+        this.calculateCPS();
+        this.updateCookieCount();
+        this.updateLeftPanel();
+        this.updateUI();
+        this.saveGame();
+        this._renderDebugPanel();
+      });
+    });
+
+    // Wire up action buttons
+    body.querySelectorAll('.debug-action-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switch (btn.dataset.action) {
+          case 'addCookies':
+            this.cookies += 1000000;
+            break;
+          case 'addChips':
+            this.prestige.heavenlyChips += 100;
+            break;
+          case 'maxBuildings':
+            this.buildings.forEach(b => { b.count = 100; b.recalculateCost(); });
+            break;
+          case 'unlockAll':
+            this.upgrades.forEach(u => {
+              if (u.level === 0) { u.level = 1; u.applyEffect(); }
+            });
+            break;
+          case 'triggerFrenzy':
+            this.startFrenzy('cps', 7, 60);
+            break;
+          case 'resetSave':
+            if (confirm('Are you sure? This will wipe ALL save data.')) {
+              localStorage.removeItem('cookieClickerSave');
+              location.reload();
+            }
+            return;
+        }
+
+        this.calculateCPS();
+        this.updateCookieCount();
+        this.updateLeftPanel();
+        this.updateUI();
+        this.visualEffects.update();
+        this.saveGame();
+        this._renderDebugPanel();
+      });
+    });
+  }
+
   setupUpgradeNav() {
     const prev = document.getElementById("upgrade-prev");
     const next = document.getElementById("upgrade-next");
@@ -1002,7 +1171,7 @@ export class Game {
     const newChips = this.prestige.calculateHeavenlyChipsOnReset();
     if (newChips < 10) return;
 
-    if (confirm(`Prestige now to earn ${newChips} Prestige Chips?\n\nYou'll reset all cookies and buildings but keep your Prestige Chips which give permanent CPS bonuses.\n\nTotal chips after: ${this.prestige.heavenlyChips + newChips}`)) {
+    if (confirm(`Prestige now to earn ${newChips} Prestige Chips?\n\nYou'll reset all cookies and buildings but keep your Prestige Chips which give permanent CPS bonuses.\n\nBalance after: ${this.prestige.getSpendableChips() + newChips} (spending chips on upgrades reduces your bonus)`)) {
       this.prestige.performPrestige();
 
       // Massive cookie rain burst on prestige
@@ -1049,14 +1218,12 @@ export class Game {
     if (this.visualEffects) {
       clearTimeout(this.visualEffects.goldenCookieTimer);
       clearTimeout(this.visualEffects._goldenTimeout);
-      // Remove any active golden cookie element
-      if (this.visualEffects.goldenCookieEl) {
-        this.visualEffects.goldenCookieEl.remove();
-        this.visualEffects.goldenCookieEl = null;
-      }
       // Restart golden cookie spawn cycle
       this.visualEffects._scheduleGoldenCookie();
     }
+
+    // Clear mobile golden cookie badge
+    if (this._mobileNav) this._mobileNav.clearGoldenBadge();
 
     // Switch to default tab on mobile
     if (this._mobileNav && this._mobileNav.isMobile()) {
@@ -1140,12 +1307,32 @@ export class Game {
       startTime: Date.now(),
       handmadeCookies: 0,
       miniGamesWon: [],
+      cutterBestAccuracy: 0,
+      kitchenBestStreak: 0,
+      slotsJackpots: 0,
+      goldenCookiesClicked: 0,
+      sessionPrestiges: (this.stats.sessionPrestiges || 0) + 1,
+      miniGamesPlayed: 0,
     };
+
+    // Reset purchase amount to default
+    this.purchaseAmount = 1;
 
     this.calculateCPS();
     this.saveGame();
+
+    // Reset all visual/UI artifacts before re-rendering
+    if (this.visualEffects) {
+      this.visualEffects.resetForPrestige();
+    }
+
+    // Remove any lingering floating text from clicks
+    document.querySelectorAll('.cookie-text').forEach(el => el.remove());
+
     this.updateUI();
     this.updateLeftPanel();
+    this.updatePurchaseButtons();
+    this.updateFrenzyIndicator();
     this.visualEffects.update();
   }
   
@@ -1494,8 +1681,10 @@ export class Game {
       const achVal = this.achievementManager.getMultiplier();
       const prestVal = this.prestige.getPrestigeMultiplier();
       const combined = globalVal * achVal * prestVal;
-      // Bar width: capped at 100%, scaled so x5 = full bar
-      const barPct = (v) => Math.min(100, ((v - 1) / GAME.multiplierBarScale) * 100).toFixed(0);
+      // Bar width: logarithmic scaling — fills gradually over a wide multiplier range
+      // Individual bars reach 100% at ~x100, combined at ~x10000
+      const barPct = (v) => Math.min(100, v > 1 ? Math.log10(v) * GAME.multiplierBarLogScale : 0).toFixed(0);
+      const combinedBarPct = (v) => Math.min(100, v > 1 ? Math.log10(v) * GAME.combinedBarLogScale : 0).toFixed(0);
 
       multEl.innerHTML = `
         <div class="mult-row">
@@ -1515,7 +1704,7 @@ export class Game {
         </div>
         <div class="mult-row">
           <span class="mult-label">Total</span>
-          <div class="mult-bar-track"><div class="mult-bar-fill combined" style="width:${barPct(combined)}%"></div></div>
+          <div class="mult-bar-track"><div class="mult-bar-fill combined" style="width:${combinedBarPct(combined)}%"></div></div>
           <span class="mult-value">x${combined.toFixed(2)}</span>
         </div>
       `;
@@ -1529,11 +1718,12 @@ export class Game {
       prestEl.innerHTML = `
         <div class="prestige-chips">
           <span class="chip-icon heavenly-cookie">🍪</span>
-          <span class="chip-count">${formatNumberInWords(this.prestige.heavenlyChips)}</span>
+          <span class="chip-count">${formatNumberInWords(spendable)}</span>
         </div>
         <div class="prestige-row"><span>Ascended</span><span>${this.prestige.timesPrestiged}x</span></div>
         <div class="prestige-row"><span>On reset</span><span>+${formatNumberInWords(potentialChips)}</span></div>
-        ${this.prestige.timesPrestiged >= 1 ? `<div class="prestige-row"><span>Available</span><span><span class="heavenly-cookie-small">🍪</span> ${formatNumberInWords(spendable)}</span></div>` : ''}
+        <div class="prestige-row"><span>Total earned</span><span>${formatNumberInWords(this.prestige.heavenlyChips)}</span></div>
+        ${this.prestige.spentChips > 0 ? `<div class="prestige-row"><span>Spent</span><span>${formatNumberInWords(this.prestige.spentChips)}</span></div>` : ''}
       `;
       
       // Tutorial: nudge at 25+ potential chips (before prestige available check)

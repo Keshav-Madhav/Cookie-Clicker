@@ -634,4 +634,7 @@ export const achievements = [
   { id: "upgrades_100", name: "Upgrade Maniac", desc: "Purchase 100 upgrades", type: "totalUpgradesPurchased", requirement: 100 },
   { id: "upgrades_200", name: "Upgrade Transcendent", desc: "Purchase 200 upgrades", type: "totalUpgradesPurchased", requirement: 200 },
 
+  // Secret / Easter egg achievements
+  { id: "debugger", name: "Console Cowboy", desc: "Open the debug console", type: "manual" },
+
 ]; 

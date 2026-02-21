@@ -29,8 +29,9 @@ export class PrestigeManager {
   }
 
   getPrestigeMultiplier() {
-    // Diminishing returns: 1 + scale × chips^exp (not linear)
-    let mult = 1 + PRESTIGE.bonusScale * Math.pow(this.heavenlyChips, PRESTIGE.bonusExponent);
+    // Diminishing returns based on AVAILABLE (unspent) chips — spending chips reduces the bonus
+    const available = this.getSpendableChips();
+    let mult = 1 + PRESTIGE.bonusScale * Math.pow(available, PRESTIGE.bonusExponent);
 
     // Season Savings: +10% CPS per prestige level
     if (this.hasUpgrade('seasonSavings')) {
