@@ -1391,33 +1391,32 @@ export class Game {
 
       const effectiveCost = upgrade.getEffectiveCost();
       if (upgrade.type === "tieredUpgrade") {
-        if (this.cookies < effectiveCost) {
-          button.disabled = true;
-          button.dataset.disabledReason = "Not Enough Cookies";
-        } else if (upgrade.level > 0 && !upgrade.canUpgradeTier()) {
-          button.disabled = true;
-          if (upgrade.currentTier < upgrade.tiers.length - 1) {
-            const nextTier = upgrade.tiers[upgrade.currentTier + 1];
-            const totalBuildings = this.getTotalBuildingCount();
-            button.dataset.disabledReason = `Need ${nextTier.buildingsRequired} buildings (have ${totalBuildings})`;
-          } else {
-            button.dataset.disabledReason = 'Maximum Tier Reached';
-          }
-        } else if (upgrade.currentTier >= upgrade.tiers.length - 1 && upgrade.level > 0) {
+        if (upgrade.level > 0 && upgrade.currentTier >= upgrade.tiers.length - 1) {
           button.disabled = true;
           button.dataset.disabledReason = 'Maximum Tier Reached';
+        } else if (upgrade.level > 0 && !upgrade.canUpgradeTier()) {
+          button.disabled = true;
+          const nextTier = upgrade.tiers[upgrade.currentTier + 1];
+          const totalBuildings = this.getTotalBuildingCount();
+          button.dataset.disabledReason = `Need ${nextTier.buildingsRequired} buildings (have ${totalBuildings})`;
+        } else if (this.cookies < effectiveCost) {
+          button.disabled = true;
+          button.dataset.disabledReason = "Not Enough Cookies";
         } else {
           button.disabled = false;
           delete button.dataset.disabledReason;
           anyUpgradeAffordable = true;
         }
       } else {
-        if (this.cookies < effectiveCost) {
+        const effectiveMax = upgrade.getEffectiveMaxLevel();
+        if (upgrade.level >= effectiveMax) {
+          button.disabled = true;
+          button.dataset.disabledReason = upgrade.prestige_bonus_levels > 0
+            ? `Max Level: ${effectiveMax} (Prestige to unlock more!)`
+            : `Max Level: ${effectiveMax}`;
+        } else if (this.cookies < effectiveCost) {
           button.disabled = true;
           button.dataset.disabledReason = "Not Enough Cookies";
-        } else if (upgrade.level >= upgrade.max_level) {
-          button.disabled = true;
-          button.dataset.disabledReason = `Max Level: ${upgrade.max_level}`;
         } else {
           button.disabled = false;
           delete button.dataset.disabledReason;
@@ -1595,14 +1594,18 @@ export class Game {
     this._upgradeOrder.sort((a, b) => {
       const upA = this.upgrades[a];
       const upB = this.upgrades[b];
-      // Maxed upgrades go to the end
-      const maxedA = upA.type === 'tieredUpgrade'
-        ? (upA.level > 0 && upA.currentTier >= upA.tiers.length - 1)
-        : (upA.level >= upA.getEffectiveMaxLevel());
-      const maxedB = upB.type === 'tieredUpgrade'
-        ? (upB.level > 0 && upB.currentTier >= upB.tiers.length - 1)
-        : (upB.level >= upB.getEffectiveMaxLevel());
-      if (maxedA !== maxedB) return maxedA ? 1 : -1;
+      // Priority: 0 = buyable/unlocked, 1 = locked (requirements not met), 2 = maxed
+      const getPriority = (u) => {
+        const maxed = u.type === 'tieredUpgrade'
+          ? (u.level > 0 && u.currentTier >= u.tiers.length - 1)
+          : (u.level >= u.getEffectiveMaxLevel());
+        if (maxed) return 2;
+        if (!u.meetsRequirements()) return 1;
+        return 0;
+      };
+      const prioA = getPriority(upA);
+      const prioB = getPriority(upB);
+      if (prioA !== prioB) return prioA - prioB;
       return upA.cost - upB.cost;
     });
     this._upgradePage = 0;

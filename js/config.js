@@ -141,21 +141,25 @@ export const ACHIEVEMENTS = {
 // ─────────────────────────────────────────────────────────────
 export const MINI_GAME_REWARDS = {
   /**
-   * CPS bonus: reward += CPS × multiplier
-   *   legendary / epic / jackpot / great / normal
-   *   (legendary & epic for longer/harder minigames)
+   * Reward formula uses diminishing returns to soft-cap relative to cookies:
+   *   raw = CPS × cpsMult + sqrt(clicks) × clickMult + buildings × empireMult + chips × prestMult
+   *   scaling = raw / (raw + cookies)            ← approaches 1 but never reaches it
+   *   reward = cookies × scaling × tierScale     ← self-limiting, no hard cap
+   *
+   * No ceiling — infinite cookies = infinite reward. The formula naturally prevents
+   * rewards from exceeding cookies since scaling < 1 always.
    */
-  cpsMultiplier:    { legendary: 300, epic: 200, jackpot: 120, great: 60,  normal: 30 },
-  /** Cookie percentage: reward += cookies × percentage */
-  cookiePercent:    { legendary: 0.15, epic: 0.12, jackpot: 0.08, great: 0.05, normal: 0.03 },
-  /** Click dedication: reward += sqrt(totalClicks) × multiplier */
-  clickMultiplier:  { legendary: 8, epic: 5, jackpot: 3, great: 2, normal: 1 },
-  /** Empire bonus: reward += totalBuildings × multiplier */
-  empireMultiplier: { legendary: 40, epic: 25, jackpot: 15, great: 8, normal: 4 },
-  /** Prestige bonus: reward += heavenlyChips × multiplier */
-  prestigeMultiplier: { legendary: 12, epic: 8, jackpot: 5, great: 3, normal: 1 },
-  /** Minimum floor reward */
-  floor:            { legendary: 2000, epic: 1000, jackpot: 500, great: 200, normal: 50 },
+  cpsMultiplier:      { legendary: 1500, epic: 1000, jackpot: 600, great: 300, normal: 150 },
+  /** Click dedication: raw += sqrt(totalClicks) × multiplier */
+  clickMultiplier:    { legendary: 40,  epic: 25,  jackpot: 15,  great: 10,  normal: 5 },
+  /** Empire bonus: raw += totalBuildings × multiplier */
+  empireMultiplier:   { legendary: 200, epic: 120, jackpot: 75,  great: 40,  normal: 20 },
+  /** Prestige bonus: raw += spendableChips × multiplier */
+  prestigeMultiplier: { legendary: 60,  epic: 40,  jackpot: 25,  great: 15,  normal: 5 },
+  /** Tier scaling — multiplier on the final reward (no hard cap, formula self-limits) */
+  tierScale:          { legendary: 1.0, epic: 0.70, jackpot: 0.50, great: 0.30, normal: 0.15 },
+  /** Minimum floor reward (early game when cookies are very low) */
+  floor:              { legendary: 2000, epic: 1000, jackpot: 500,  great: 200,  normal: 50 },
 };
 
 // ─────────────────────────────────────────────────────────────

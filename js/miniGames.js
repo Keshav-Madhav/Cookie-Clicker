@@ -39,7 +39,7 @@ export class MiniGames {
     });
   }
 
-  /* ─── reward helper — dynamic scaling ─── */
+  /* ─── reward helper — diminishing-returns scaling ─── */
   _giveReward(tier = "normal", gameName = "") {
     const g = this.game;
     const cps = g.getEffectiveCPS();
@@ -47,29 +47,27 @@ export class MiniGames {
     const buildings = g.getTotalBuildingCount();
     const prestige = g.prestige.getSpendableChips() || 0;
 
-    // Base reward from CPS
-    const cpsBonus = cps * (MINI_GAME_REWARDS.cpsMultiplier[tier] || MINI_GAME_REWARDS.cpsMultiplier.normal);
+    // Raw reward value from game progress (not directly from cookies)
+    const cpsMult    = MINI_GAME_REWARDS.cpsMultiplier[tier]      || MINI_GAME_REWARDS.cpsMultiplier.normal;
+    const clickMult  = MINI_GAME_REWARDS.clickMultiplier[tier]    || MINI_GAME_REWARDS.clickMultiplier.normal;
+    const empireMult = MINI_GAME_REWARDS.empireMultiplier[tier]   || MINI_GAME_REWARDS.empireMultiplier.normal;
+    const prestMult  = MINI_GAME_REWARDS.prestigeMultiplier[tier] || MINI_GAME_REWARDS.prestigeMultiplier.normal;
 
-    // Percentage of current cookies
-    const cookiePercent = MINI_GAME_REWARDS.cookiePercent[tier] || MINI_GAME_REWARDS.cookiePercent.normal;
-    const cookieBonus = g.cookies * cookiePercent;
+    const raw = cps * cpsMult
+              + Math.sqrt(clicks) * clickMult
+              + buildings * empireMult
+              + prestige * prestMult;
 
-    // Click dedication bonus — scales with how much the player clicks
-    const clickMult = MINI_GAME_REWARDS.clickMultiplier[tier] || MINI_GAME_REWARDS.clickMultiplier.normal;
-    const clickBonus = Math.sqrt(clicks) * clickMult;
+    // Diminishing returns: scaling approaches 1 as raw grows, but never reaches it.
+    // reward = cookies × scaling × tierScale — no hard cap, the formula self-limits
+    const cookies = Math.max(1, g.cookies);
+    const scaling = raw / (raw + cookies);
+    const tierScale = MINI_GAME_REWARDS.tierScale[tier] || MINI_GAME_REWARDS.tierScale.normal;
 
-    // Empire bonus — more buildings = bigger payoff
-    const empireMult = MINI_GAME_REWARDS.empireMultiplier[tier] || MINI_GAME_REWARDS.empireMultiplier.normal;
-    const empireBonus = buildings * empireMult;
-
-    // Prestige bonus
-    const prestMult = MINI_GAME_REWARDS.prestigeMultiplier[tier] || MINI_GAME_REWARDS.prestigeMultiplier.normal;
-    const prestigeBonus = prestige * prestMult;
-
-    // Minimum floor
+    // Minimum floor for early game (when cookies are near zero)
     const floor = MINI_GAME_REWARDS.floor[tier] || MINI_GAME_REWARDS.floor.normal;
 
-    let reward = Math.max(cpsBonus + cookieBonus + clickBonus + empireBonus + prestigeBonus, floor);
+    let reward = Math.max(cookies * scaling * tierScale, floor);
     // Apply mini-game bonus upgrade multiplier
     reward *= (g.miniGameBonus || 1);
     reward = Math.floor(reward);
