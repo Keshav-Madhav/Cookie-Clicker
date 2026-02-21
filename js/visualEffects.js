@@ -637,8 +637,9 @@ export class VisualEffects {
       const g = this.game;
       let msg = "";
       let incomeAmount = 0;
+      const gcRewardMult = g.prestige ? g.prestige.getGoldenCookieRewardMultiplier() : 1;
       if (roll < GOLDEN_COOKIE.luckyRollMax) {
-        const bonus = Math.max(GOLDEN_COOKIE.lucky.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.lucky.cpsMultiplier);
+        const bonus = Math.max(GOLDEN_COOKIE.lucky.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.lucky.cpsMultiplier) * gcRewardMult;
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `🍀 Lucky! +${formatNumberInWords(bonus)}`;
@@ -650,7 +651,7 @@ export class VisualEffects {
         g.startFrenzy('click', GOLDEN_COOKIE.clickFrenzy.multiplier, GOLDEN_COOKIE.clickFrenzy.durationSec);
         msg = `⚡ Click Frenzy! ${GOLDEN_COOKIE.clickFrenzy.multiplier}x for ${GOLDEN_COOKIE.clickFrenzy.durationSec}s!`;
       } else {
-        const bonus = Math.max(GOLDEN_COOKIE.cookieStorm.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.cookieStorm.cpsMultiplier);
+        const bonus = Math.max(GOLDEN_COOKIE.cookieStorm.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.cookieStorm.cpsMultiplier) * gcRewardMult;
         g.cookies += bonus;
         g.stats.totalCookiesBaked += bonus;
         msg = `🌟 Cookie Storm! +${formatNumberInWords(bonus)}`;

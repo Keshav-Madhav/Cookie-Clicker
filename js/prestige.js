@@ -29,8 +29,8 @@ export class PrestigeManager {
   }
 
   getPrestigeMultiplier() {
-    // Each heavenly chip = +1% CPS (based on total earned, not remaining)
-    let mult = 1 + (this.heavenlyChips * PRESTIGE.bonusPerChip);
+    // Diminishing returns: 1 + scale × chips^exp (not linear)
+    let mult = 1 + PRESTIGE.bonusScale * Math.pow(this.heavenlyChips, PRESTIGE.bonusExponent);
 
     // Season Savings: +10% CPS per prestige level
     if (this.hasUpgrade('seasonSavings')) {
@@ -47,7 +47,7 @@ export class PrestigeManager {
   }
 
   canPrestige() {
-    return this.calculateHeavenlyChipsOnReset() > 0;
+    return this.calculateHeavenlyChipsOnReset() >= 10;
   }
 
   performPrestige() {
@@ -147,6 +147,11 @@ export class PrestigeManager {
       case 'bonusUpgradeLevels':
       case 'persistentMemory2':
       case 'synergyTripler':
+      case 'goldenCookieRewardMultiplier':
+      case 'starterBuildings2':
+      case 'clickMultiplier2':
+      case 'cpsPerAchievement2':
+      case 'frenzyMultiplier2':
         // Checked dynamically during gameplay
         break;
       default:
@@ -289,6 +294,41 @@ export class PrestigeManager {
   getSynergyMultiplier2() {
     if (this.hasUpgrade('cosmicSynergy')) {
       return this._getUpgradeData('cosmicSynergy').value;
+    }
+    return 1;
+  }
+
+  getGoldenCookieRewardMultiplier() {
+    if (this.hasUpgrade('goldenWindfall')) {
+      return this._getUpgradeData('goldenWindfall').value;
+    }
+    return 1;
+  }
+
+  getStarterBuildings2() {
+    if (this.hasUpgrade('cookieStockpile')) {
+      return this._getUpgradeData('cookieStockpile').value; // [3, 4]
+    }
+    return [];
+  }
+
+  getClickMultiplier2() {
+    if (this.hasUpgrade('practicedHands')) {
+      return this._getUpgradeData('practicedHands').value;
+    }
+    return 1;
+  }
+
+  getCpsPerAchievementBonus2() {
+    if (this.hasUpgrade('medalCabinet')) {
+      return this._getUpgradeData('medalCabinet').value;
+    }
+    return 0;
+  }
+
+  getFrenzyBonusMultiplier2() {
+    if (this.hasUpgrade('frenzyMastery')) {
+      return this._getUpgradeData('frenzyMastery').value;
     }
     return 1;
   }

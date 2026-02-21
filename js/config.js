@@ -51,20 +51,20 @@ export const LUCKY_CLICK = {
 
   /** Cookie bonus = max(minCookies, CPS × cpsMultiplier) */
   cookie: {
-    cpsMultiplier: 600,
+    cpsMultiplier: 120,
     minCookies: 100,
   },
 
-  /** CPS frenzy: production multiplied */
+  /** CPS frenzy: production multiplied (weaker than golden cookie frenzies) */
   cpsFrenzy: {
-    multiplier: 7,
-    durationSec: 30,
+    multiplier: 3,
+    durationSec: 15,
   },
 
-  /** Click frenzy: each click multiplied */
+  /** Click frenzy: each click multiplied (weaker than golden cookie frenzies) */
   clickFrenzy: {
-    multiplier: 777,
-    durationSec: 15,
+    multiplier: 77,
+    durationSec: 8,
   },
 };
 
@@ -108,11 +108,14 @@ export const PARTICLES = {
 //  PRESTIGE / HEAVENLY CHIPS
 // ─────────────────────────────────────────────────────────────
 export const PRESTIGE = {
-  /** Heavenly chip formula: floor( (totalCookies / divisor) ^ exponent ) */
-  chipDivisor: 1e13,
-  chipExponent: 0.35,
-  /** CPS bonus per heavenly chip (0.002 = +0.2% each) */
-  bonusPerChip: 0.002,
+  /** Prestige chip formula: floor( (totalCookies / divisor) ^ exponent )
+   *  100M → 1, 1B → 3, 10B → 10, 100B → 31, 1T → 100, 100T → 1K, 1Qi → 100K */
+  chipDivisor: 1e8,
+  chipExponent: 0.5,
+  /** CPS multiplier from chips: 1 + bonusScale × chips^bonusExponent
+   *  Diminishing returns — 1 chip → 1.2x, 100 → 2.6x, 1K → 5.5x, 10K → 15x */
+  bonusScale: 0.2,
+  bonusExponent: 0.45,
 };
 
 // ─────────────────────────────────────────────────────────────

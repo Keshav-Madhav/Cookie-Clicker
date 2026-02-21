@@ -141,6 +141,12 @@ export class Tutorial {
         target: "#milk-layer",
         position: "top",
       },
+      prestigeNudge: {
+        title: "Time to Ascend!",
+        text: "You've saved up a nice stash of Prestige Chips! Ascending now will give you a permanent boost that makes your next run much faster. Go ahead — hit that Ascend button!",
+        target: "#prestige-btn",
+        position: "right",
+      },
       prestigeAvailable: {
         title: "Prestige Available!",
         text: "You've baked enough cookies to Ascend! Prestiging will reset ALL your cookies, buildings, and upgrades, but in return you earn permanent Heavenly Chips. Each chip gives +1% CPS forever, and they stack across all future runs. It's the key to long-term exponential growth!",

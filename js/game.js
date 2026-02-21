@@ -182,10 +182,16 @@ export class Game {
     cps *= this.achievementManager.getMultiplier();
     cps *= this.prestige.getPrestigeMultiplier();
 
-    // Kitten Workers: +1% CPS per achievement
+    // Kitten Workers: +0.5% CPS per achievement
     const kittenBonus = this.prestige.getCpsPerAchievementBonus();
     if (kittenBonus > 0) {
       cps *= (1 + kittenBonus * this.achievementManager.getUnlockedCount());
+    }
+
+    // Medal Cabinet: +1% CPS per achievement
+    const medalBonus = this.prestige.getCpsPerAchievementBonus2();
+    if (medalBonus > 0) {
+      cps *= (1 + medalBonus * this.achievementManager.getUnlockedCount());
     }
 
     // Cosmic Resonance: +0.5% CPS per building type owned
@@ -217,7 +223,9 @@ export class Game {
     }
 
     let cpc = baseClick + cpsBonus;
-    // Heavenly Clicking: x3 clicking power
+    // Practiced Hands: x1.5 clicking power
+    cpc *= this.prestige.getClickMultiplier2();
+    // Heavenly Clicking: x2 clicking power
     cpc *= this.prestige.getClickMultiplier();
     if (this.frenzyActive && this.frenzyType === 'click') {
       cpc *= this.frenzyMultiplier;
@@ -321,7 +329,7 @@ export class Game {
 
   checkLuckyClick(event) {
     if (this.luckyClickChance <= 0) return;
-    
+
     if (Math.random() < this.luckyClickChance) {
       this.stats.luckyClicks++;
 
@@ -357,8 +365,8 @@ export class Game {
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier;
     this.frenzyActive = true;
     this.frenzyType = type;
-    // Frenzy Overload: double frenzy multiplier
-    this.frenzyMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier();
+    // Frenzy Overload + Frenzy Mastery: amplify frenzy multiplier
+    this.frenzyMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier() * this.prestige.getFrenzyBonusMultiplier2();
     this.frenzyEndTime = Date.now() + duration;
     this.stats.frenziesTriggered++;
     this.updateFrenzyIndicator();
@@ -545,11 +553,11 @@ export class Game {
       btn.addEventListener("click", () => this.handlePrestige());
     }
 
-    // Easter egg: clicking the prestige diamond
+    // Easter egg: clicking the prestige cookie
     const prestEl = document.getElementById("left-prestige");
     if (prestEl) {
       prestEl.addEventListener("click", (e) => {
-        // Only trigger if clicking the diamond icon itself, not the button
+        // Only trigger if clicking the cookie icon itself, not the button
         if (e.target.classList.contains('chip-icon') || e.target.closest('.prestige-chips')) {
           if (this.tutorial) this.tutorial.triggerEvent('oooShiny');
         }
@@ -595,8 +603,11 @@ export class Game {
       const prereqsMet = !upgrade.requires || upgrade.requires.length === 0 ||
         upgrade.requires.every(r => this.prestige.hasUpgrade(r));
 
+      // Unaffordable: prereqs met but not enough chips
+      const unaffordable = !owned && !canBuy && prereqsMet && spendable < upgrade.cost;
+
       const card = document.createElement("div");
-      card.className = `heavenly-card ${owned ? 'heavenly-owned' : ''} ${canBuy ? 'heavenly-buyable' : ''} ${!prereqsMet && !owned ? 'heavenly-locked' : ''}`;
+      card.className = `heavenly-card${owned ? ' heavenly-owned' : ''}${canBuy ? ' heavenly-buyable' : ''}${!prereqsMet && !owned ? ' heavenly-locked' : ''}${unaffordable ? ' heavenly-unaffordable' : ''}`;
 
       const costStr = formatNumberInWords(upgrade.cost);
       const prereqNames = (upgrade.requires || []).map(r => {
@@ -611,6 +622,7 @@ export class Game {
         </div>
         <div class="heavenly-card-desc">${upgrade.desc}</div>
         ${!prereqsMet && !owned ? `<div class="heavenly-card-prereq">Requires: ${prereqNames.join(', ')}</div>` : ''}
+        ${unaffordable ? `<div class="heavenly-card-prereq">Need ${costStr} chips (have ${formatNumberInWords(spendable)})</div>` : ''}
       `;
 
       if (!owned && canBuy) {
@@ -620,6 +632,11 @@ export class Game {
             this.calculateCPS();
             this.updateLeftPanel();
             this.saveGame();
+            // Flash the chip count after re-render to show it decreased
+            const newChipsEl = document.getElementById("heavenly-available-chips");
+            if (newChipsEl) {
+              newChipsEl.classList.add('heavenly-chip-flash');
+            }
           }
         });
       }
@@ -629,10 +646,9 @@ export class Game {
   }
 
   updateHeavenlyShopButton() {
+    // Access moved to upgrade grid — always hide left panel button
     const btn = document.getElementById("heavenly-shop-btn");
-    if (btn) {
-      btn.style.display = this.prestige.timesPrestiged >= 1 ? '' : 'none';
-    }
+    if (btn) btn.style.display = 'none';
   }
 
   setupUpgradeNav() {
@@ -642,7 +658,7 @@ export class Game {
       if (this._upgradePage > 0) { this._upgradePage--; this._upgradeNavDir = 'left'; this.renderUpgradePage(true); this.updateButtonsState(); }
     });
     if (next) next.addEventListener("click", () => {
-      const totalPages = Math.ceil((this._upgradeOrder || this.upgrades).length / this.upgradePageSize);
+      const totalPages = this._getUpgradeTotalPages();
       if (this._upgradePage < totalPages - 1) { this._upgradePage++; this._upgradeNavDir = 'right'; this.renderUpgradePage(true); this.updateButtonsState(); }
     });
   }
@@ -984,9 +1000,9 @@ export class Game {
 
   handlePrestige() {
     const newChips = this.prestige.calculateHeavenlyChipsOnReset();
-    if (newChips <= 0) return;
+    if (newChips < 10) return;
 
-    if (confirm(`Prestige now to earn ${newChips} Heavenly Chips?\n\nYou'll reset all cookies and buildings but keep your Heavenly Chips which give +${newChips}% permanent CPS bonus.\n\nTotal HC after: ${this.prestige.heavenlyChips + newChips}`)) {
+    if (confirm(`Prestige now to earn ${newChips} Prestige Chips?\n\nYou'll reset all cookies and buildings but keep your Prestige Chips which give permanent CPS bonuses.\n\nTotal chips after: ${this.prestige.heavenlyChips + newChips}`)) {
       this.prestige.performPrestige();
 
       // Massive cookie rain burst on prestige
@@ -1078,6 +1094,15 @@ export class Game {
     // Starter Kit: give free buildings
     const starterBuildings = this.prestige.getStarterBuildings();
     starterBuildings.forEach(idx => {
+      if (this.buildings[idx]) {
+        this.buildings[idx].count = 1;
+        this.buildings[idx].recalculateCost();
+      }
+    });
+
+    // Cookie Stockpile: give additional free buildings (Factory, Mine)
+    const starterBuildings2 = this.prestige.getStarterBuildings2();
+    starterBuildings2.forEach(idx => {
       if (this.buildings[idx]) {
         this.buildings[idx].count = 1;
         this.buildings[idx].recalculateCost();
@@ -1271,6 +1296,38 @@ export class Game {
   // === Paginated Upgrades ===
   get upgradePageSize() { return GAME.upgradePageSize; }
 
+  _getUpgradeTotalPages() {
+    const total = (this._upgradeOrder || this.upgrades).length;
+    const pageSize = this.upgradePageSize;
+    const firstPageCapacity = pageSize - 1; // reserve last slot for heavenly icon
+    if (total <= firstPageCapacity) return 1;
+    const remaining = total - firstPageCapacity;
+    return 1 + Math.ceil(remaining / pageSize);
+  }
+
+  _createHeavenlyShopIcon() {
+    const btn = document.createElement("button");
+    btn.classList.add("upgrade-btn", "heavenly-shop-icon");
+
+    const hasPrestiged = this.prestige.timesPrestiged >= 1;
+
+    if (hasPrestiged) {
+      btn.innerHTML = "<span class='heavenly-cookie-small'>🍪</span> Prestige<br>Upgrades";
+      btn.addEventListener("click", () => {
+        this.renderHeavenlyShop();
+        const overlay = document.getElementById("heavenly-overlay");
+        if (overlay) overlay.classList.remove("hidden");
+      });
+    } else {
+      btn.innerHTML = "🔒 Prestige<br>Upgrades";
+      btn.classList.add("locked");
+      btn.disabled = true;
+      btn.dataset.disabledReason = "Prestige at least once to unlock";
+    }
+
+    return btn;
+  }
+
   renderUpgradePage(animated = false) {
     if (this._upgradePage === undefined) this._upgradePage = 0;
     // Initialize sort order if not set — use full maxed-aware sort
@@ -1278,11 +1335,19 @@ export class Game {
       this.sortUpgradesByCost(false);
     }
     const pageSize = this.upgradePageSize;
-    const totalPages = Math.max(1, Math.ceil(this._upgradeOrder.length / pageSize));
+    const firstPageCapacity = pageSize - 1; // reserve last slot for heavenly icon
+    const totalPages = this._getUpgradeTotalPages();
     if (this._upgradePage >= totalPages) this._upgradePage = totalPages - 1;
 
-    const start = this._upgradePage * pageSize;
-    const pageIndices = this._upgradeOrder.slice(start, start + pageSize);
+    let start, count;
+    if (this._upgradePage === 0) {
+      start = 0;
+      count = Math.min(firstPageCapacity, this._upgradeOrder.length);
+    } else {
+      start = firstPageCapacity + (this._upgradePage - 1) * pageSize;
+      count = pageSize;
+    }
+    const pageIndices = this._upgradeOrder.slice(start, start + count);
 
     const list = document.getElementById("upgrade-list");
 
@@ -1297,6 +1362,15 @@ export class Game {
         }
         list.appendChild(btn);
       });
+      // Always add heavenly shop icon as last item on page 0
+      if (this._upgradePage === 0) {
+        const heavenlyBtn = this._createHeavenlyShopIcon();
+        if (animated) {
+          heavenlyBtn.classList.add('upgrade-enter');
+          heavenlyBtn.style.animationDelay = `${pageIndices.length * 25}ms`;
+        }
+        list.appendChild(heavenlyBtn);
+      }
     };
 
     if (animated && list.children.length > 0) {
@@ -1459,16 +1533,23 @@ export class Game {
         </div>
         <div class="prestige-row"><span>Ascended</span><span>${this.prestige.timesPrestiged}x</span></div>
         <div class="prestige-row"><span>On reset</span><span>+${formatNumberInWords(potentialChips)}</span></div>
-        ${this.prestige.spentChips > 0 ? `<div class="prestige-row"><span>Available</span><span><span class="heavenly-cookie-small">🍪</span> ${formatNumberInWords(spendable)}</span></div>` : ''}
+        ${this.prestige.timesPrestiged >= 1 ? `<div class="prestige-row"><span>Available</span><span><span class="heavenly-cookie-small">🍪</span> ${formatNumberInWords(spendable)}</span></div>` : ''}
       `;
       
+      // Tutorial: nudge at 25+ potential chips (before prestige available check)
+      if (potentialChips >= 25 && this.tutorial) {
+        this.tutorial.triggerEvent('prestigeNudge');
+      }
+
       const btn = document.getElementById("prestige-btn");
       if (btn) {
         btn.disabled = !this.prestige.canPrestige();
         if (this.prestige.canPrestige()) {
-          btn.textContent = `Ascend (+${formatNumberInWords(potentialChips)} HC)`;
+          btn.textContent = `Ascend (+${formatNumberInWords(potentialChips)} chips)`;
           // Tutorial: prestige available event
           if (this.tutorial) this.tutorial.triggerEvent('prestigeAvailable');
+        } else if (potentialChips > 0) {
+          btn.textContent = `Ascend (need 10+ chips)`;
         } else {
           btn.textContent = `Ascend (need more cookies)`;
         }
