@@ -8,27 +8,34 @@ export const formatNumberInWords = (num) => {
   // CookieNum-aware path: use log10() directly for precision with large values
   if (num instanceof CookieNum) {
     if (num.isZero()) return "0";
+    // Guard against Infinity/NaN mantissa
+    if (!Number.isFinite(num.mantissa)) return "Infinity";
     const n = num.toNumber();
     if (!_useShortNumbers) {
       if (Number.isFinite(n) && Math.abs(n) < 1e15) {
         return Math.floor(n).toLocaleString('en-US');
       }
       // Beyond safe integer range: fall through to suffixed display
-    } else if (n < 10000) {
+    } else if (Number.isFinite(n) && n < 10000) {
       return n.toString();
     }
     // Use CookieNum's precise log10 for tier calculation
     const log = num.log10();
+    if (!Number.isFinite(log)) return "Infinity";
     let tier = Math.floor(log / 3);
+    if (tier < 0) tier = 0;
     if (tier >= suffixes.length) tier = suffixes.length - 1;
-    // Scale using precise exponent math
-    const scaled = num.div(Math.pow(10, tier * 3)).toNumber();
+    // Scale using CookieNum division to avoid overflow in Math.pow
+    const divisor = CookieNum.from(10).pow(tier * 3);
+    const scaled = num.div(divisor).toNumber();
+    if (!Number.isFinite(scaled)) return `${num.mantissa.toFixed(2)}e${num.exponent}`;
     const formatted = scaled % 1 === 0 ? scaled.toFixed(0) : scaled.toFixed(2);
-    return `${formatted} ${suffixes[tier]}`;
+    return `${formatted} ${suffixes[tier]}`.trim();
   }
 
   num = parseFloat(num);
   if (isNaN(num)) return "0";
+  if (!Number.isFinite(num)) return "Infinity";
 
   // Full comma-separated mode
   if (!_useShortNumbers) {

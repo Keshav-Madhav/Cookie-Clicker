@@ -77,7 +77,13 @@ export class CookieNum {
 
   toString() {
     if (this.mantissa === 0) return '0';
-    return String(this.toNumber());
+    const n = this.toNumber();
+    // Avoid scientific notation for display — show readable numbers
+    if (Number.isFinite(n) && Math.abs(n) < 1e21) {
+      return String(n);
+    }
+    // For very large values, format as mantissa x10^exp
+    return `${this.mantissa.toFixed(2)}e${this.exponent}`;
   }
 
   isZero() {
@@ -181,11 +187,13 @@ export class CookieNum {
   }
 
   floor() {
+    if (this.mantissa === 0) return CookieNum.ZERO.clone();
+    // For large exponents (>= 15), the value is already effectively integer-scale
+    if (this.exponent >= 15) return this.clone();
     const n = this.toNumber();
     if (Number.isFinite(n)) {
       return CookieNum.from(Math.floor(n));
     }
-    // For very large numbers, floor is effectively a no-op (already integer-scale)
     return this.clone();
   }
 

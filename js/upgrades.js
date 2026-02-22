@@ -171,7 +171,7 @@ export class Upgrade {
             this.game.tutorial.triggerEvent('upgradeMaxedOut');
           }
           this.game.scheduleUpgradeSort();
-          this.game.updateUI();
+          this.game.updateAfterPurchase();
           return true;
         } else if (this.canUpgradeTier()) {
           this.game.cookies = this.game.cookies.sub(effectiveCost);
@@ -183,7 +183,7 @@ export class Upgrade {
             this.game.tutorial.triggerEvent('upgradeMaxedOut');
           }
           this.game.scheduleUpgradeSort();
-          this.game.updateUI();
+          this.game.updateAfterPurchase();
           return true;
         }
         return false;
@@ -196,9 +196,11 @@ export class Upgrade {
           // Cost acceleration: each level past accel_start makes the multiplier exponentially larger
           if (this.accel_start && this.cost_acceleration && this.level >= this.accel_start) {
             const extra = this.level - this.accel_start + 1;
-            costMult *= Math.pow(this.cost_acceleration, extra);
+            // Use CookieNum.pow to avoid Math.pow overflow for large extra values
+            this.cost = this.cost.mul(costMult).mul(CookieNum.from(this.cost_acceleration).pow(extra));
+          } else {
+            this.cost = this.cost.mul(costMult);
           }
-          this.cost = this.cost.mul(costMult).floor();
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
           // Easter egg: maxed out
@@ -206,7 +208,7 @@ export class Upgrade {
             this.game.tutorial.triggerEvent('upgradeMaxedOut');
           }
           this.game.scheduleUpgradeSort();
-          this.game.updateUI();
+          this.game.updateAfterPurchase();
           return true;
         }
       }

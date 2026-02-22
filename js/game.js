@@ -36,11 +36,8 @@ export class Game {
       shimmers: true,        // shimmer sparkles in viewport
     };
 
-    // Frenzy state
-    this.frenzyActive = false;
-    this.frenzyMultiplier = 1;
-    this.frenzyEndTime = 0;
-    this.frenzyType = null;  // 'cps' or 'click'
+    // Active buff system (supports multiple concurrent frenzies)
+    this.activeBuffs = [];  // Array of { id, type: 'cps'|'click', multiplier, endTime }
 
     // Stats tracking
     this.stats = {
@@ -153,10 +150,8 @@ export class Game {
       this.cookies = this.cookies.add(effectiveCPS);
       this.stats.totalCookiesBaked = this.stats.totalCookiesBaked.add(effectiveCPS);
 
-      // Check frenzy expiry
-      if (this.frenzyActive && Date.now() >= this.frenzyEndTime) {
-        this.endFrenzy();
-      }
+      // Remove expired buffs
+      this.expireBuffs();
 
       this.achievementManager.check();
       this.updateCookieCount();
@@ -181,6 +176,14 @@ export class Game {
       }
 
     }, GAME.tickIntervalMs);
+
+    // Smooth frenzy timer updates (200ms instead of waiting for 1s tick)
+    setInterval(() => {
+      if (this.activeBuffs.length > 0) {
+        this.expireBuffs();
+        this.updateFrenzyIndicator();
+      }
+    }, 200);
 
     // Auto-save
     setInterval(() => this.saveGame(), GAME.saveIntervalMs);
@@ -213,8 +216,9 @@ export class Game {
       cps = cps.mul(1 + buildingTypeBonus * typesOwned);
     }
 
-    if (this.frenzyActive && this.frenzyType === 'cps') {
-      cps = cps.mul(this.frenzyMultiplier);
+    // Apply all active CPS buffs
+    for (const buff of this.activeBuffs) {
+      if (buff.type === 'cps') cps = cps.mul(buff.multiplier);
     }
     return cps;
   }
@@ -238,8 +242,9 @@ export class Game {
     cpc = cpc.mul(this.prestige.getClickMultiplier2());
     // Heavenly Clicking: x2 clicking power
     cpc = cpc.mul(this.prestige.getClickMultiplier());
-    if (this.frenzyActive && this.frenzyType === 'click') {
-      cpc = cpc.mul(this.frenzyMultiplier);
+    // Apply all active click buffs
+    for (const buff of this.activeBuffs) {
+      if (buff.type === 'click') cpc = cpc.mul(buff.multiplier);
     }
     return cpc;
   }
@@ -376,13 +381,18 @@ export class Game {
   }
 
   startFrenzy(type, multiplier, durationSec) {
-    const wasAlreadyActive = this.frenzyActive;
+    const wasAlreadyActive = this.activeBuffs.length > 0;
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier;
-    this.frenzyActive = true;
-    this.frenzyType = type;
     // Frenzy Overload + Frenzy Mastery: amplify frenzy multiplier
-    this.frenzyMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier() * this.prestige.getFrenzyBonusMultiplier2();
-    this.frenzyEndTime = Date.now() + duration;
+    const effectiveMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier() * this.prestige.getFrenzyBonusMultiplier2();
+
+    this.activeBuffs.push({
+      id: Date.now() + Math.random(),
+      type,
+      multiplier: effectiveMultiplier,
+      endTime: Date.now() + duration,
+    });
+
     this.stats.frenziesTriggered++;
     this.updateFrenzyIndicator();
 
@@ -404,28 +414,40 @@ export class Game {
     }
   }
 
+  expireBuffs() {
+    const now = Date.now();
+    const hadBuffs = this.activeBuffs.length > 0;
+    this.activeBuffs = this.activeBuffs.filter(b => b.endTime > now);
+    if (hadBuffs && this.activeBuffs.length === 0) {
+      this.updateFrenzyIndicator();
+    }
+  }
+
   endFrenzy() {
-    this.frenzyActive = false;
-    this.frenzyType = null;
-    this.frenzyMultiplier = 1;
-    this.frenzyEndTime = 0;
+    this.activeBuffs = [];
     this.updateFrenzyIndicator();
   }
 
   updateFrenzyIndicator() {
     const indicator = document.getElementById("frenzy-indicator");
     if (!indicator) return;
-    
-    if (this.frenzyActive) {
-      const remaining = Math.ceil((this.frenzyEndTime - Date.now()) / 1000);
-      if (this.frenzyType === 'cps') {
-        indicator.textContent = `🔥 FRENZY ${this.frenzyMultiplier}x CPS (${remaining}s)`;
-      } else {
-        indicator.textContent = `⚡ CLICK FRENZY ${this.frenzyMultiplier}x (${remaining}s)`;
+
+    if (this.activeBuffs.length > 0) {
+      indicator.innerHTML = '';
+      for (const buff of this.activeBuffs) {
+        const remaining = Math.max(0, Math.ceil((buff.endTime - Date.now()) / 1000));
+        const line = document.createElement('div');
+        line.className = `buff-line buff-${buff.type}`;
+        if (buff.type === 'cps') {
+          line.textContent = `🔥 FRENZY ${buff.multiplier}x CPS (${remaining}s)`;
+        } else {
+          line.textContent = `⚡ CLICK FRENZY ${buff.multiplier}x (${remaining}s)`;
+        }
+        indicator.appendChild(line);
       }
       indicator.classList.add("active");
     } else {
-      indicator.textContent = "";
+      indicator.innerHTML = '';
       indicator.classList.remove("active");
     }
   }
@@ -760,7 +782,7 @@ export class Game {
           <span>Prestige mult: x${this.prestige.getPrestigeMultiplier().toFixed(2)}</span>
           <span>Achievement mult: x${this.achievementManager.getMultiplier().toFixed(2)}</span>
           <span>Chips balance: ${fmt(spendable)}</span>
-          <span>Frenzy: ${this.frenzyActive ? this.frenzyType + ' x' + this.frenzyMultiplier : 'none'}</span>
+          <span>Buffs: ${this.activeBuffs.length > 0 ? this.activeBuffs.map(b => b.type + ' x' + b.multiplier).join(', ') : 'none'}</span>
         </div>
       </div>
     `;
@@ -1206,10 +1228,7 @@ export class Game {
     this.cpsClickBonus = 0;
     this.miniGameBonus = 1;
     this.frenzyDurationMultiplier = 1;
-    this.frenzyActive = false;
-    this.frenzyMultiplier = 1;
-    this.frenzyEndTime = 0;
-    this.frenzyType = null;
+    this.activeBuffs = [];
 
     // Reset middle panel / UI state
     this._upgradePage = 0;
@@ -1297,9 +1316,10 @@ export class Game {
           let costMult = upgrade.level > upgrade.base_max_level ? upgrade.prestige_cost_multiplier : upgrade.cost_multiplier;
           if (upgrade.accel_start && upgrade.cost_acceleration && upgrade.level >= upgrade.accel_start) {
             const extra = upgrade.level - upgrade.accel_start + 1;
-            costMult *= Math.pow(upgrade.cost_acceleration, extra);
+            upgrade.cost = upgrade.cost.mul(costMult).mul(CookieNum.from(upgrade.cost_acceleration).pow(extra));
+          } else {
+            upgrade.cost = upgrade.cost.mul(costMult);
           }
-          upgrade.cost = upgrade.cost.mul(costMult).floor();
         }
       }
     });
@@ -1388,7 +1408,7 @@ export class Game {
     this.updateButtonsState();
 
     // Update frenzy timer
-    if (this.frenzyActive) {
+    if (this.activeBuffs.length > 0) {
       this.updateFrenzyIndicator();
     }
   }
@@ -1459,12 +1479,7 @@ export class Game {
       if (purchaseAmount === 'Max') {
         button.disabled = this.cookies.lt(building.cost);
       } else {
-        let totalCost = CookieNum.ZERO;
-        const currentCount = building.count;
-        for (let i = 0; i < purchaseAmount; i++) {
-          const cost = building.baseCost.mul(Math.pow(building.cost_multiplier, currentCount + i)).floor();
-          totalCost = totalCost.add(cost);
-        }
+        const totalCost = building.calculateBulkCost(purchaseAmount);
         button.disabled = this.cookies.lt(totalCost);
       }
     });
@@ -1489,6 +1504,19 @@ export class Game {
     if (this.visualEffects && this.visualEffects.shopEffects) {
       this.visualEffects.shopEffects.refresh();
     }
+  }
+
+  /** Lightweight update after a purchase — avoids full DOM rebuild so rapid clicks register */
+  updateAfterPurchase() {
+    this.calculateCPS();
+    this.updateCookieCount();
+    // Schedule a deferred full DOM rebuild to update button text/cost
+    if (this._purchaseRenderTimer) clearTimeout(this._purchaseRenderTimer);
+    this._purchaseRenderTimer = setTimeout(() => {
+      this._purchaseRenderTimer = null;
+      this.renderUpgradePage();
+      this.renderBuildingList(false);
+    }, 150);
   }
 
   updateUI() {
@@ -1989,9 +2017,10 @@ export class Game {
               : upgrade.cost_multiplier;
             if (upgrade.accel_start && upgrade.cost_acceleration && lv >= upgrade.accel_start) {
               const extra = lv - upgrade.accel_start + 1;
-              cm *= Math.pow(upgrade.cost_acceleration, extra);
+              c = c.mul(cm).mul(CookieNum.from(upgrade.cost_acceleration).pow(extra));
+            } else {
+              c = c.mul(cm);
             }
-            c = c.mul(cm).floor();
           }
           upgrade.cost = c;
         }

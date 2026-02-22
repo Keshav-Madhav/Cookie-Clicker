@@ -1,5 +1,4 @@
 import { Game } from "./js/game.js";
-import { formatNumberInWords } from "./js/utils.js";
 
 document.addEventListener('DOMContentLoaded', function() {
   const globalTooltip = document.createElement('div');
@@ -32,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const condition = button.dataset.tooltipCondition || '';
       
       if (effect && cost) {
-        let html = `<p>${effect}</p><p>Cost: ${formatNumberInWords(cost)}</p>`;
+        let html = `<p>${effect}</p><p>Cost: ${cost}</p>`;
         if (condition) html += `<p style="color:#f0c040;font-size:11px">🔒 Requires: ${condition}</p>`;
         if (nextTier) html += `<p style="color:#f8c471;font-size:11px">${nextTier}</p>`;
         if (requirement) html += `<p style="color:#d5c4a1;font-size:11px">${requirement}</p>`;

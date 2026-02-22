@@ -117,19 +117,23 @@ export class Building {
     }
   }
   
+  /** Safe cost multiplier: uses CookieNum.pow when Math.pow would overflow */
+  _costAtCount(count) {
+    return this.baseCost.mul(CookieNum.from(this.cost_multiplier).pow(count));
+  }
+
   // Calculate cost for buying a specific amount of buildings
   calculateBulkCost(amount) {
     let totalCost = CookieNum.ZERO;
     const currentCount = this.count;
 
     for (let i = 0; i < amount; i++) {
-      const cost = this.baseCost.mul(Math.pow(this.cost_multiplier, currentCount + i)).floor();
-      totalCost = totalCost.add(cost);
+      totalCost = totalCost.add(this._costAtCount(currentCount + i));
     }
 
     return totalCost;
   }
-  
+
   // Calculate how many buildings can be bought with current cookies
   calculateMaxBuyable() {
     let count = 0;
@@ -139,12 +143,12 @@ export class Building {
     while (tempCookies.gte(tempCost)) {
       tempCookies = tempCookies.sub(tempCost);
       count++;
-      tempCost = this.baseCost.mul(Math.pow(this.cost_multiplier, this.count + count)).floor();
+      tempCost = this._costAtCount(this.count + count);
     }
 
     return count;
   }
-  
+
   // Add these methods to Building class
   bulkBuy(amount) {
     // Calculate total cost for buying 'amount' buildings
@@ -154,17 +158,14 @@ export class Building {
     if (this.game.cookies.gte(totalCost)) {
       this.game.cookies = this.game.cookies.sub(totalCost);
       this.count += parseInt(amount);
-      this.cost = this.baseCost.mul(Math.pow(this.cost_multiplier, this.count)).floor();
-      this.game.calculateCPS();
-      this.game.updateUI();
+      this.cost = this._costAtCount(this.count);
+      this.game.updateAfterPurchase();
 
       // Cookie rain burst on building purchase (scales with amount bought)
       if (this.game.visualEffects) {
         const burstCount = Math.min(30, 5 + parseInt(amount) * 2);
         this.game.visualEffects.triggerCookieBurst(burstCount, 2);
       }
-
-
 
       return true;
     }
@@ -188,7 +189,7 @@ export class Building {
   
   // Calculate cost based on count
   recalculateCost() {
-    this.cost = this.baseCost.mul(Math.pow(this.cost_multiplier, this.count)).floor();
+    this.cost = this._costAtCount(this.count);
   }
 
   /** How close the player is to meeting requirements (0..1) */
@@ -227,7 +228,7 @@ export class Building {
   getNetCost() {
     let total = CookieNum.ZERO;
     for (let i = 0; i < this.count; i++) {
-      total = total.add(this.baseCost.mul(Math.pow(this.cost_multiplier, i)).floor());
+      total = total.add(this._costAtCount(i));
     }
     return total;
   }

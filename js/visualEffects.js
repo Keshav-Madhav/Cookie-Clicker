@@ -264,9 +264,9 @@ export class VisualEffects {
     let targetCount = Math.floor(this._rainBaseCount + logCps * VISUAL.rain.countScale);
     let speedMult   = 1 + logCps * VISUAL.rain.speedScale;
 
-    // Frenzy overlay — income spike = rain spike
-    if (g.frenzyActive) {
-      if (g.frenzyType === 'click') {
+    // Frenzy overlay — income spike = rain spike (supports multiple buffs)
+    for (const buff of g.activeBuffs) {
+      if (buff.type === 'click') {
         targetCount += VISUAL.rainFrenzy.clickExtraDrops;
         speedMult  *= VISUAL.rainFrenzy.clickSpeedMult;
       } else {
@@ -577,7 +577,7 @@ export class VisualEffects {
     const buildings = g.getTotalBuildingCount();
     if (buildings > 10) msgs.push(`You now own ${buildings} buildings across your cookie empire.`);
     if (g.prestige.getSpendableChips() > 0) msgs.push(`Your ${formatNumberInWords(g.prestige.getSpendableChips())} heavenly chips glow with prestige.`);
-    if (g.frenzyActive) msgs.push("FRENZY IS ACTIVE! Bake faster!");
+    if (g.activeBuffs.length > 0) msgs.push("FRENZY IS ACTIVE! Bake faster!");
     return msgs;
   }
 
