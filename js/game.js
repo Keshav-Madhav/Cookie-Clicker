@@ -2088,7 +2088,8 @@ export class Game {
       }
     }
 
-    this.calculateCPS();
-    this.updateCookieCount();
+    // Full UI refresh so buildings, upgrades, and stats reflect restored state
+    this.updateUI();
+    this.updateLeftPanel();
   }
 }
