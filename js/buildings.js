@@ -1,16 +1,17 @@
 import { buildings } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
 import { getBuildingIcon, getRowBackground } from "./buildingIcons.js";
+import { CookieNum } from "./cookieNum.js";
 
 export class Building {
   constructor(index, game) {
     this.game = game; // Store game instance
     this.building = buildings[index];
     this.name = this.building.name;
-    this.baseCost = this.building.cost; // Store original cost for calculations
-    this.baseCps = this.building.cps;   // Store original CPS for calculations
-    this.cost = this.building.cost;
-    this.cps = this.building.cps;
+    this.baseCost = CookieNum.from(this.building.cost); // Store original cost for calculations
+    this.baseCps = CookieNum.from(this.building.cps);   // Store original CPS for calculations
+    this.cost = CookieNum.from(this.building.cost);
+    this.cps = CookieNum.from(this.building.cps);
     this.cost_multiplier = this.building.cost_multiplier || 1.15;
     this.requires = this.building.requires || null;
     this.desc = this.building.desc || '';
@@ -25,9 +26,9 @@ export class Building {
       case "totalBuildings":
         return this.game.getTotalBuildingCount() >= cond.min;
       case "cps":
-        return this.game.cookiesPerSecond >= cond.min;
+        return this.game.cookiesPerSecond.gte(cond.min);
       case "totalCookies":
-        return this.game.stats.totalCookiesBaked >= cond.min;
+        return this.game.stats.totalCookiesBaked.gte(cond.min);
       case "prestige": {
         if (!this.game.prestige) return false;
         const discount = this.game.prestige.getPrestigeBuildingDiscount();
@@ -76,7 +77,7 @@ export class Building {
     
     // Check if can afford before attempting
     const totalCost = amount === 'Max' ? this.cost : this.calculateBulkCost(amount);
-    const canAfford = this.game.cookies >= totalCost;
+    const canAfford = this.game.cookies.gte(totalCost);
     
     // Easter egg: rage quit (clicking unaffordable building 10 times)
     if (!canAfford && this.game.tutorial) {
@@ -118,14 +119,14 @@ export class Building {
   
   // Calculate cost for buying a specific amount of buildings
   calculateBulkCost(amount) {
-    let totalCost = 0;
+    let totalCost = CookieNum.ZERO;
     const currentCount = this.count;
-    
+
     for (let i = 0; i < amount; i++) {
-      const cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, currentCount + i));
-      totalCost += cost;
+      const cost = this.baseCost.mul(Math.pow(this.cost_multiplier, currentCount + i)).floor();
+      totalCost = totalCost.add(cost);
     }
-    
+
     return totalCost;
   }
   
@@ -134,13 +135,13 @@ export class Building {
     let count = 0;
     let tempCost = this.cost;
     let tempCookies = this.game.cookies;
-    
-    while (tempCookies >= tempCost) {
-      tempCookies -= tempCost;
+
+    while (tempCookies.gte(tempCost)) {
+      tempCookies = tempCookies.sub(tempCost);
       count++;
-      tempCost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count + count));
+      tempCost = this.baseCost.mul(Math.pow(this.cost_multiplier, this.count + count)).floor();
     }
-    
+
     return count;
   }
   
@@ -148,13 +149,12 @@ export class Building {
   bulkBuy(amount) {
     // Calculate total cost for buying 'amount' buildings
     const totalCost = this.calculateBulkCost(amount);
-    
+
     // Check if player has enough cookies
-    if (this.game.cookies >= totalCost) {
-      this.game.cookies -= totalCost;
-      this.game.cookies = parseFloat(this.game.cookies.toFixed(1));
+    if (this.game.cookies.gte(totalCost)) {
+      this.game.cookies = this.game.cookies.sub(totalCost);
       this.count += parseInt(amount);
-      this.cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count));
+      this.cost = this.baseCost.mul(Math.pow(this.cost_multiplier, this.count)).floor();
       this.game.calculateCPS();
       this.game.updateUI();
 
@@ -188,8 +188,8 @@ export class Building {
   
   // Calculate cost based on count
   recalculateCost() {
-    this.cost = Math.floor(this.baseCost * Math.pow(this.cost_multiplier, this.count));
-  }  
+    this.cost = this.baseCost.mul(Math.pow(this.cost_multiplier, this.count)).floor();
+  }
 
   /** How close the player is to meeting requirements (0..1) */
   getProgressRatio() {
@@ -200,8 +200,8 @@ export class Building {
       let current = 0, target = c.min;
       switch (c.type) {
         case "totalBuildings": current = this.game.getTotalBuildingCount(); break;
-        case "cps":            current = this.game.cookiesPerSecond; break;
-        case "totalCookies":   current = this.game.stats.totalCookiesBaked; break;
+        case "cps":            current = this.game.cookiesPerSecond.toNumber(); break;
+        case "totalCookies":   current = this.game.stats.totalCookiesBaked.toNumber(); break;
         case "prestige":       current = this.game.prestige ? this.game.prestige.timesPrestiged : 0; break;
         default:               current = target; break;
       }
@@ -225,9 +225,9 @@ export class Building {
 
   /** Get total cookies spent on this building */
   getNetCost() {
-    let total = 0;
+    let total = CookieNum.ZERO;
     for (let i = 0; i < this.count; i++) {
-      total += Math.floor(this.baseCost * Math.pow(this.cost_multiplier, i));
+      total = total.add(this.baseCost.mul(Math.pow(this.cost_multiplier, i)).floor());
     }
     return total;
   }
@@ -344,7 +344,7 @@ export class Building {
     const grid = document.createElement('div');
     grid.className = 'building-info-grid';
 
-    const totalCps = parseFloat((this.count * this.cps).toFixed(1));
+    const totalCps = this.cps.mul(this.count);
     const rows = [
       ['Owned', locked ? '🔒' : `${this.count}`],
       ['Base CPS', locked ? '???' : `${formatNumberInWords(this.baseCps)}/s`],
@@ -355,9 +355,13 @@ export class Building {
       ['Total Invested', locked ? '???' : `${formatNumberInWords(this.getNetCost())}`],
     ];
 
-    if (!locked && totalCps > 0) {
-      const pct = ((totalCps / Math.max(this.game.cookiesPerSecond, 0.001)) * 100).toFixed(1);
-      rows.push(['% of Total CPS', `${pct}%`]);
+    if (!locked && totalCps.gt(0)) {
+      const cpsNum = this.game.cookiesPerSecond.toNumber();
+      const totalCpsNum = totalCps.toNumber();
+      if (Number.isFinite(cpsNum) && Number.isFinite(totalCpsNum) && cpsNum > 0) {
+        const pct = ((totalCpsNum / cpsNum) * 100).toFixed(1);
+        rows.push(['% of Total CPS', `${pct}%`]);
+      }
     }
 
     rows.forEach(([label, value]) => {
@@ -471,7 +475,7 @@ export class Building {
       // Always show name, but hide CPS
       name_p.innerHTML = `${this.name} <span>(?/s each)</span>`;
     } else {
-      const totalBuildingCps = parseFloat((this.count * this.cps).toFixed(1));
+      const totalBuildingCps = this.cps.mul(this.count);
       if (this.count > 0) {
         name_p.innerHTML = `${this.name} <span>(${formatNumberInWords(this.cps)}/s each · <strong class="building-total-cps">${formatNumberInWords(totalBuildingCps)}/s</strong>)</span>`;
       } else {
@@ -509,7 +513,7 @@ export class Building {
       } else {
         displayCost = this.calculateBulkCost(purchaseAmount);
         price_p.textContent = `Cost: ${formatNumberInWords(displayCost)} (${purchaseAmount})`;
-        canAfford = this.game.cookies >= displayCost;
+        canAfford = this.game.cookies.gte(displayCost);
       }
       button.disabled = !canAfford;
     }

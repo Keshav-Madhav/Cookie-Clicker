@@ -4,6 +4,7 @@ import { getBuildingIcon, getRowBackground, clearRowBgCache } from "./buildingIc
 import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN } from "./config.js";
 import { RowAnimator } from "./rowAnimations.js";
 import { ShopEffects } from "./shopEffects.js";
+import { CookieNum } from "./cookieNum.js";
 
 /**
  * VisualEffects — manages the middle-panel "viewport" with
@@ -256,7 +257,7 @@ export class VisualEffects {
    */
   _updateRainIntensity() {
     const g = this.game;
-    const cps = g.getEffectiveCPS();
+    const cps = g.getEffectiveCPS().toNumber();
 
     // Smooth log-based scaling — rain grows with income
     const logCps = cps > 0 ? Math.log10(cps) : 0;
@@ -569,9 +570,9 @@ export class VisualEffects {
     const msgs = [];
     const g = this.game;
     const cps = g.getEffectiveCPS();
-    if (cps > 0) msgs.push(`Your bakeries are churning out ${formatNumberInWords(cps)} cookies every second!`);
+    if (cps.gt(0)) msgs.push(`Your bakeries are churning out ${formatNumberInWords(cps)} cookies every second!`);
     const total = g.stats.totalCookiesBaked;
-    if (total > 1000) msgs.push(`Over ${formatNumberInWords(total)} cookies have been baked in total!`);
+    if (total.gt(1000)) msgs.push(`Over ${formatNumberInWords(total)} cookies have been baked in total!`);
     if (g.stats.totalClicks > 100) msgs.push(`You've clicked ${formatNumberInWords(g.stats.totalClicks)} times! Your fingers must be tired.`);
     const buildings = g.getTotalBuildingCount();
     if (buildings > 10) msgs.push(`You now own ${buildings} buildings across your cookie empire.`);
@@ -646,11 +647,14 @@ export class VisualEffects {
       let incomeAmount = 0;
       const gcRewardMult = g.prestige ? g.prestige.getGoldenCookieRewardMultiplier() : 1;
       if (roll < GOLDEN_COOKIE.luckyRollMax) {
-        const bonus = Math.max(GOLDEN_COOKIE.lucky.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.lucky.cpsMultiplier) * gcRewardMult;
-        g.cookies += bonus;
-        g.stats.totalCookiesBaked += bonus;
+        const bonus = CookieNum.max(
+          CookieNum.from(GOLDEN_COOKIE.lucky.minCookies),
+          g.getEffectiveCPS().mul(GOLDEN_COOKIE.lucky.cpsMultiplier)
+        ).mul(gcRewardMult);
+        g.cookies = g.cookies.add(bonus);
+        g.stats.totalCookiesBaked = g.stats.totalCookiesBaked.add(bonus);
         msg = `🍀 Lucky! +${formatNumberInWords(bonus)}`;
-        incomeAmount = bonus;
+        incomeAmount = bonus.toNumber();
       } else if (roll < GOLDEN_COOKIE.frenzyRollMax) {
         g.startFrenzy('cps', GOLDEN_COOKIE.cpsFrenzy.multiplier, GOLDEN_COOKIE.cpsFrenzy.durationSec);
         msg = `🔥 Frenzy! ${GOLDEN_COOKIE.cpsFrenzy.multiplier}x CPS for ${GOLDEN_COOKIE.cpsFrenzy.durationSec}s!`;
@@ -658,11 +662,14 @@ export class VisualEffects {
         g.startFrenzy('click', GOLDEN_COOKIE.clickFrenzy.multiplier, GOLDEN_COOKIE.clickFrenzy.durationSec);
         msg = `⚡ Click Frenzy! ${GOLDEN_COOKIE.clickFrenzy.multiplier}x for ${GOLDEN_COOKIE.clickFrenzy.durationSec}s!`;
       } else {
-        const bonus = Math.max(GOLDEN_COOKIE.cookieStorm.minCookies, g.getEffectiveCPS() * GOLDEN_COOKIE.cookieStorm.cpsMultiplier) * gcRewardMult;
-        g.cookies += bonus;
-        g.stats.totalCookiesBaked += bonus;
+        const bonus = CookieNum.max(
+          CookieNum.from(GOLDEN_COOKIE.cookieStorm.minCookies),
+          g.getEffectiveCPS().mul(GOLDEN_COOKIE.cookieStorm.cpsMultiplier)
+        ).mul(gcRewardMult);
+        g.cookies = g.cookies.add(bonus);
+        g.stats.totalCookiesBaked = g.stats.totalCookiesBaked.add(bonus);
         msg = `🌟 Cookie Storm! +${formatNumberInWords(bonus)}`;
-        incomeAmount = bonus;
+        incomeAmount = bonus.toNumber();
         // Easter egg: cookie storm (rarest golden reward)
         if (this.game.tutorial) this.game.tutorial.triggerEvent('cookieStorm');
       }
@@ -838,7 +845,7 @@ export class VisualEffects {
           }
 
           // Update tooltip
-          row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+          row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.cps.mul(b.count))} CPS`;
         } else if (!wasLocked) {
           // Handle lock transition: was owned, now reset (e.g. prestige)
           row.classList.add('baker-row-locked');
@@ -859,7 +866,7 @@ export class VisualEffects {
         row.dataset.count = b.count;
 
         if (owned) {
-          row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.count * b.cps)} CPS`;
+          row.title = `${b.name}: ${b.count} owned — ${formatNumberInWords(b.cps.mul(b.count))} CPS`;
         } else {
           row.title = 'Locked — keep baking to discover!';
         }
@@ -1112,7 +1119,7 @@ export class VisualEffects {
    * Big bonus (600s of CPS)  → dramatic cookie shower.
    */
   triggerIncomeRain(cookiesReceived) {
-    const cps = Math.max(1, this.game.getEffectiveCPS());
+    const cps = Math.max(1, this.game.getEffectiveCPS().toNumber());
     const secondsWorth = cookiesReceived / cps;
 
     // Burst count: log2 scaling, 5–120 range (pool supports up to 200)

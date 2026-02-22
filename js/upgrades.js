@@ -1,12 +1,13 @@
 import { upgrades } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
+import { CookieNum } from "./cookieNum.js";
 
 export class Upgrade {
   constructor(index, game) {
     this.game = game;
     this.upgrade = upgrades[index];
     this.name = this.upgrade.name;
-    this.cost = this.upgrade.cost;
+    this.cost = CookieNum.from(this.upgrade.cost);
     this.effect = this.upgrade.effect;
     this.type = this.upgrade.type;
     this.multiplier = this.upgrade.multiplier || 1;
@@ -40,7 +41,7 @@ export class Upgrade {
     this.name = tier.name;
     this.effect = tier.effect;
     if (tier.multiplier !== undefined) this.multiplier = tier.multiplier;
-    this.cost = tier.cost;
+    this.cost = CookieNum.from(tier.cost);
     if (tier.bonus !== undefined) this.bonus = tier.bonus;
     if (tier.chance !== undefined) this.chance = tier.chance;
   }
@@ -49,7 +50,7 @@ export class Upgrade {
   getEffectiveCost() {
     const discount = this.game.prestige ? this.game.prestige.getUpgradeCostReduction() : 0;
     if (discount > 0) {
-      return Math.floor(this.cost * (1 - discount));
+      return this.cost.mul(1 - discount).floor();
     }
     return this.cost;
   }
@@ -93,9 +94,9 @@ export class Upgrade {
         return b ? b.count >= cond.min : false;
       }
       case "cps":
-        return this.game.cookiesPerSecond >= cond.min;
+        return this.game.cookiesPerSecond.gte(cond.min);
       case "totalCookies":
-        return this.game.stats.totalCookiesBaked >= cond.min;
+        return this.game.stats.totalCookiesBaked.gte(cond.min);
       case "totalClicks":
         return this.game.stats.totalClicks >= cond.min;
       case "achievements":
@@ -157,10 +158,10 @@ export class Upgrade {
   buy() {
     if (!this.meetsRequirements()) return false;
     const effectiveCost = this.getEffectiveCost();
-    if (this.game.cookies >= effectiveCost) {
+    if (this.game.cookies.gte(effectiveCost)) {
       if (this.type === "tieredUpgrade") {
         if (this.level === 0) {
-          this.game.cookies -= effectiveCost;
+          this.game.cookies = this.game.cookies.sub(effectiveCost);
           this.level = 1;
           this.applyEffect();
           this.game.stats.totalUpgradesPurchased++;
@@ -173,7 +174,7 @@ export class Upgrade {
           this.game.updateUI();
           return true;
         } else if (this.canUpgradeTier()) {
-          this.game.cookies -= effectiveCost;
+          this.game.cookies = this.game.cookies.sub(effectiveCost);
           this.upgradeTier(); // upgradeTier already calls applyEffect
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
@@ -188,7 +189,7 @@ export class Upgrade {
         return false;
       } else {
         if (this.getEffectiveMaxLevel() > this.level) {
-          this.game.cookies -= effectiveCost;
+          this.game.cookies = this.game.cookies.sub(effectiveCost);
           this.level += 1;
           this.applyEffect();
           let costMult = this.level > this.base_max_level ? this.prestige_cost_multiplier : this.cost_multiplier;
@@ -197,7 +198,7 @@ export class Upgrade {
             const extra = this.level - this.accel_start + 1;
             costMult *= Math.pow(this.cost_acceleration, extra);
           }
-          this.cost = Math.floor(this.cost * costMult);
+          this.cost = this.cost.mul(costMult).floor();
           this.game.stats.totalUpgradesPurchased++;
           this._triggerTutorialEvent();
           // Easter egg: maxed out
@@ -242,10 +243,10 @@ export class Upgrade {
   applyEffect() {
     switch (this.type) {
       case "clickMultiplier":
-        this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
+        this.game.cookiesPerClick = this.game.cookiesPerClick.mul(this.multiplier);
         this.game.buildings.forEach(b => {
           if (b.name === 'Cursor') {
-            b.cps = parseFloat((b.cps * this.multiplier).toFixed(1));
+            b.cps = b.cps.mul(this.multiplier);
           }
         });
         break;
@@ -263,7 +264,7 @@ export class Upgrade {
           break;
         }
         // Default: click multiplier (Touch upgrades)
-        this.game.cookiesPerClick = parseFloat((this.game.cookiesPerClick * this.multiplier).toFixed(1));
+        this.game.cookiesPerClick = this.game.cookiesPerClick.mul(this.multiplier);
         break;
       }
 
@@ -271,7 +272,7 @@ export class Upgrade {
         if (this.target) {
           this.game.buildings.forEach(b => {
             if (b.name === this.target) {
-              b.cps = parseFloat((b.cps * this.multiplier).toFixed(1));
+              b.cps = b.cps.mul(this.multiplier);
             }
           });
         }
@@ -362,7 +363,7 @@ export class Upgrade {
       button.dataset.disabledReason = `🔒 ${this.getRequirementText()}`;
     } else if (this.type === "tieredUpgrade") {
       // Disable logic for tiered
-      if (this.game.cookies < effectiveCost) {
+      if (this.game.cookies.lt(effectiveCost)) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
       } else if (this.level > 0 && !this.canUpgradeTier()) {
@@ -379,7 +380,7 @@ export class Upgrade {
         button.dataset.disabledReason = 'Maximum Tier Reached';
       }
     } else {
-      if (this.game.cookies < effectiveCost) {
+      if (this.game.cookies.lt(effectiveCost)) {
         button.disabled = true;
         button.dataset.disabledReason = 'Not Enough Cookies';
       } else if (this.getEffectiveMaxLevel() <= this.level) {
@@ -392,7 +393,7 @@ export class Upgrade {
 
     // Tooltip data
     button.dataset.tooltipEffect = this.effect;
-    button.dataset.tooltipCost = effectiveCost;
+    button.dataset.tooltipCost = formatNumberInWords(effectiveCost);
     
     if (this.type === "tieredUpgrade" && this.level > 0 && this.currentTier < this.tiers.length - 1) {
       const nextTier = this.tiers[this.currentTier + 1];

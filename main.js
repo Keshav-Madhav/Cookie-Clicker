@@ -187,10 +187,10 @@ function setupMobileNav(game) {
     // Count affordable upgrades + buildings
     let affordable = 0;
     game.upgrades.forEach(u => {
-      if (u.level < u.getEffectiveMaxLevel() && game.cookies >= u.cost) affordable++;
+      if (u.level < u.getEffectiveMaxLevel() && game.cookies.gte(u.cost)) affordable++;
     });
     game.buildings.forEach(b => {
-      if (game.cookies >= b.cost) affordable++;
+      if (game.cookies.gte(b.cost)) affordable++;
     });
 
     // Remove existing badge

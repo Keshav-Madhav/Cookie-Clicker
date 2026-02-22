@@ -1,6 +1,7 @@
 import { formatNumberInWords } from "./utils.js";
 import { heavenlyUpgrades } from "./gameData.js";
 import { PRESTIGE } from "./config.js";
+import { CookieNum } from "./cookieNum.js";
 
 export class PrestigeManager {
   constructor(game) {
@@ -8,7 +9,7 @@ export class PrestigeManager {
     this.heavenlyChips = 0;
     this.spentChips = 0;
     this.timesPrestiged = 0;
-    this.totalCookiesBakedAllTime = 0; // Across all ascensions
+    this.totalCookiesBakedAllTime = CookieNum.ZERO; // Across all ascensions
 
     // Heavenly upgrades — track purchased state by id
     this.purchasedUpgrades = new Set();
@@ -16,8 +17,9 @@ export class PrestigeManager {
 
   // Heavenly chips earned = (total cookies / 1 trillion) ^ exponent
   calculateHeavenlyChipsOnReset() {
-    const total = this.totalCookiesBakedAllTime + this.game.stats.totalCookiesBaked;
-    let chips = Math.floor(Math.pow(total / PRESTIGE.chipDivisor, PRESTIGE.chipExponent));
+    const total = this.totalCookiesBakedAllTime.add(this.game.stats.totalCookiesBaked);
+    // Convert to Number for chip calculation (chips are sqrt-scale, fit in Number)
+    let chips = Math.floor(Math.pow(total.toNumber() / PRESTIGE.chipDivisor, PRESTIGE.chipExponent));
 
     // HC Interest bonus from heavenly upgrade
     if (this.hasUpgrade('hcInterest')) {
@@ -56,7 +58,7 @@ export class PrestigeManager {
     if (newChips <= 0) return false;
 
     this.heavenlyChips += newChips;
-    this.totalCookiesBakedAllTime += this.game.stats.totalCookiesBaked;
+    this.totalCookiesBakedAllTime = this.totalCookiesBakedAllTime.add(this.game.stats.totalCookiesBaked);
     this.timesPrestiged++;
 
     // Track session prestiges for achievement
@@ -124,7 +126,7 @@ export class PrestigeManager {
         // Multiply Grandma base CPS by value
         const grandma = this.game.buildings.find(b => b.name === 'Grandma');
         if (grandma) {
-          grandma.cps = parseFloat((grandma.cps * upgrade.value).toFixed(1));
+          grandma.cps = grandma.cps.mul(upgrade.value);
         }
         this.game.calculateCPS();
         break;
@@ -133,7 +135,7 @@ export class PrestigeManager {
         // Multiply all building CPS by value
         if (this.game.buildings) {
           for (const b of this.game.buildings) {
-            b.cps = parseFloat((b.cps * upgrade.value).toFixed(1));
+            b.cps = b.cps.mul(upgrade.value);
           }
         }
         this.game.calculateCPS();
@@ -341,7 +343,7 @@ export class PrestigeManager {
       heavenlyChips: this.heavenlyChips,
       spentChips: this.spentChips,
       timesPrestiged: this.timesPrestiged,
-      totalCookiesBakedAllTime: this.totalCookiesBakedAllTime,
+      totalCookiesBakedAllTime: this.totalCookiesBakedAllTime.toJSON(),
       purchasedUpgrades: Array.from(this.purchasedUpgrades),
     };
   }
@@ -351,7 +353,7 @@ export class PrestigeManager {
     this.heavenlyChips = data.heavenlyChips || 0;
     this.spentChips = data.spentChips || 0;
     this.timesPrestiged = data.timesPrestiged || 0;
-    this.totalCookiesBakedAllTime = data.totalCookiesBakedAllTime || 0;
+    this.totalCookiesBakedAllTime = CookieNum.fromJSON(data.totalCookiesBakedAllTime || 0);
     this.purchasedUpgrades = new Set(data.purchasedUpgrades || []);
   }
 }

@@ -52,10 +52,10 @@ export class AchievementManager {
       let met = false;
       switch (achievement.type) {
         case "totalCookies":
-          met = stats.totalCookiesBaked >= achievement.requirement;
+          met = stats.totalCookiesBaked.gte(achievement.requirement);
           break;
         case "cps":
-          met = this.game.getEffectiveCPS() >= achievement.requirement;
+          met = this.game.getEffectiveCPS().gte(achievement.requirement);
           break;
         case "totalClicks":
           met = stats.totalClicks >= achievement.requirement;
@@ -87,7 +87,7 @@ export class AchievementManager {
           break;
         case "speedrunner": {
           const sessionSec = (Date.now() - stats.startTime) / 1000;
-          met = sessionSec < ACHIEVEMENTS.speedrunnerTimeSec && this.game.getEffectiveCPS() >= achievement.requirement;
+          met = sessionSec < ACHIEVEMENTS.speedrunnerTimeSec && this.game.getEffectiveCPS().gte(achievement.requirement);
           break;
         }
         case "bulkBuyer":

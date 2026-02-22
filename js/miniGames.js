@@ -53,27 +53,27 @@ export class MiniGames {
     const empireMult = MINI_GAME_REWARDS.empireMultiplier[tier]   || MINI_GAME_REWARDS.empireMultiplier.normal;
     const prestMult  = MINI_GAME_REWARDS.prestigeMultiplier[tier] || MINI_GAME_REWARDS.prestigeMultiplier.normal;
 
-    const raw = cps * cpsMult
+    const raw = cps.toNumber() * cpsMult
               + Math.sqrt(clicks) * clickMult
               + buildings * empireMult
               + prestige * prestMult;
 
     // Diminishing returns: scaling approaches 1 as raw grows, but never reaches it.
     // reward = cookies × scaling × tierScale — no hard cap, the formula self-limits
-    const cookies = Math.max(1, g.cookies);
-    const scaling = raw / (raw + cookies);
+    const cookiesNum = Math.min(Number.MAX_SAFE_INTEGER, Math.max(1, g.cookies.toNumber()));
+    const scaling = raw / (raw + cookiesNum);
     const tierScale = MINI_GAME_REWARDS.tierScale[tier] || MINI_GAME_REWARDS.tierScale.normal;
 
     // Minimum floor for early game (when cookies are near zero)
     const floor = MINI_GAME_REWARDS.floor[tier] || MINI_GAME_REWARDS.floor.normal;
 
-    let reward = Math.max(cookies * scaling * tierScale, floor);
+    let reward = Math.max(cookiesNum * scaling * tierScale, floor);
     // Apply mini-game bonus upgrade multiplier
     reward *= (g.miniGameBonus || 1);
     reward = Math.floor(reward);
 
-    g.cookies += reward;
-    g.stats.totalCookiesBaked += reward;
+    g.cookies = g.cookies.add(reward);
+    g.stats.totalCookiesBaked = g.stats.totalCookiesBaked.add(reward);
     g.updateCookieCount();
     // Income-proportional cookie rain
     if (g.visualEffects) g.visualEffects.triggerIncomeRain(reward);

@@ -11,12 +11,13 @@ import {
   GAME, LUCKY_CLICK, FRENZY_BURSTS, PARTICLES,
   EASTER_EGGS, GOLDEN_COOKIE
 } from "./config.js";
+import { CookieNum } from "./cookieNum.js";
 
 export class Game {
   constructor() {
-    this.cookies = GAME.startingCookies;
-    this.cookiesPerClick = GAME.startingCookiesPerClick;
-    this.cookiesPerSecond = 0;
+    this.cookies = CookieNum.from(GAME.startingCookies);
+    this.cookiesPerClick = CookieNum.from(GAME.startingCookiesPerClick);
+    this.cookiesPerSecond = CookieNum.ZERO;
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
     this.cpsClickBonus = 0;
@@ -43,14 +44,14 @@ export class Game {
 
     // Stats tracking
     this.stats = {
-      totalCookiesBaked: 0,
+      totalCookiesBaked: CookieNum.ZERO,
       totalClicks: 0,
       totalUpgradesPurchased: 0,
       luckyClicks: 0,
       frenziesTriggered: 0,
       timesPrestiged: 0,
       startTime: Date.now(),
-      handmadeCookies: 0,
+      handmadeCookies: CookieNum.ZERO,
       miniGamesWon: [],  // tracks which mini-games have been won
       cutterBestAccuracy: 0,  // best accuracy in cookie cutter
       kitchenBestStreak: 0,   // best perfect streak in grandma's kitchen
@@ -149,9 +150,8 @@ export class Game {
     // Main game loop - 1 second tick
     setInterval(() => {
       const effectiveCPS = this.getEffectiveCPS();
-      this.cookies += effectiveCPS;
-      this.cookies = parseFloat(this.cookies.toFixed(1));
-      this.stats.totalCookiesBaked += effectiveCPS;
+      this.cookies = this.cookies.add(effectiveCPS);
+      this.stats.totalCookiesBaked = this.stats.totalCookiesBaked.add(effectiveCPS);
 
       // Check frenzy expiry
       if (this.frenzyActive && Date.now() >= this.frenzyEndTime) {
@@ -190,67 +190,65 @@ export class Game {
   }
 
   getEffectiveCPS() {
-    let cps = this.cookiesPerSecond * this.globalCpsMultiplier;
-    cps *= this.achievementManager.getMultiplier();
-    cps *= this.prestige.getPrestigeMultiplier();
+    let cps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
+    cps = cps.mul(this.achievementManager.getMultiplier());
+    cps = cps.mul(this.prestige.getPrestigeMultiplier());
 
     // Kitten Workers: +0.5% CPS per achievement
     const kittenBonus = this.prestige.getCpsPerAchievementBonus();
     if (kittenBonus > 0) {
-      cps *= (1 + kittenBonus * this.achievementManager.getUnlockedCount());
+      cps = cps.mul(1 + kittenBonus * this.achievementManager.getUnlockedCount());
     }
 
     // Medal Cabinet: +1% CPS per achievement
     const medalBonus = this.prestige.getCpsPerAchievementBonus2();
     if (medalBonus > 0) {
-      cps *= (1 + medalBonus * this.achievementManager.getUnlockedCount());
+      cps = cps.mul(1 + medalBonus * this.achievementManager.getUnlockedCount());
     }
 
     // Cosmic Resonance: +0.5% CPS per building type owned
     const buildingTypeBonus = this.prestige.getCpsPerBuildingTypeBonus();
     if (buildingTypeBonus > 0) {
       const typesOwned = this.buildings.filter(b => b.count > 0).length;
-      cps *= (1 + buildingTypeBonus * typesOwned);
+      cps = cps.mul(1 + buildingTypeBonus * typesOwned);
     }
 
     if (this.frenzyActive && this.frenzyType === 'cps') {
-      cps *= this.frenzyMultiplier;
+      cps = cps.mul(this.frenzyMultiplier);
     }
-    return parseFloat(cps.toFixed(1));
+    return cps;
   }
 
   getEffectiveCPC() {
     // Base click value with multipliers
-    let baseClick = this.cookiesPerClick;
-    baseClick *= this.prestige.getPrestigeMultiplier();
-    baseClick *= this.achievementManager.getMultiplier();
+    let baseClick = this.cookiesPerClick.mul(this.prestige.getPrestigeMultiplier());
+    baseClick = baseClick.mul(this.achievementManager.getMultiplier());
 
     // CPS-based click bonus (uses steady-state CPS, no frenzy)
-    let cpsBonus = 0;
+    let cpsBonus = CookieNum.ZERO;
     if (this.cpsClickBonus > 0) {
-      let baseCps = this.cookiesPerSecond * this.globalCpsMultiplier;
-      baseCps *= this.achievementManager.getMultiplier();
-      baseCps *= this.prestige.getPrestigeMultiplier();
-      cpsBonus = baseCps * this.cpsClickBonus;
+      let baseCps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
+      baseCps = baseCps.mul(this.achievementManager.getMultiplier());
+      baseCps = baseCps.mul(this.prestige.getPrestigeMultiplier());
+      cpsBonus = baseCps.mul(this.cpsClickBonus);
     }
 
-    let cpc = baseClick + cpsBonus;
+    let cpc = baseClick.add(cpsBonus);
     // Practiced Hands: x1.5 clicking power
-    cpc *= this.prestige.getClickMultiplier2();
+    cpc = cpc.mul(this.prestige.getClickMultiplier2());
     // Heavenly Clicking: x2 clicking power
-    cpc *= this.prestige.getClickMultiplier();
+    cpc = cpc.mul(this.prestige.getClickMultiplier());
     if (this.frenzyActive && this.frenzyType === 'click') {
-      cpc *= this.frenzyMultiplier;
+      cpc = cpc.mul(this.frenzyMultiplier);
     }
-    return parseFloat(cpc.toFixed(1));
+    return cpc;
   }
 
   clickCookie(event) {
     const clickAmount = this.getEffectiveCPC();
-    this.cookies += clickAmount;
-    this.cookies = parseFloat(this.cookies.toFixed(1));
-    this.stats.totalCookiesBaked += clickAmount;
-    this.stats.handmadeCookies += clickAmount;
+    this.cookies = this.cookies.add(clickAmount);
+    this.stats.totalCookiesBaked = this.stats.totalCookiesBaked.add(clickAmount);
+    this.stats.handmadeCookies = this.stats.handmadeCookies.add(clickAmount);
 
 
 
@@ -355,11 +353,14 @@ export class Game {
       if (roll < LUCKY_CLICK.cookieRollMax) {
         // Lucky: CPS bonus (minimum floor), amplified by Lucky Stars
         const luckyMult = this.prestige.getLuckyClickMultiplier();
-        const bonus = Math.max(LUCKY_CLICK.cookie.minCookies, this.getEffectiveCPS() * LUCKY_CLICK.cookie.cpsMultiplier) * luckyMult;
-        this.cookies += bonus;
-        this.stats.totalCookiesBaked += bonus;
+        const bonus = CookieNum.max(
+          CookieNum.from(LUCKY_CLICK.cookie.minCookies),
+          this.getEffectiveCPS().mul(LUCKY_CLICK.cookie.cpsMultiplier)
+        ).mul(luckyMult);
+        this.cookies = this.cookies.add(bonus);
+        this.stats.totalCookiesBaked = this.stats.totalCookiesBaked.add(bonus);
         this.createFloatingText(event, `🍀 LUCKY! +${formatNumberInWords(bonus)}`, true);
-        if (this.visualEffects) this.visualEffects.triggerIncomeRain(bonus);
+        if (this.visualEffects) this.visualEffects.triggerIncomeRain(bonus.toNumber());
       } else if (roll < LUCKY_CLICK.frenzyRollMax) {
         // CPS Frenzy
         this.startFrenzy('cps', LUCKY_CLICK.cpsFrenzy.multiplier, LUCKY_CLICK.cpsFrenzy.durationSec);
@@ -465,16 +466,16 @@ export class Game {
     const indices = this.buildings.map((_, i) => i);
     switch (this._buildingSort) {
       case 'price':
-        indices.sort((a, b) => this.buildings[a].cost - this.buildings[b].cost);
+        indices.sort((a, b) => this.buildings[a].cost.cmp(this.buildings[b].cost));
         break;
       case 'cps':
-        indices.sort((a, b) => this.buildings[b].cps - this.buildings[a].cps);
+        indices.sort((a, b) => this.buildings[b].cps.cmp(this.buildings[a].cps));
         break;
       case 'efficiency':
         // Cost per CPS — lower is better
         indices.sort((a, b) => {
-          const effA = this.buildings[a].cps > 0 ? this.buildings[a].cost / this.buildings[a].cps : Infinity;
-          const effB = this.buildings[b].cps > 0 ? this.buildings[b].cost / this.buildings[b].cps : Infinity;
+          const effA = this.buildings[a].cps.gt(0) ? this.buildings[a].cost.div(this.buildings[a].cps).toNumber() : Infinity;
+          const effB = this.buildings[b].cps.gt(0) ? this.buildings[b].cost.div(this.buildings[b].cps).toNumber() : Infinity;
           return effA - effB;
         });
         break;
@@ -694,7 +695,7 @@ export class Game {
     const body = document.getElementById("debug-body");
     if (!body) return;
 
-    const fmt = (v) => typeof v === 'number' ? formatNumberInWords(v) : v;
+    const fmt = (v) => (typeof v === 'number' || (v && v.toNumber)) ? formatNumberInWords(v) : v;
     const spendable = this.prestige.getSpendableChips();
 
     body.innerHTML = `
@@ -702,7 +703,7 @@ export class Game {
         <h3>Resources</h3>
         <div class="debug-row">
           <label>Cookies</label>
-          <input type="number" data-field="cookies" value="${Math.floor(this.cookies)}" />
+          <input type="number" data-field="cookies" value="${Math.floor(this.cookies.toNumber())}" />
           <button class="debug-set-btn" data-field="cookies">Set</button>
         </div>
         <div class="debug-row">
@@ -712,7 +713,7 @@ export class Game {
         </div>
         <div class="debug-row">
           <label>Cookies/Click</label>
-          <input type="number" data-field="cookiesPerClick" value="${this.cookiesPerClick}" />
+          <input type="number" data-field="cookiesPerClick" value="${this.cookiesPerClick.toNumber()}" />
           <button class="debug-set-btn" data-field="cookiesPerClick">Set</button>
         </div>
       </div>
@@ -773,9 +774,9 @@ export class Game {
         if (isNaN(val)) return;
 
         switch (field) {
-          case 'cookies': this.cookies = val; break;
+          case 'cookies': this.cookies = CookieNum.from(val); break;
           case 'globalCpsMultiplier': this.globalCpsMultiplier = val; break;
-          case 'cookiesPerClick': this.cookiesPerClick = val; break;
+          case 'cookiesPerClick': this.cookiesPerClick = CookieNum.from(val); break;
           case 'heavenlyChips': this.prestige.heavenlyChips = val; break;
           case 'spentChips': this.prestige.spentChips = val; break;
           case 'timesPrestiged': this.prestige.timesPrestiged = val; break;
@@ -795,7 +796,7 @@ export class Game {
       btn.addEventListener('click', () => {
         switch (btn.dataset.action) {
           case 'addCookies':
-            this.cookies += 1000000;
+            this.cookies = this.cookies.add(CookieNum.from(1000000));
             break;
           case 'addChips':
             this.prestige.heavenlyChips += 100;
@@ -1197,9 +1198,9 @@ export class Game {
   resetForPrestige() {
     // Heavenly Cookies: start with more cookies
     const startingMultiplier = this.prestige.getStartingCookiesMultiplier();
-    this.cookies = GAME.startingCookies * startingMultiplier;
-    this.cookiesPerClick = GAME.startingCookiesPerClick;
-    this.cookiesPerSecond = 0;
+    this.cookies = CookieNum.from(GAME.startingCookies * startingMultiplier);
+    this.cookiesPerClick = CookieNum.from(GAME.startingCookiesPerClick);
+    this.cookiesPerSecond = CookieNum.ZERO;
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
     this.cpsClickBonus = 0;
@@ -1263,8 +1264,8 @@ export class Game {
     const buildingDiscount = this.prestige.getBuildingCostReduction();
     if (buildingDiscount > 0) {
       this.buildings.forEach(b => {
-        b.baseCost = Math.floor(b.baseCost * (1 - buildingDiscount));
-        b.cost = b.baseCost;
+        b.baseCost = b.baseCost.mul(1 - buildingDiscount).floor();
+        b.cost = b.baseCost.clone();
       });
     }
 
@@ -1298,7 +1299,7 @@ export class Game {
             const extra = upgrade.level - upgrade.accel_start + 1;
             costMult *= Math.pow(upgrade.cost_acceleration, extra);
           }
-          upgrade.cost = Math.floor(upgrade.cost * costMult);
+          upgrade.cost = upgrade.cost.mul(costMult).floor();
         }
       }
     });
@@ -1308,14 +1309,14 @@ export class Game {
 
     // Reset stats for this run (but keep prestige stats)
     this.stats = {
-      totalCookiesBaked: 0,
+      totalCookiesBaked: CookieNum.ZERO,
       totalClicks: 0,
       totalUpgradesPurchased: 0,
       luckyClicks: 0,
       frenziesTriggered: 0,
       timesPrestiged: this.prestige.timesPrestiged,
       startTime: Date.now(),
-      handmadeCookies: 0,
+      handmadeCookies: CookieNum.ZERO,
       miniGamesWon: [],
       cutterBestAccuracy: 0,
       kitchenBestStreak: 0,
@@ -1418,7 +1419,7 @@ export class Game {
           const nextTier = upgrade.tiers[upgrade.currentTier + 1];
           const totalBuildings = this.getTotalBuildingCount();
           button.dataset.disabledReason = `Need ${nextTier.buildingsRequired} buildings (have ${totalBuildings})`;
-        } else if (this.cookies < effectiveCost) {
+        } else if (this.cookies.lt(effectiveCost)) {
           button.disabled = true;
           button.dataset.disabledReason = "Not Enough Cookies";
         } else {
@@ -1433,7 +1434,7 @@ export class Game {
           button.dataset.disabledReason = upgrade.prestige_bonus_levels > 0
             ? `Max Level: ${effectiveMax} (Prestige to unlock more!)`
             : `Max Level: ${effectiveMax}`;
-        } else if (this.cookies < effectiveCost) {
+        } else if (this.cookies.lt(effectiveCost)) {
           button.disabled = true;
           button.dataset.disabledReason = "Not Enough Cookies";
         } else {
@@ -1456,15 +1457,15 @@ export class Game {
       const purchaseAmount = this.purchaseAmount;
       
       if (purchaseAmount === 'Max') {
-        button.disabled = this.cookies < building.cost;
+        button.disabled = this.cookies.lt(building.cost);
       } else {
-        let totalCost = 0;
+        let totalCost = CookieNum.ZERO;
         const currentCount = building.count;
         for (let i = 0; i < purchaseAmount; i++) {
-          const cost = Math.floor(building.baseCost * Math.pow(building.cost_multiplier, currentCount + i));
-          totalCost += cost;
+          const cost = building.baseCost.mul(Math.pow(building.cost_multiplier, currentCount + i)).floor();
+          totalCost = totalCost.add(cost);
         }
-        button.disabled = this.cookies < totalCost;
+        button.disabled = this.cookies.lt(totalCost);
       }
     });
   }
@@ -1630,7 +1631,7 @@ export class Game {
       const prioA = getPriority(upA);
       const prioB = getPriority(upB);
       if (prioA !== prioB) return prioA - prioB;
-      return upA.cost - upB.cost;
+      return upA.cost.cmp(upB.cost);
     });
     this._upgradePage = 0;
     if (render) this.renderUpgradePage(true);
@@ -1646,12 +1647,12 @@ export class Game {
 
   calculateCPS() {
     // Base CPS from buildings
-    let baseCps = this.buildings.reduce((acc, b) => acc + b.count * b.cps, 0);
+    let baseCps = this.buildings.reduce((acc, b) => acc.add(b.cps.mul(b.count)), CookieNum.ZERO);
 
     // Divine Bakeries: +X% CPS per prestige level to all buildings
     const buildingPrestigeBonus = this.prestige.getBuildingCpsPerPrestige();
     if (buildingPrestigeBonus > 0) {
-      baseCps *= (1 + buildingPrestigeBonus);
+      baseCps = baseCps.mul(1 + buildingPrestigeBonus);
     }
 
     // Synergy multiplier from Synergy Vol. II and Cosmic Synergy heavenly upgrades
@@ -1665,7 +1666,7 @@ export class Game {
         if (sourceBuilding && targetBuilding) {
           // Each level multiplies the bonus, doubled by Synergy Vol. II
           const synergyBonus = sourceBuilding.count * upgrade.bonus * upgrade.level * synergyMult;
-          baseCps += targetBuilding.count * synergyBonus;
+          baseCps = baseCps.add(CookieNum.from(targetBuilding.count * synergyBonus));
         }
       }
     });
@@ -1687,11 +1688,11 @@ export class Game {
       });
       if (cursorBonusPerBuilding > 0) {
         const nonCursorBuildings = this.buildings.filter(b => b.name !== "Cursor").reduce((sum, b) => sum + b.count, 0);
-        baseCps += cursorBuilding.count * nonCursorBuildings * cursorBonusPerBuilding;
+        baseCps = baseCps.add(CookieNum.from(cursorBuilding.count * nonCursorBuildings * cursorBonusPerBuilding));
       }
     }
 
-    this.cookiesPerSecond = parseFloat(baseCps.toFixed(1));
+    this.cookiesPerSecond = baseCps;
     return this.cookiesPerSecond;
   }
 
@@ -1784,8 +1785,8 @@ export class Game {
   saveGame() {
     if (this._wipedSave || this._savePending) return;
     let saveData = {
-      cookies: this.cookies,
-      cookiesPerClick: this.cookiesPerClick,
+      cookies: this.cookies.toJSON(),
+      cookiesPerClick: this.cookiesPerClick.toJSON(),
       globalCpsMultiplier: this.globalCpsMultiplier,
       luckyClickChance: this.luckyClickChance,
       cpsClickBonus: this.cpsClickBonus,
@@ -1793,10 +1794,11 @@ export class Game {
       frenzyDurationMultiplier: this.frenzyDurationMultiplier,
       buildings: this.buildings.map(b => ({
         count: b.count,
-        cost: b.cost,
+        cost: b.cost.toJSON(),
+        baseCost: b.baseCost.toJSON(),
       })),
       upgrades: this.upgrades.map(u => {
-        const data = { level: u.level, cost: u.cost };
+        const data = { level: u.level, cost: u.cost.toJSON() };
         if (u.type === "tieredUpgrade") {
           data.currentTier = u.currentTier;
           data.multiplier = u.multiplier;
@@ -1805,13 +1807,17 @@ export class Game {
         }
         return data;
       }),
-      stats: this.stats,
+      stats: {
+        ...this.stats,
+        totalCookiesBaked: this.stats.totalCookiesBaked.toJSON(),
+        handmadeCookies: this.stats.handmadeCookies.toJSON(),
+      },
       achievements: this.achievementManager.getSaveData(),
       prestige: this.prestige.getSaveData(),
       tutorial: this.tutorial.getSaveData(),
       settings: this.settings,
       lastSavedTime: Date.now(),
-      saveVersion: 4,
+      saveVersion: 5,
     };
     const jsonStr = JSON.stringify(saveData);
     this._savePending = true;
@@ -1903,9 +1909,12 @@ export class Game {
       }
     }
     // V3 → V4: more upgrades, buildings adjustments, new heavenly upgrades — arrays grow, auto-initialized
+    // V4 → V5: CookieNum precision — all numeric fields now use CookieNum.fromJSON() which
+    //   accepts both plain numbers (old saves) and [mantissa, exponent] arrays (new saves).
+    //   No explicit data migration needed; fromJSON handles both formats transparently.
 
-    this.cookies = parseFloat(data.cookies || 0);
-    this.cookiesPerClick = 1;
+    this.cookies = CookieNum.fromJSON(data.cookies || 0);
+    this.cookiesPerClick = CookieNum.from(1);
     this.globalCpsMultiplier = 1;
     this.luckyClickChance = 0;
     this.cpsClickBonus = 0;
@@ -1931,6 +1940,9 @@ export class Game {
     // Load stats
     if (data.stats) {
       this.stats = { ...this.stats, ...data.stats };
+      // Restore CookieNum fields from JSON
+      this.stats.totalCookiesBaked = CookieNum.fromJSON(data.stats.totalCookiesBaked || 0);
+      this.stats.handmadeCookies = CookieNum.fromJSON(data.stats.handmadeCookies || 0);
     }
 
     // Load Buildings
@@ -1939,7 +1951,20 @@ export class Game {
       for (let i = 0; i < len; i++) {
         const savedBuilding = data.buildings[i];
         this.buildings[i].count = savedBuilding.count || 0;
-        this.buildings[i].cost = savedBuilding.cost || this.buildings[i].cost;
+        this.buildings[i].cost = savedBuilding.cost ? CookieNum.fromJSON(savedBuilding.cost) : this.buildings[i].cost;
+        if (savedBuilding.baseCost) {
+          this.buildings[i].baseCost = CookieNum.fromJSON(savedBuilding.baseCost);
+        }
+      }
+
+      // Fallback for old saves without baseCost: re-apply Twin Gates discount
+      const buildingDiscount = this.prestige.getBuildingCostReduction();
+      if (buildingDiscount > 0) {
+        for (let i = 0; i < this.buildings.length; i++) {
+          if (!data.buildings[i] || !data.buildings[i].baseCost) {
+            this.buildings[i].baseCost = this.buildings[i].baseCost.mul(1 - buildingDiscount).floor();
+          }
+        }
       }
     }
 
@@ -1954,10 +1979,10 @@ export class Game {
 
         // Restore saved cost, or recalculate from definition if missing
         if (savedUpgrade.cost) {
-          upgrade.cost = savedUpgrade.cost;
+          upgrade.cost = CookieNum.fromJSON(savedUpgrade.cost);
         } else if (upgrade.level > 0 && upgrade.type !== 'tieredUpgrade') {
           // Recalculate cost from definition for leveled non-tiered upgrades
-          let c = upgrade.upgrade.cost;
+          let c = CookieNum.from(upgrade.upgrade.cost);
           for (let lv = 1; lv <= upgrade.level; lv++) {
             let cm = lv > upgrade.base_max_level
               ? (upgrade.prestige_cost_multiplier || upgrade.cost_multiplier)
@@ -1966,7 +1991,7 @@ export class Game {
               const extra = lv - upgrade.accel_start + 1;
               cm *= Math.pow(upgrade.cost_acceleration, extra);
             }
-            c = Math.floor(c * cm);
+            c = c.mul(cm).floor();
           }
           upgrade.cost = c;
         }
@@ -1992,7 +2017,7 @@ export class Game {
     this.prestige.applyAllEffects();
 
     // Restore exact saved values after reapply
-    this.cookiesPerClick = parseFloat(data.cookiesPerClick || 1);
+    this.cookiesPerClick = CookieNum.fromJSON(data.cookiesPerClick || 1);
     if (data.globalCpsMultiplier) this.globalCpsMultiplier = data.globalCpsMultiplier;
     if (data.luckyClickChance) this.luckyClickChance = data.luckyClickChance;
     if (data.cpsClickBonus) this.cpsClickBonus = data.cpsClickBonus;
@@ -2015,19 +2040,18 @@ export class Game {
         });
 
         const baseCps = this.getEffectiveCPS();
-        const offlineEarnings = elapsedTime * baseCps * offlineMultiplier;
-        this.cookies += offlineEarnings;
-        this.stats.totalCookiesBaked += offlineEarnings;
-        this.cookies = parseFloat(this.cookies.toFixed(1));
+        const offlineEarnings = baseCps.mul(elapsedTime * offlineMultiplier);
+        this.cookies = this.cookies.add(offlineEarnings);
+        this.stats.totalCookiesBaked = this.stats.totalCookiesBaked.add(offlineEarnings);
 
-        if (offlineEarnings > 0) {
-          if (this.visualEffects) this.visualEffects.triggerIncomeRain(offlineEarnings);
+        if (offlineEarnings.gt(0)) {
+          if (this.visualEffects) this.visualEffects.triggerIncomeRain(offlineEarnings.toNumber());
           if (this.tutorial) {
             this.tutorial.showOfflineEarnings({
               elapsedSec: elapsedTime,
-              baseCps,
+              baseCps: baseCps.toNumber(),
               offlineMultiplier,
-              totalEarned: parseFloat(offlineEarnings.toFixed(1)),
+              totalEarned: offlineEarnings.toNumber(),
               formatFn: formatNumberInWords,
             });
           }
