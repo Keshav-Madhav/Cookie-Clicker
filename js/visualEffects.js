@@ -3,6 +3,7 @@ import { MiniGames } from "./miniGames.js";
 import { getBuildingIcon, getRowBackground, clearRowBgCache } from "./buildingIcons.js";
 import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN } from "./config.js";
 import { RowAnimator } from "./rowAnimations.js";
+import { ShopEffects } from "./shopEffects.js";
 
 /**
  * VisualEffects — manages the middle-panel "viewport" with
@@ -45,6 +46,9 @@ export class VisualEffects {
 
     // Animated row backgrounds
     this.rowAnimator = new RowAnimator();
+
+    // Shop panel effects
+    this.shopEffects = new ShopEffects();
 
     this.newsMessages = NEWS.messages;
   }
@@ -126,6 +130,9 @@ export class VisualEffects {
 
     // Animated row backgrounds
     this.rowAnimator.init();
+
+    // Shop panel effects
+    this.shopEffects.init();
 
     // initial render
     this.updateBuildingShowcase();
@@ -1076,6 +1083,11 @@ export class VisualEffects {
       this.rowAnimator._extras.clear();
     }
 
+    // Reset shop effects (row canvases will be recreated on next refresh)
+    if (this.shopEffects) {
+      this.shopEffects._rowEntries.clear();
+    }
+
     // Reset rain intensity to base (CPS is 0 after prestige)
     this._rainTargetCount = this._rainBaseCount;
     this._rainSpeedMult = 1;
@@ -1122,5 +1134,6 @@ export class VisualEffects {
     clearTimeout(this.goldenCookieTimer);
     clearTimeout(this._goldenTimeout);
     if (this.rowAnimator) this.rowAnimator.destroy();
+    if (this.shopEffects) this.shopEffects.destroy();
   }
 }

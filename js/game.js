@@ -548,7 +548,8 @@ export class Game {
 
       toolbar.appendChild(buyGroup);
       toolbar.appendChild(sortGroup);
-      shopDiv.insertBefore(toolbar, buildingList);
+      const insertTarget = document.getElementById('building-list-wrap') || buildingList;
+      shopDiv.insertBefore(toolbar, insertTarget);
     }
   }
 
@@ -1464,6 +1465,11 @@ export class Game {
       }
       buildingList.appendChild(div);
     });
+
+    // Refresh shop visual overlays synchronously (before paint) to avoid pulse
+    if (this.visualEffects && this.visualEffects.shopEffects) {
+      this.visualEffects.shopEffects.refresh();
+    }
   }
 
   updateUI() {

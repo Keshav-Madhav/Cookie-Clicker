@@ -688,3 +688,53 @@ export const TRIVIA_QUESTIONS = [
   { q: "Biscotti means what in Italian?", a: ["Twice baked", "Sweet bread", "Hard cookie", "Almond snack"], correct: 0 },
   { q: "What temperature is ideal for baking cookies (°F)?", a: ["350°F", "275°F", "425°F", "500°F"], correct: 0 },
 ];
+
+// ─────────────────────────────────────────────────────────────
+//  SHOP VISUAL EFFECTS
+// ─────────────────────────────────────────────────────────────
+export const SHOP_VISUAL = {
+  frameThrottleMs: 33,  // ~30fps
+
+  background: {
+    dustCount: 30,
+    sparkleCount: 15,
+    crumbCount: 12,
+    dustSpeedMin: 0.08,
+    dustSpeedRange: 0.25,
+    dustSizeMin: 1,
+    dustSizeRange: 2.5,
+    crumbRiseSpeed: 0.15,
+    crumbRiseSpeedRange: 0.12,
+  },
+
+  rows: {
+    baseOpacity: 0.08,
+    maxOpacity: 0.22,
+    animSpeedBase: 0.6,
+    warmUndertone: [255, 200, 140],
+  },
+
+  scroll: {
+    parallaxLayer1: 0.3,
+    parallaxLayer2: 0.6,
+    parallaxLayer3: 1.0,
+    edgeGlowIntensity: 0.15,
+  },
+
+  dock: {
+    maxScale: 1.06,        // scale of the row directly under the mouse
+    minScale: 0.97,        // scale of rows far from the mouse
+    sigma: 90,             // gaussian spread in pixels (how far the effect reaches)
+    restScale: 1.0,        // scale when mouse is not over the list
+    lerpSpeed: 0.18,       // interpolation speed toward target (0-1, per frame)
+    maxMargin: 12,         // extra vertical margin (px) for the row closest to mouse
+    baseMargin: 5,         // default row margin when mouse is away
+  },
+
+  header: {
+    swayAmount: 1.5,
+    swaySpeed: 1.2,
+    lanternFlickerSpeed: 1.2,
+    chainLinks: 5,
+  },
+};

@@ -115,7 +115,10 @@
 
       <!-- Right: Upgrades & Buildings -->
       <div id="shop">
-        <h2>Upgrades</h2>
+        <canvas id="shop-bg-canvas"></canvas>
+        <div class="shop-header" id="shop-header-upgrades">
+          <canvas class="shop-header-canvas" data-label="Upgrades"></canvas>
+        </div>
         <div class="upgrade-section">
           <div class="upgrade-nav">
             <button class="upgrade-nav-btn" id="upgrade-prev" disabled>◀</button>
@@ -124,9 +127,14 @@
           </div>
           <div id="upgrade-list"></div>
         </div>
-        
-        <h2>Auto-Bakers</h2>
-        <div id="building-list"></div>
+
+        <div class="shop-header" id="shop-header-buildings">
+          <canvas class="shop-header-canvas" data-label="Auto-Bakers"></canvas>
+        </div>
+        <div id="building-list-wrap">
+          <canvas id="shop-scroll-vignette"></canvas>
+          <div id="building-list"></div>
+        </div>
       </div>
     </div>
 

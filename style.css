@@ -2467,6 +2467,16 @@ html {
   flex-direction: column;
 }
 
+#shop-bg-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 8px;
+}
+
 #shop::before {
   content: '';
   position: absolute;
@@ -2478,15 +2488,19 @@ html {
   pointer-events: none;
 }
 
-#shop h2 {
-  border-bottom: 2px solid #a57847;
-  padding-bottom: 6px;
-  margin: 0 0 6px 0;
-  color: #f5e8d3;
-  font-size: 1.1rem;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+.shop-header {
   position: relative;
   z-index: 1;
+  height: 52px;
+  margin: 0 0 6px 0;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.shop-header-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* ============================
@@ -2827,12 +2841,30 @@ html {
 /* ============================
    BUILDINGS - Compact
    ============================ */
+#building-list-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+#shop-scroll-vignette {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
 #building-list {
   overflow-y: auto;
-  flex: 1;
+  overflow-x: hidden;
+  height: 100%;
   position: relative;
   z-index: 1;
-  padding: 0 1px;
+  padding: 6px 14px;
   scroll-behavior: smooth;
 }
 
@@ -2844,24 +2876,25 @@ html {
   padding: 10px 12px;
   border-radius: 6px;
   margin: 5px 0;
-  transition: all 0.2s ease, transform 0.15s ease, opacity 0.25s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   position: relative;
   border: 1.5px solid #e6bb88;
   z-index: 1;
   width: 100%;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .building:disabled {
   background: linear-gradient(135deg, #a38e6d, #7f7259);
   cursor: not-allowed;
-  transform: none;
   box-shadow: none;
   border-color: #6d6149;
   color: #41382a;
   opacity: 0.65;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 /* ─── Locked building: requirements not met ─── */
@@ -3630,7 +3663,6 @@ html {
 }
 
 .building:hover:not(:disabled) {
-  transform: translateY(-1px);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
   background: linear-gradient(to right, #b6855a, #dea975);
 }
@@ -4595,10 +4627,9 @@ html {
     overflow-y: auto;
   }
 
-  #shop h2 {
-    font-size: 1rem;
-    padding-bottom: 5px;
-    margin: 0 0 5px 0;
+  .shop-header {
+    height: 44px;
+    margin: 0 0 4px 0;
   }
 
   /* Upgrades */
@@ -4650,9 +4681,14 @@ html {
   }
 
   /* Buildings */
+  #building-list-wrap {
+    flex: 1;
+    min-height: 0;
+  }
+
   #building-list {
     overflow-y: auto;
-    flex: 1;
+    height: 100%;
     padding-bottom: 8px;
   }
 
