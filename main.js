@@ -96,12 +96,12 @@ document.addEventListener('DOMContentLoaded', function() {
     touchTarget = null;
     globalTooltip.style.opacity = '0';
   }, { passive: true });
-});
 
-const game = new Game();
-game._saveLoaded.then(() => {
-  game.start();
-  setupMobileNav(game);
+  const game = new Game();
+  game._saveLoaded.then(() => {
+    game.start();
+    setupMobileNav(game);
+  });
 });
 
 /* ═══════════════════════════════════════════════════

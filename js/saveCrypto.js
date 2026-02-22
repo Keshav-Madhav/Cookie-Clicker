@@ -52,7 +52,9 @@ export async function encryptSave(jsonStr) {
   packed.set(iv, 0);
   packed.set(new Uint8Array(cipherBuf), iv.length);
 
-  return PREFIX + btoa(String.fromCharCode(...packed));
+  let binary = '';
+  for (let i = 0; i < packed.length; i++) binary += String.fromCharCode(packed[i]);
+  return PREFIX + btoa(binary);
 }
 
 /**

@@ -9,12 +9,13 @@ export class AchievementManager {
       unlocked: false,
       unlockedAt: null
     }));
+    this._unlockedCount = 0;
     this.bonusPerAchievement = ACHIEVEMENTS.bonusPerAchievement; // +CPS per achievement
     this.newlyUnlocked = []; // Queue for showing notifications
   }
 
   getUnlockedCount() {
-    return this.achievements.filter(a => a.unlocked).length;
+    return this._unlockedCount;
   }
 
   isUnlocked(id) {
@@ -35,6 +36,7 @@ export class AchievementManager {
     if (!a || a.unlocked) return;
     a.unlocked = true;
     a.unlockedAt = Date.now();
+    this._unlockedCount++;
     this.showNotification(a);
     if (this.game.visualEffects) {
       this.game.visualEffects.triggerCookieBurst(ACHIEVEMENTS.unlockBurst.count, ACHIEVEMENTS.unlockBurst.speed);
@@ -119,6 +121,7 @@ export class AchievementManager {
       if (met) {
         achievement.unlocked = true;
         achievement.unlockedAt = Date.now();
+        this._unlockedCount++;
         this.newlyUnlocked.push(achievement);
       }
     });
@@ -164,11 +167,13 @@ export class AchievementManager {
   }
 
   loadSaveData(unlockedIds) {
+    this._unlockedCount = 0;
     if (!unlockedIds) return;
     unlockedIds.forEach(id => {
       const achievement = this.achievements.find(a => a.id === id);
       if (achievement) {
         achievement.unlocked = true;
+        this._unlockedCount++;
       }
     });
   }

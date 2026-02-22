@@ -132,7 +132,14 @@ export class Game {
     this._idleTimer = null;
     this._resetIdleTimer();
     document.addEventListener('click', () => this._resetIdleTimer());
-    document.addEventListener('mousemove', () => this._resetIdleTimer());
+    this._lastIdleReset = 0;
+    document.addEventListener('mousemove', () => {
+      const now = Date.now();
+      if (now - this._lastIdleReset > 1000) {
+        this._lastIdleReset = now;
+        this._resetIdleTimer();
+      }
+    });
     // Apply saved settings to visual effects
     this.visualEffects.particlesEnabled = this.settings.particles;
     this.visualEffects.shimmersEnabled = this.settings.shimmers;
@@ -321,15 +328,17 @@ export class Game {
 
   _resetIdleTimer() {
     this._idleTime = 0;
-    clearInterval(this._idleTimer);
-    this._idleTimer = setInterval(() => {
-      this._idleTime++;
-      // 10 minutes = 600 seconds
-      if (this._idleTime >= 600 && this.tutorial) {
-        this.tutorial.triggerEvent('theWatcher');
-        this._idleTime = 0; // Reset so it can trigger again after another 10 min
-      }
-    }, 1000);
+    clearTimeout(this._idleTimer);
+    this._idleTimer = setTimeout(() => this._idleTick(), 1000);
+  }
+
+  _idleTick() {
+    this._idleTime++;
+    if (this._idleTime >= 600 && this.tutorial) {
+      this.tutorial.triggerEvent('theWatcher');
+      this._idleTime = 0;
+    }
+    this._idleTimer = setTimeout(() => this._idleTick(), 1000);
   }
 
   checkLuckyClick(event) {
@@ -1228,7 +1237,7 @@ export class Game {
 
     // Switch to default tab on mobile
     if (this._mobileNav && this._mobileNav.isMobile()) {
-      this._mobileNav.switchTab('cookie');
+      this._mobileNav.switchTab('click-area');
     }
 
     // Persistent Memory: save upgrade levels before reset (use higher of the two tiers)
@@ -1338,16 +1347,28 @@ export class Game {
   }
   
   createFloatingText(event, text, isSpecial = false) {
+    // Cap concurrent floating texts to prevent DOM bloat
+    if (!this._floatingTexts) this._floatingTexts = [];
+    while (this._floatingTexts.length >= 8) {
+      const oldest = this._floatingTexts.shift();
+      oldest.remove();
+    }
+
     const floatingText = document.createElement("span");
     floatingText.textContent = text;
     floatingText.classList.add("cookie-text");
     if (isSpecial) floatingText.classList.add("special-text");
-  
+
     floatingText.style.left = `${event.clientX}px`;
     floatingText.style.top = `${event.clientY}px`;
-  
+
     document.body.appendChild(floatingText);
-    setTimeout(() => floatingText.remove(), PARTICLES.floatingTextDurationMs);
+    this._floatingTexts.push(floatingText);
+    setTimeout(() => {
+      floatingText.remove();
+      const idx = this._floatingTexts.indexOf(floatingText);
+      if (idx !== -1) this._floatingTexts.splice(idx, 1);
+    }, PARTICLES.floatingTextDurationMs);
   }
   
   // Offline earnings are now shown via Tutorial.showOfflineEarnings() popup
@@ -1362,11 +1383,8 @@ export class Game {
     if (this.purchaseAmount === 'Max') {
       this.renderBuildingList(false);
       this.renderUpgradePage();
-      this.updateButtonsState(); 
-    } else {
-      this.renderBuildingList(false);
-      this.updateButtonsState(); 
     }
+    this.updateButtonsState();
 
     // Update frenzy timer
     if (this.frenzyActive) {
@@ -1764,7 +1782,7 @@ export class Game {
 
   // === Save / Load ===
   saveGame() {
-    if (this._wipedSave) return; // Don't save after wipe
+    if (this._wipedSave || this._savePending) return;
     let saveData = {
       cookies: this.cookies,
       cookiesPerClick: this.cookiesPerClick,
@@ -1796,8 +1814,11 @@ export class Game {
       saveVersion: 4,
     };
     const jsonStr = JSON.stringify(saveData);
+    this._savePending = true;
     encryptSave(jsonStr).then(encrypted => {
       localStorage.setItem("cookieClickerSave", encrypted);
+    }).finally(() => {
+      this._savePending = false;
     });
   }
 
