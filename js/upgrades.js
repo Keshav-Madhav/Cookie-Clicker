@@ -80,6 +80,8 @@ export class Upgrade {
     // Infinite Wisdom heavenly upgrade: +1 to all max levels
     if (this.game.prestige) {
       extra += this.game.prestige.getBonusUpgradeLevels();
+      // Wisdom Eternal: +2 to all max levels (stacks)
+      extra += this.game.prestige.getBonusUpgradeLevels2();
     }
     return this.base_max_level + extra;
   }

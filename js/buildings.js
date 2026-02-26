@@ -31,7 +31,7 @@ export class Building {
         return this.game.stats.totalCookiesBaked.gte(cond.min);
       case "prestige": {
         if (!this.game.prestige) return false;
-        const discount = this.game.prestige.getPrestigeBuildingDiscount();
+        const discount = this.game.prestige.getPrestigeBuildingDiscount() + this.game.prestige.getPrestigeBuildingDiscount2();
         const effectiveMin = Math.max(1, cond.min - discount);
         return this.game.prestige.timesPrestiged >= effectiveMin;
       }
@@ -61,7 +61,7 @@ export class Building {
         case "totalCookies":
           return `Need ${formatNumberInWords(cond.min)} total cookies baked`;
         case "prestige": {
-          const discount = this.game.prestige ? this.game.prestige.getPrestigeBuildingDiscount() : 0;
+          const discount = this.game.prestige ? this.game.prestige.getPrestigeBuildingDiscount() + this.game.prestige.getPrestigeBuildingDiscount2() : 0;
           const effectiveMin = Math.max(1, cond.min - discount);
           return `Need ${effectiveMin} prestige${effectiveMin > 1 ? 's' : ''} (have ${this.game.prestige ? this.game.prestige.timesPrestiged : 0})`;
         }

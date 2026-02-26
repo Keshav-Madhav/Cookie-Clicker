@@ -226,6 +226,19 @@ export class Game {
       cps = cps.mul(1 + buildingTypeBonus * typesOwned);
     }
 
+    // Cosmic Harvest: +0.6% CPS per building type owned (stacks)
+    const buildingTypeBonus2 = this.prestige.getCpsPerBuildingTypeBonus2();
+    if (buildingTypeBonus2 > 0) {
+      const typesOwned = this.buildings.filter(b => b.count > 0).length;
+      cps = cps.mul(1 + buildingTypeBonus2 * typesOwned);
+    }
+
+    // Omniscient Baking: +2% CPS per achievement unlocked
+    const omniscientBonus = this.prestige.getCpsPerAchievementBonus3();
+    if (omniscientBonus > 0) {
+      cps = cps.mul(1 + omniscientBonus * this.achievementManager.getUnlockedCount());
+    }
+
     // Apply all active CPS buffs (frenzies, golden cookies)
     for (const buff of this.activeBuffs) {
       if (buff.type === 'cps') cps = cps.mul(buff.multiplier);
@@ -262,7 +275,9 @@ export class Game {
   /** Soft-cap threshold, scaling with prestige level. */
   _getCpsSoftCapThreshold() {
     const prestiges = this.prestige ? this.prestige.timesPrestiged : 0;
-    return SOFT_CAP.baseThreshold * Math.pow(SOFT_CAP.prestigeScaling, prestiges);
+    const scalingBonus = this.prestige ? this.prestige.getSoftCapScalingBonus() : 1;
+    const effectiveScaling = SOFT_CAP.prestigeScaling * scalingBonus;
+    return SOFT_CAP.baseThreshold * Math.pow(effectiveScaling, prestiges);
   }
 
   /** Current production efficiency (0–1). 1 = no cap effect. */
@@ -309,6 +324,8 @@ export class Game {
     cpc = cpc.mul(this.prestige.getClickMultiplier2());
     // Heavenly Clicking: x2 clicking power
     cpc = cpc.mul(this.prestige.getClickMultiplier());
+    // Astral Clicking: x3 clicking power
+    cpc = cpc.mul(this.prestige.getClickMultiplier3());
     // Apply all active click buffs
     for (const buff of this.activeBuffs) {
       if (buff.type === 'click') cpc = cpc.mul(buff.multiplier);
@@ -455,7 +472,7 @@ export class Game {
     if (this.activeBuffs.length >= 4) return;
 
     const wasAlreadyActive = this.activeBuffs.length > 0;
-    const duration = durationSec * 1000 * this.frenzyDurationMultiplier;
+    const duration = durationSec * 1000 * this.frenzyDurationMultiplier * (this.prestige ? this.prestige.getFrenzyDurationMultiplier() : 1);
     // Frenzy Overload + Frenzy Mastery: amplify frenzy multiplier
     const effectiveMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier() * this.prestige.getFrenzyBonusMultiplier2();
 
@@ -1333,8 +1350,12 @@ export class Game {
       this._mobileNav.switchTab('click-area');
     }
 
-    // Persistent Memory: save upgrade levels before reset (use higher of the two tiers)
-    const memoryFraction = Math.max(this.prestige.getPersistentMemoryFraction(), this.prestige.getPersistentMemoryFraction2());
+    // Persistent Memory: save upgrade levels before reset (use highest of all tiers)
+    const memoryFraction = Math.max(
+      this.prestige.getPersistentMemoryFraction(),
+      this.prestige.getPersistentMemoryFraction2(),
+      this.prestige.getPersistentMemoryFraction3()
+    );
     const savedUpgradeLevels = [];
     if (memoryFraction > 0) {
       this.upgrades.forEach((u, i) => {
@@ -1373,6 +1394,15 @@ export class Game {
     // Cookie Stockpile: give additional free buildings (Factory, Mine)
     const starterBuildings2 = this.prestige.getStarterBuildings2();
     starterBuildings2.forEach(idx => {
+      if (this.buildings[idx]) {
+        this.buildings[idx].count = 1;
+        this.buildings[idx].recalculateCost();
+      }
+    });
+
+    // Divine Granaries: give free Shipment, Alchemy Lab, Portal
+    const starterBuildings3 = this.prestige.getStarterBuildings3();
+    starterBuildings3.forEach(idx => {
       if (this.buildings[idx]) {
         this.buildings[idx].count = 1;
         this.buildings[idx].recalculateCost();
@@ -1756,8 +1786,8 @@ export class Game {
       baseCps = baseCps.mul(1 + buildingPrestigeBonus);
     }
 
-    // Synergy multiplier from Synergy Vol. II and Cosmic Synergy heavenly upgrades
-    const synergyMult = this.prestige.getSynergyMultiplier() * this.prestige.getSynergyMultiplier2();
+    // Synergy multiplier from Synergy Vol. II, Cosmic Synergy, and Celestial Synergy heavenly upgrades
+    const synergyMult = this.prestige.getSynergyMultiplier() * this.prestige.getSynergyMultiplier2() * this.prestige.getSynergyMultiplier3();
 
     // Add synergy bonuses
     this.upgrades.forEach(upgrade => {

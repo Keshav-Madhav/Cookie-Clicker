@@ -27,6 +27,12 @@ export class PrestigeManager {
       chips = Math.floor(chips * (1 + interestValue));
     }
 
+    // Compound Wealth: additional HC interest bonus (stacks)
+    if (this.hasUpgrade('compoundWealth')) {
+      const interestValue2 = this._getUpgradeData('compoundWealth').value;
+      chips = Math.floor(chips * (1 + interestValue2));
+    }
+
     return Math.max(0, chips - this.heavenlyChips); // Only new chips
   }
 
@@ -38,6 +44,12 @@ export class PrestigeManager {
     // Season Savings: +10% CPS per prestige level
     if (this.hasUpgrade('seasonSavings')) {
       const bonus = this._getUpgradeData('seasonSavings').value;
+      mult *= (1 + bonus * this.timesPrestiged);
+    }
+
+    // Timeless Baking: +10% CPS per prestige level (stacks)
+    if (this.hasUpgrade('timelessBaking')) {
+      const bonus = this._getUpgradeData('timelessBaking').value;
       mult *= (1 + bonus * this.timesPrestiged);
     }
 
@@ -155,6 +167,19 @@ export class PrestigeManager {
       case 'clickMultiplier2':
       case 'cpsPerAchievement2':
       case 'frenzyMultiplier2':
+      case 'softCapScalingBonus':
+      case 'starterBuildings3':
+      case 'clickMultiplier3':
+      case 'bonusUpgradeLevels2':
+      case 'goldenCookieRewardMultiplier2':
+      case 'persistentMemory3':
+      case 'cpsPerBuildingType2':
+      case 'cpsPerPrestige2':
+      case 'frenzyDuration':
+      case 'synergyMultiplier3':
+      case 'cpsPerAchievement3':
+      case 'hcInterest2':
+      case 'prestigeBuildingDiscount2':
         // Checked dynamically during gameplay
         break;
       default:
@@ -334,6 +359,99 @@ export class PrestigeManager {
       return this._getUpgradeData('frenzyMastery').value;
     }
     return 1;
+  }
+
+  // === Tier 5+ Getters ===
+
+  getSoftCapScalingBonus() {
+    if (this.hasUpgrade('eternityRising')) {
+      return this._getUpgradeData('eternityRising').value;
+    }
+    return 1;
+  }
+
+  getStarterBuildings3() {
+    if (this.hasUpgrade('divineGranaries')) {
+      return this._getUpgradeData('divineGranaries').value; // [5, 6, 7]
+    }
+    return [];
+  }
+
+  getClickMultiplier3() {
+    if (this.hasUpgrade('astralClicking')) {
+      return this._getUpgradeData('astralClicking').value;
+    }
+    return 1;
+  }
+
+  getBonusUpgradeLevels2() {
+    if (this.hasUpgrade('wisdomEternal')) {
+      return this._getUpgradeData('wisdomEternal').value;
+    }
+    return 0;
+  }
+
+  getGoldenCookieRewardMultiplier2() {
+    if (this.hasUpgrade('goldenEmpire')) {
+      return this._getUpgradeData('goldenEmpire').value;
+    }
+    return 1;
+  }
+
+  getPersistentMemoryFraction3() {
+    if (this.hasUpgrade('soulMemory')) {
+      return this._getUpgradeData('soulMemory').value;
+    }
+    return 0;
+  }
+
+  getCpsPerBuildingTypeBonus2() {
+    if (this.hasUpgrade('cosmicHarvest')) {
+      return this._getUpgradeData('cosmicHarvest').value;
+    }
+    return 0;
+  }
+
+  getCpsPerPrestige2() {
+    if (this.hasUpgrade('timelessBaking')) {
+      return this._getUpgradeData('timelessBaking').value;
+    }
+    return 0;
+  }
+
+  getFrenzyDurationMultiplier() {
+    if (this.hasUpgrade('ascendantFrenzies')) {
+      return this._getUpgradeData('ascendantFrenzies').value;
+    }
+    return 1;
+  }
+
+  getSynergyMultiplier3() {
+    if (this.hasUpgrade('celestialSynergy')) {
+      return this._getUpgradeData('celestialSynergy').value;
+    }
+    return 1;
+  }
+
+  getCpsPerAchievementBonus3() {
+    if (this.hasUpgrade('omniscientBaking')) {
+      return this._getUpgradeData('omniscientBaking').value;
+    }
+    return 0;
+  }
+
+  getHcInterest2() {
+    if (this.hasUpgrade('compoundWealth')) {
+      return this._getUpgradeData('compoundWealth').value;
+    }
+    return 0;
+  }
+
+  getPrestigeBuildingDiscount2() {
+    if (this.hasUpgrade('realityArchitect')) {
+      return this._getUpgradeData('realityArchitect').value;
+    }
+    return 0;
   }
 
   // === Save / Load ===

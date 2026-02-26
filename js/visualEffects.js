@@ -645,7 +645,7 @@ export class VisualEffects {
       const g = this.game;
       let msg = "";
       let incomeAmount = 0;
-      const gcRewardMult = g.prestige ? g.prestige.getGoldenCookieRewardMultiplier() : 1;
+      const gcRewardMult = g.prestige ? g.prestige.getGoldenCookieRewardMultiplier() * g.prestige.getGoldenCookieRewardMultiplier2() : 1;
       if (roll < GOLDEN_COOKIE.luckyRollMax) {
         const bonus = CookieNum.max(
           CookieNum.from(GOLDEN_COOKIE.lucky.minCookies),
