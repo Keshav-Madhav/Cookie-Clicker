@@ -159,6 +159,8 @@ export class Building {
       this.game.cookies = this.game.cookies.sub(totalCost);
       this.count += parseInt(amount);
       this.cost = this._costAtCount(this.count);
+      // Tag this building for purchase flash after deferred DOM rebuild
+      this._pendingFlash = true;
       this.game.updateAfterPurchase();
 
       // Cookie rain burst on building purchase (scales with amount bought)

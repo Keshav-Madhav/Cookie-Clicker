@@ -1037,7 +1037,14 @@ export class VisualEffects {
   /* ───────────────────────── CPS counter ────────────────────── */
   updateCPS() {
     const el = document.getElementById("viewport-cps-value");
-    if (el) el.textContent = formatNumberInWords(this.game.getEffectiveCPS());
+    if (!el) return;
+    const newText = formatNumberInWords(this.game.getEffectiveCPS());
+    if (el.textContent !== newText) {
+      el.textContent = newText;
+      el.classList.remove('cps-value-pop');
+      void el.offsetWidth;
+      el.classList.add('cps-value-pop');
+    }
   }
 
   /* ───────────────────── prestige reset (clear UI artifacts) ── */

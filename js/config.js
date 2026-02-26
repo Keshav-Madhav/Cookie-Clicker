@@ -772,6 +772,15 @@ export const SHOP_VISUAL = {
     baseMargin: 5,         // default row margin when mouse is away
   },
 
+  upgradeTilt: {
+    maxRotate: 10,         // max tilt angle in degrees (card directly under mouse)
+    sigma: 120,            // gaussian spread in px (how far the effect reaches)
+    lerpSpeed: 0.18,       // interpolation speed toward target (0-1 per frame)
+    returnSpeed: 0.12,     // speed at which cards return to flat
+    maxLiftZ: 6,           // max translateZ (px) for closest card
+    maxShine: 0.85,        // max shine opacity for closest card
+  },
+
   header: {
     swayAmount: 1.5,
     swaySpeed: 1.2,

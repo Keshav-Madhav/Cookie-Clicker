@@ -102,6 +102,14 @@ export class ShopEffects {
     // Feature 8: Header canvases
     this._headers = [];
 
+    // Feature 9: Upgrade 3D tilt effect
+    this._upgradeListEl = null;
+    this._upgMouseX = -1;
+    this._upgMouseY = -1;
+    this._upgMouseActive = false;
+    this._upgHoveredBtn = null;
+    this._upgTilts = new Map(); // btn index -> { rx, ry, z, shineX, shineY, shineOp }
+
     // Resize handler ref
     this._onResize = () => this._handleResize();
   }
@@ -113,6 +121,7 @@ export class ShopEffects {
     this._seedParticles();
     this._setupHeaders();
     this._setupScrollEffects();
+    this._setupUpgradeTilt();
     window.addEventListener('resize', this._onResize);
     this._startAnimLoop();
   }
@@ -146,6 +155,7 @@ export class ShopEffects {
       this._drawBackground(t);
       this._drawScrollEffects(t);
       this._drawHeaders(t);
+      this._applyUpgradeTilt();
     };
     requestAnimationFrame(loop);
   }
@@ -866,6 +876,102 @@ export class ShopEffects {
     ctx.lineTo(x, y + r);
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     Feature 9: Upgrade 3D Tilt + Shine
+     ═══════════════════════════════════════════════════════════════ */
+
+  _setupUpgradeTilt() {
+    this._upgradeListEl = document.getElementById('upgrade-list');
+    if (!this._upgradeListEl) return;
+
+    this._upgradeListEl.addEventListener('mousemove', (e) => {
+      this._upgMouseX = e.clientX;
+      this._upgMouseY = e.clientY;
+      this._upgMouseActive = true;
+    }, { passive: true });
+
+    this._upgradeListEl.addEventListener('mouseleave', () => {
+      this._upgMouseActive = false;
+    }, { passive: true });
+  }
+
+  _applyUpgradeTilt() {
+    if (!this._upgradeListEl) return;
+    const cfg = SHOP_VISUAL.upgradeTilt;
+    const btns = this._upgradeListEl.querySelectorAll('.upgrade-btn');
+    if (!btns.length) return;
+
+    const sigma2x2 = 2 * cfg.sigma * cfg.sigma;
+    const lerp = this._upgMouseActive ? cfg.lerpSpeed : cfg.returnSpeed;
+
+    btns.forEach((btn, i) => {
+      const key = btn.dataset.index || String(i);
+      let cur = this._upgTilts.get(key) || { rx: 0, ry: 0, z: 0, shineX: 50, shineY: 50, shineOp: 0 };
+
+      let targetRx = 0, targetRy = 0, targetZ = 0;
+      let targetShineX = 50, targetShineY = 50, targetShineOp = 0;
+
+      if (this._upgMouseActive && this._upgMouseX >= 0 && !btn.disabled) {
+        // Every card tilts toward the cursor, with Gaussian distance falloff
+        const rect = btn.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = this._upgMouseX - cx;
+        const dy = this._upgMouseY - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Gaussian influence: 1.0 when mouse is on the card, fades with distance
+        const influence = Math.exp(-(dist * dist) / sigma2x2);
+
+        // Direction from card center toward mouse, normalized
+        const len = Math.max(1, dist);
+        const ndx = dx / len;
+        const ndy = dy / len;
+
+        // Tilt toward cursor: rotateY follows horizontal, rotateX follows vertical (inverted)
+        // Scale by both influence AND how far the mouse is from center within the card
+        const cardNx = Math.max(-1, Math.min(1, dx / (rect.width / 2)));
+        const cardNy = Math.max(-1, Math.min(1, dy / (rect.height / 2)));
+
+        targetRy = ndx * cfg.maxRotate * influence;
+        targetRx = -ndy * cfg.maxRotate * influence;
+        targetZ = cfg.maxLiftZ * influence;
+
+        // Shine position: point on card closest to cursor direction
+        targetShineX = Math.max(0, Math.min(100, ((cardNx + 1) / 2) * 100));
+        targetShineY = Math.max(0, Math.min(100, ((cardNy + 1) / 2) * 100));
+        targetShineOp = cfg.maxShine * influence;
+      }
+
+      // Smooth interpolation
+      cur.rx += (targetRx - cur.rx) * lerp;
+      cur.ry += (targetRy - cur.ry) * lerp;
+      cur.z += (targetZ - cur.z) * lerp;
+      cur.shineX += (targetShineX - cur.shineX) * lerp;
+      cur.shineY += (targetShineY - cur.shineY) * lerp;
+      cur.shineOp += (targetShineOp - cur.shineOp) * lerp;
+
+      this._upgTilts.set(key, cur);
+
+      // Apply transform (snap small values to zero to avoid jitter)
+      const rx = Math.abs(cur.rx) < 0.05 ? 0 : Math.round(cur.rx * 100) / 100;
+      const ry = Math.abs(cur.ry) < 0.05 ? 0 : Math.round(cur.ry * 100) / 100;
+      const z = Math.abs(cur.z) < 0.05 ? 0 : Math.round(cur.z * 10) / 10;
+      const shineOp = Math.abs(cur.shineOp) < 0.01 ? 0 : Math.round(cur.shineOp * 100) / 100;
+
+      if (rx === 0 && ry === 0 && z === 0) {
+        btn.style.transform = '';
+      } else {
+        btn.style.transform = `perspective(400px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(${z}px)`;
+      }
+
+      // Shine effect via CSS custom properties
+      btn.style.setProperty('--shine-x', `${Math.round(cur.shineX)}%`);
+      btn.style.setProperty('--shine-y', `${Math.round(cur.shineY)}%`);
+      btn.style.setProperty('--shine-opacity', String(shineOp));
+    });
   }
 
   /* ═══════════════════════════════════════════════════════════════

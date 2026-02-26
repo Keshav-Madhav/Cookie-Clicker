@@ -358,6 +358,25 @@ html {
   border: 1px solid rgba(165, 120, 71, 0.15);
   position: relative;
   overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.stat-card:hover {
+  border-color: rgba(248, 196, 113, 0.35);
+  box-shadow: 0 2px 10px rgba(248, 196, 113, 0.1), inset 0 0 20px rgba(248, 196, 113, 0.04);
+  transform: translateY(-1px);
+}
+
+/* Stat value change flash */
+@keyframes statValuePop {
+  0%   { transform: scale(1); color: #f8c471; }
+  30%  { transform: scale(1.18); color: #ffe08a; text-shadow: 0 0 8px rgba(255,224,138,0.6), 1px 1px 2px rgba(0,0,0,0.4); }
+  100% { transform: scale(1); color: #f8c471; }
+}
+
+.stat-value-pop {
+  animation: statValuePop 0.4s ease-out;
+  display: inline-block;
 }
 
 .stat-card::before {
@@ -575,10 +594,20 @@ html {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+#prestige-btn:not(:disabled) {
+  animation: prestigeReadyPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes prestigeReadyPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(195,155,211,0.2); border-color: #c39bd3; }
+  50%      { box-shadow: 0 0 20px rgba(195,155,211,0.5), 0 0 40px rgba(155,89,182,0.15); border-color: #d7a8e8; }
+}
+
 #prestige-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #af7ac5, #9b59b6);
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(155, 89, 182, 0.4);
+  animation: none;
 }
 
 #prestige-btn:disabled {
@@ -2269,6 +2298,22 @@ html {
   color: #f8c471;
   text-shadow: 0 0 20px rgba(248,196,113,0.4), 0 2px 4px rgba(0,0,0,0.5);
   letter-spacing: 1px;
+  animation: cpsAmbientGlow 3s ease-in-out infinite;
+}
+
+@keyframes cpsAmbientGlow {
+  0%, 100% { text-shadow: 0 0 20px rgba(248,196,113,0.4), 0 2px 4px rgba(0,0,0,0.5); }
+  50%      { text-shadow: 0 0 28px rgba(248,196,113,0.6), 0 0 50px rgba(255,200,80,0.15), 0 2px 4px rgba(0,0,0,0.5); }
+}
+
+@keyframes cpsPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.12); filter: brightness(1.3); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.cps-value-pop {
+  animation: cpsPop 0.35s ease-out !important;
 }
 
 /* ─── Building Showcase (baker rows) ─── */
@@ -2599,8 +2644,9 @@ html {
   padding: 0;
   position: relative;
   z-index: 1;
-  overflow: hidden;
+  overflow: visible;
   will-change: transform, opacity;
+  perspective: 600px;
 }
 
 /* Upgrade page slide-out */
@@ -2655,13 +2701,15 @@ html {
   color: #41280f;
   font-weight: bold;
   border: 1.5px solid #d35400;
-  transition: all 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
   text-align: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
   overflow: hidden;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
   line-height: 1.3;
   word-break: break-word;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .upgrade-btn::before {
@@ -2678,14 +2726,28 @@ html {
 }
 
 .upgrade-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.4);
   background: linear-gradient(135deg, #f9d58b, #f39c12);
 }
 
 .upgrade-btn:active:not(:disabled) {
-  transform: translateY(1px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Warm shine overlay that follows the mouse */
+.upgrade-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 4px;
+  background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 50%),
+    rgba(255,225,120,0.45) 0%,
+    rgba(255,200,80,0.15) 35%,
+    rgba(255,180,60,0.04) 60%,
+    transparent 80%);
+  opacity: var(--shine-opacity, 0);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .upgrade-btn:disabled {
@@ -2772,7 +2834,6 @@ html {
   background: linear-gradient(135deg, #5b109e, #8b2fd6);
   border-color: rgba(167, 139, 250, 0.8);
   box-shadow: 0 3px 12px rgba(147, 112, 219, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
 }
 .upgrade-btn.heavenly-shop-icon.locked {
   background: linear-gradient(135deg, #2d1b4e, #1a0a2e);
@@ -2914,7 +2975,7 @@ html {
   padding: 10px 12px;
   border-radius: 6px;
   margin: 5px 0;
-  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   position: relative;
@@ -3701,12 +3762,25 @@ html {
 }
 
 .building:hover:not(:disabled) {
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), 0 0 18px rgba(248,196,113,0.15);
   background: linear-gradient(to right, #b6855a, #dea975);
+  transform: translateY(-2px);
 }
 
 .building:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(1px) scale(0.98);
+  transition: transform 0.06s ease;
+}
+
+/* Purchase flash feedback */
+@keyframes buildingPurchaseFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(248,196,113,0.7); }
+  40%  { box-shadow: 0 0 20px 4px rgba(248,196,113,0.5), inset 0 0 15px rgba(255,225,120,0.2); }
+  100% { box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+}
+
+.building-purchase-flash {
+  animation: buildingPurchaseFlash 0.5s ease-out;
 }
 
 .building p {
@@ -3858,7 +3932,7 @@ html {
   position: fixed;
   top: -100px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(0.8);
   background: linear-gradient(135deg, #5a3921, #41280f);
   color: #f5e8d3;
   padding: 8px 16px;
@@ -3868,12 +3942,42 @@ html {
   text-align: center;
   font-size: 12px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-  transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.5s ease;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .achievement-notification.show {
   top: 12px;
+  transform: translateX(-50%) scale(1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 25px rgba(248,196,113,0.3), 0 0 50px rgba(248,196,113,0.1);
+  animation: achieveGlow 2s ease-in-out 0.5s infinite;
+}
+
+/* Golden shimmer sweep */
+.achievement-notification::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; right: 0; bottom: 0;
+  width: 100%;
+  background: linear-gradient(105deg, transparent 40%, rgba(248,196,113,0.2) 45%, rgba(255,225,120,0.35) 50%, rgba(248,196,113,0.2) 55%, transparent 60%);
+  pointer-events: none;
+}
+
+.achievement-notification.show::after {
+  animation: achieveShimmer 1.2s ease-out 0.3s forwards;
+}
+
+@keyframes achieveShimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes achieveGlow {
+  0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 20px rgba(248,196,113,0.2), 0 0 40px rgba(248,196,113,0.05); }
+  50%      { box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 30px rgba(248,196,113,0.4), 0 0 55px rgba(248,196,113,0.15); }
 }
 
 .achievement-notification strong {
@@ -4054,6 +4158,13 @@ html {
   border: 1px solid rgba(165, 120, 71, 0.2);
   position: relative;
   overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.menu-stat-card:hover {
+  border-color: rgba(248, 196, 113, 0.35);
+  box-shadow: 0 2px 10px rgba(248, 196, 113, 0.1), inset 0 0 20px rgba(248, 196, 113, 0.04);
+  transform: translateY(-1px);
 }
 
 .menu-stat-card::before {

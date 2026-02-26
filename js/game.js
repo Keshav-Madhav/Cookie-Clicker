@@ -1074,6 +1074,10 @@ export class Game {
     // Stats
     const statsEl = document.getElementById("menu-stats");
     if (statsEl) {
+      // Cache previous stat values for change detection
+      const prevValues = [];
+      statsEl.querySelectorAll('.stat-value').forEach(el => prevValues.push(el.textContent));
+
       const elapsed = Math.floor((Date.now() - this.stats.startTime) / 1000);
       const mins = Math.floor(elapsed / 60);
       const hrs = Math.floor(mins / 60);
@@ -1121,6 +1125,17 @@ export class Game {
           <span class="stat-label">Session Time</span>
         </div>
       `;
+
+      // Flash stat values that changed
+      if (prevValues.length > 0) {
+        const newEls = statsEl.querySelectorAll('.stat-value');
+        newEls.forEach((el, i) => {
+          if (prevValues[i] !== undefined && prevValues[i] !== el.textContent) {
+            el.classList.add('stat-value-pop');
+            el.addEventListener('animationend', () => el.classList.remove('stat-value-pop'), { once: true });
+          }
+        });
+      }
     }
 
     // Achievement progress bar
@@ -1607,6 +1622,18 @@ export class Game {
     if (this.visualEffects && this.visualEffects.shopEffects) {
       this.visualEffects.shopEffects.refresh();
     }
+
+    // Apply purchase flash to buildings that were just bought
+    this.buildings.forEach((b, idx) => {
+      if (b._pendingFlash) {
+        b._pendingFlash = false;
+        const btn = buildingList.querySelector(`.building[data-building-index="${idx}"]`);
+        if (btn) {
+          btn.classList.add('building-purchase-flash');
+          btn.addEventListener('animationend', () => btn.classList.remove('building-purchase-flash'), { once: true });
+        }
+      }
+    });
   }
 
   /** Lightweight update after a purchase — avoids full DOM rebuild so rapid clicks register */
@@ -1701,6 +1728,7 @@ export class Game {
         if (animated) {
           btn.classList.add('upgrade-enter');
           btn.style.animationDelay = `${i * 25}ms`;
+          btn.addEventListener('animationend', () => btn.classList.remove('upgrade-enter'), { once: true });
         }
         list.appendChild(btn);
       });
@@ -1710,6 +1738,7 @@ export class Game {
         if (animated) {
           heavenlyBtn.classList.add('upgrade-enter');
           heavenlyBtn.style.animationDelay = `${pageIndices.length * 25}ms`;
+          heavenlyBtn.addEventListener('animationend', () => heavenlyBtn.classList.remove('upgrade-enter'), { once: true });
         }
         list.appendChild(heavenlyBtn);
       }
