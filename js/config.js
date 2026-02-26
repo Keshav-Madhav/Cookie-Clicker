@@ -121,6 +121,47 @@ export const PRESTIGE = {
 };
 
 // ─────────────────────────────────────────────────────────────
+//  CPS SOFT CAP — creates natural prestige plateaus
+// ─────────────────────────────────────────────────────────────
+export const SOFT_CAP = {
+  /**
+   * Production soft-cap. Once in-run CPS (before prestige multiplier)
+   * exceeds the threshold, additional production suffers logarithmic
+   * diminishing returns, creating a natural wall that makes prestige
+   * the attractive path forward.
+   *
+   * Formula (above threshold):
+   *   effectiveCPS = threshold × (1 + ln(rawCPS / threshold) × generosity)
+   *
+   * The threshold scales with prestige: base × prestigeScaling ^ timesPrestiged
+   *
+   * Example first-run (threshold = 1M, generosity = 0.75):
+   *   Raw  500K →  500K effective (100%)     — below cap, no effect
+   *   Raw    5M → 2.21M effective  (44%)     — slowing down
+   *   Raw   50M → 3.93M effective   (8%)     — hard wall
+   *   Raw  500M → 5.66M effective   (1%)     — barely moving
+   *
+   * After 1st prestige (threshold = 5M):
+   *   Raw    5M →    5M effective (100%)     — smooth sailing
+   *   Raw   50M → 11.1M effective  (22%)     — new wall, further out
+   */
+
+  /** Base CPS threshold where diminishing returns begin (no prestige). */
+  baseThreshold: 1_000_000,
+
+  /** How much CPS leaks through above the cap (higher = more generous).
+   *  0.75 gives a moderate curve: 10× over → 27% eff, 100× over → 4.5% eff. */
+  generosity: 0.75,
+
+  /** Each prestige multiplies the threshold by this factor.
+   *  5 → first prestige raises cap from 1M to 5M, second to 25M, etc. */
+  prestigeScaling: 5,
+
+  /** Minimum efficiency floor — CPS never drops below this fraction of raw. */
+  minEfficiency: 0.01,
+};
+
+// ─────────────────────────────────────────────────────────────
 //  ACHIEVEMENTS
 // ─────────────────────────────────────────────────────────────
 export const ACHIEVEMENTS = {

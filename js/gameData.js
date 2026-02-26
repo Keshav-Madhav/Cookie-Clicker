@@ -219,12 +219,12 @@ export const upgrades = [
     subtype: "luckyChance",
     requires: [{ type: "totalClicks", min: 250 }],
     tiers: [
-      { name: "Lucky Cookies", effect: "1% lucky click chance", chance: 0.01, cost: 250000, buildingsRequired: 25 },
-      { name: "Serendipity", effect: "2% lucky click chance", chance: 0.01, cost: 50000000, buildingsRequired: 125 },
-      { name: "Fortune", effect: "3% lucky click chance", chance: 0.01, cost: 10000000000, buildingsRequired: 275 },
-      { name: "Jackpot", effect: "4.5% lucky click chance", chance: 0.015, cost: 1000000000000, buildingsRequired: 425 },
-      { name: "Miracle", effect: "6% lucky click chance", chance: 0.015, cost: 10000000000000000000, buildingsRequired: 700 },
-      { name: "Divine Luck", effect: "8% lucky click chance", chance: 0.02, cost: 5000000000000000000000, buildingsRequired: 1000 },
+      { name: "Lucky Cookies", effect: "0.5% lucky click chance", chance: 0.005, cost: 250000, buildingsRequired: 25 },
+      { name: "Serendipity", effect: "1% lucky click chance", chance: 0.005, cost: 50000000, buildingsRequired: 125 },
+      { name: "Fortune", effect: "1.5% lucky click chance", chance: 0.005, cost: 10000000000, buildingsRequired: 275 },
+      { name: "Jackpot", effect: "2% lucky click chance", chance: 0.005, cost: 1000000000000, buildingsRequired: 425 },
+      { name: "Miracle", effect: "3% lucky click chance", chance: 0.01, cost: 10000000000000000000, buildingsRequired: 700 },
+      { name: "Divine Luck", effect: "4% lucky click chance", chance: 0.01, cost: 5000000000000000000000, buildingsRequired: 1000 },
     ]
   },
 

@@ -433,6 +433,28 @@ html {
 .mult-bar-fill.prestige { background: linear-gradient(to right, #af7ac5, #8e44ad); }
 .mult-bar-fill.combined { background: linear-gradient(to right, #2ecc71, #27ae60); }
 
+/* Efficiency bar — color shifts with production health */
+.mult-bar-fill.efficiency { background: linear-gradient(to right, #2ecc71, #27ae60); transition: width 0.5s, background 0.5s; }
+.eff-row.eff-mid .mult-bar-fill.efficiency { background: linear-gradient(to right, #f1c40f, #e67e22); }
+.eff-row.eff-low .mult-bar-fill.efficiency { background: linear-gradient(to right, #e74c3c, #c0392b); }
+.eff-row.eff-low .mult-value { color: #e74c3c; }
+.eff-row.eff-mid .mult-value { color: #f1c40f; }
+.eff-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #e74c3c;
+  padding: 2px 0 0;
+  animation: eff-pulse 2s ease-in-out infinite;
+}
+@keyframes eff-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* CPS Ceiling rows in prestige section */
+.ceiling-row span:last-child { color: #af7ac5; font-weight: bold; }
+.ceiling-next span:last-child { color: #2ecc71; font-size: 0.82rem; }
+
 .mult-row .mult-value {
   font-size: 0.85rem;
   font-weight: bold;

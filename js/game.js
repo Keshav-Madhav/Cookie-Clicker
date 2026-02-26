@@ -9,7 +9,7 @@ import { formatNumberInWords, setShortNumbers } from "./utils.js";
 import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
 import {
   GAME, LUCKY_CLICK, FRENZY_BURSTS, PARTICLES,
-  EASTER_EGGS, GOLDEN_COOKIE
+  EASTER_EGGS, GOLDEN_COOKIE, SOFT_CAP
 } from "./config.js";
 import { CookieNum } from "./cookieNum.js";
 
@@ -193,34 +193,98 @@ export class Game {
   }
 
   getEffectiveCPS() {
-    let cps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
-    cps = cps.mul(this.achievementManager.getMultiplier());
+    // Phase 1: In-run CPS — buildings, upgrades, global multipliers, achievements
+    // This is the CPS the player earned during THIS run through normal gameplay.
+    let inRunCps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
+    inRunCps = inRunCps.mul(this.achievementManager.getMultiplier());
+
+    // Phase 2: Apply soft cap on in-run CPS
+    // Creates a natural plateau that makes prestige the path forward.
+    let cps = this._applySoftCap(inRunCps);
+
+    // Phase 3: Prestige multipliers — applied AFTER the cap.
+    // This is the primary reward for prestiging: prestige multipliers
+    // are never diminished by the soft cap.
     cps = cps.mul(this.prestige.getPrestigeMultiplier());
 
-    // Kitten Workers: +0.5% CPS per achievement
+    // Kitten Workers: +0.5% CPS per achievement (prestige upgrade)
     const kittenBonus = this.prestige.getCpsPerAchievementBonus();
     if (kittenBonus > 0) {
       cps = cps.mul(1 + kittenBonus * this.achievementManager.getUnlockedCount());
     }
 
-    // Medal Cabinet: +1% CPS per achievement
+    // Medal Cabinet: +1% CPS per achievement (prestige upgrade)
     const medalBonus = this.prestige.getCpsPerAchievementBonus2();
     if (medalBonus > 0) {
       cps = cps.mul(1 + medalBonus * this.achievementManager.getUnlockedCount());
     }
 
-    // Cosmic Resonance: +0.5% CPS per building type owned
+    // Cosmic Resonance: +0.5% CPS per building type owned (prestige upgrade)
     const buildingTypeBonus = this.prestige.getCpsPerBuildingTypeBonus();
     if (buildingTypeBonus > 0) {
       const typesOwned = this.buildings.filter(b => b.count > 0).length;
       cps = cps.mul(1 + buildingTypeBonus * typesOwned);
     }
 
-    // Apply all active CPS buffs
+    // Apply all active CPS buffs (frenzies, golden cookies)
     for (const buff of this.activeBuffs) {
       if (buff.type === 'cps') cps = cps.mul(buff.multiplier);
     }
     return cps;
+  }
+
+  // ═══ CPS Soft Cap ═══════════════════════════════════════════
+
+  /**
+   * Apply logarithmic diminishing returns to in-run CPS.
+   * Below the threshold: no change.
+   * Above: effective = threshold × (1 + ln(raw/threshold) × generosity)
+   */
+  _applySoftCap(rawCps) {
+    const threshold = this._getCpsSoftCapThreshold();
+    const thresholdCN = CookieNum.from(threshold);
+
+    if (rawCps.lte(thresholdCN)) return rawCps;
+
+    // Use mantissa/exponent for ln() so it works at arbitrary precision
+    const lnRaw = Math.log(Math.abs(rawCps.mantissa)) + rawCps.exponent * Math.LN10;
+    const lnThreshold = Math.log(threshold);
+    const lnRatio = lnRaw - lnThreshold;  // ln(raw / threshold)
+
+    const effectiveNum = threshold * (1 + lnRatio * SOFT_CAP.generosity);
+
+    // Enforce minimum efficiency floor
+    const minEffective = rawCps.mul(SOFT_CAP.minEfficiency);
+    const result = CookieNum.from(effectiveNum);
+    return result.lt(minEffective) ? minEffective : result;
+  }
+
+  /** Soft-cap threshold, scaling with prestige level. */
+  _getCpsSoftCapThreshold() {
+    const prestiges = this.prestige ? this.prestige.timesPrestiged : 0;
+    return SOFT_CAP.baseThreshold * Math.pow(SOFT_CAP.prestigeScaling, prestiges);
+  }
+
+  /** Current production efficiency (0–1). 1 = no cap effect. */
+  getProductionEfficiency() {
+    const inRunCps = this.cookiesPerSecond.mul(this.globalCpsMultiplier)
+      .mul(this.achievementManager.getMultiplier());
+
+    if (inRunCps.isZero()) return 1;
+
+    const threshold = this._getCpsSoftCapThreshold();
+    if (inRunCps.lte(CookieNum.from(threshold))) return 1;
+
+    // efficiency = effective / raw
+    // = [threshold × (1 + lnRatio × g)] / raw
+    // = (threshold/raw) × (1 + lnRatio × g)
+    // = exp(-lnRatio) × (1 + lnRatio × g)
+    const lnRaw = Math.log(Math.abs(inRunCps.mantissa)) + inRunCps.exponent * Math.LN10;
+    const lnThreshold = Math.log(threshold);
+    const lnRatio = lnRaw - lnThreshold;
+
+    const efficiency = Math.exp(-lnRatio) * (1 + lnRatio * SOFT_CAP.generosity);
+    return Math.max(Math.min(efficiency, 1), SOFT_CAP.minEfficiency);
   }
 
   getEffectiveCPC() {
@@ -228,13 +292,16 @@ export class Game {
     let baseClick = this.cookiesPerClick.mul(this.prestige.getPrestigeMultiplier());
     baseClick = baseClick.mul(this.achievementManager.getMultiplier());
 
-    // CPS-based click bonus (uses steady-state CPS, no frenzy)
+    // CPS-based click bonus — uses soft-capped CPS so clicking
+    // can't bypass the production wall
     let cpsBonus = CookieNum.ZERO;
     if (this.cpsClickBonus > 0) {
-      let baseCps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
-      baseCps = baseCps.mul(this.achievementManager.getMultiplier());
-      baseCps = baseCps.mul(this.prestige.getPrestigeMultiplier());
-      cpsBonus = baseCps.mul(this.cpsClickBonus);
+      let inRunCps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
+      inRunCps = inRunCps.mul(this.achievementManager.getMultiplier());
+      // Apply soft cap before prestige mult (same as getEffectiveCPS)
+      let cappedCps = this._applySoftCap(inRunCps);
+      cappedCps = cappedCps.mul(this.prestige.getPrestigeMultiplier());
+      cpsBonus = cappedCps.mul(this.cpsClickBonus);
     }
 
     let cpc = baseClick.add(cpsBonus);
@@ -347,6 +414,9 @@ export class Game {
   checkLuckyClick(event) {
     if (this.luckyClickChance <= 0) return;
 
+    // Hard cap: skip lucky roll if already at max active buffs
+    if (this.activeBuffs.length >= 4) return;
+
     if (Math.random() < this.luckyClickChance) {
       this.stats.luckyClicks++;
 
@@ -381,6 +451,9 @@ export class Game {
   }
 
   startFrenzy(type, multiplier, durationSec) {
+    // Hard cap: max 4 concurrent buffs
+    if (this.activeBuffs.length >= 4) return;
+
     const wasAlreadyActive = this.activeBuffs.length > 0;
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier;
     // Frenzy Overload + Frenzy Mastery: amplify frenzy multiplier
@@ -1742,6 +1815,10 @@ export class Game {
       const barPct = (v) => Math.min(100, v > 1 ? Math.log10(v) * GAME.multiplierBarLogScale : 0).toFixed(0);
       const combinedBarPct = (v) => Math.min(100, v > 1 ? Math.log10(v) * GAME.combinedBarLogScale : 0).toFixed(0);
 
+      const efficiency = this.getProductionEfficiency();
+      const effPct = (efficiency * 100).toFixed(0);
+      const effClass = efficiency >= 0.8 ? 'eff-high' : efficiency >= 0.4 ? 'eff-mid' : 'eff-low';
+
       multEl.innerHTML = `
         <div class="mult-row">
           <span class="mult-label">Global</span>
@@ -1763,6 +1840,12 @@ export class Game {
           <div class="mult-bar-track"><div class="mult-bar-fill combined" style="width:${combinedBarPct(combined)}%"></div></div>
           <span class="mult-value">x${combined.toFixed(2)}</span>
         </div>
+        <div class="mult-row eff-row ${effClass}" title="Production efficiency — when this drops, ascending raises the ceiling">
+          <span class="mult-label">Efficiency</span>
+          <div class="mult-bar-track"><div class="mult-bar-fill efficiency" style="width:${effPct}%"></div></div>
+          <span class="mult-value">${effPct}%</span>
+        </div>
+        ${efficiency < 0.5 ? '<div class="eff-hint">⬆ Ascend to raise the CPS ceiling</div>' : ''}
       `;
     }
 
@@ -1771,6 +1854,8 @@ export class Game {
     if (prestEl) {
       const potentialChips = this.prestige.calculateHeavenlyChipsOnReset();
       const spendable = this.prestige.getSpendableChips();
+      const curThreshold = this._getCpsSoftCapThreshold();
+      const nextThreshold = SOFT_CAP.baseThreshold * Math.pow(SOFT_CAP.prestigeScaling, this.prestige.timesPrestiged + 1);
       prestEl.innerHTML = `
         <div class="prestige-chips">
           <span class="chip-icon heavenly-cookie">🍪</span>
@@ -1780,6 +1865,8 @@ export class Game {
         <div class="prestige-row"><span>On reset</span><span>+${formatNumberInWords(potentialChips)}</span></div>
         <div class="prestige-row"><span>Total earned</span><span>${formatNumberInWords(this.prestige.heavenlyChips)}</span></div>
         ${this.prestige.spentChips > 0 ? `<div class="prestige-row"><span>Spent</span><span>${formatNumberInWords(this.prestige.spentChips)}</span></div>` : ''}
+        <div class="prestige-row ceiling-row" title="CPS above this threshold has diminishing returns. Ascending raises it."><span>CPS Ceiling</span><span>${formatNumberInWords(curThreshold)}</span></div>
+        <div class="prestige-row ceiling-next"><span>After Ascend</span><span>${formatNumberInWords(nextThreshold)}</span></div>
       `;
       
       // Tutorial: nudge at 25+ potential chips (before prestige available check)
