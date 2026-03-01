@@ -459,6 +459,7 @@ export class Building {
       const animator = this.game.visualEffects && this.game.visualEffects.rowAnimator;
       if (animator) animator.removeOverlay(overlayKey);
       overlay.remove();
+      this.game.soundManager.panelClose();
     };
     closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
@@ -549,6 +550,7 @@ export class Building {
       e.stopPropagation();
       e.preventDefault();
       this.showInfoPanel(index);
+      this.game.soundManager.panelOpen();
     });
     button.appendChild(infoBtn);
 

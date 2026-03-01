@@ -167,19 +167,23 @@ export class Game {
         }
         case 'Escape': {
           // Close topmost overlay
+          let closed = false;
           const overlays = ['building-info-panel', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
           for (const id of overlays) {
             const ol = document.getElementById(id);
             if (ol && !ol.classList.contains('hidden')) {
               if (id === 'building-info-panel') ol.remove();
               else ol.classList.add('hidden');
+              closed = true;
               break;
             }
           }
           // Also close mini-game overlay
           if (miniOverlay && !miniOverlay.classList.contains('hidden')) {
             miniOverlay.classList.add('hidden');
+            closed = true;
           }
+          if (closed) this.soundManager.panelClose();
           break;
         }
       }
@@ -522,6 +526,7 @@ export class Game {
 
     if (Math.random() < this.luckyClickChance) {
       this.stats.luckyClicks++;
+      this.soundManager.luckyClick();
 
       // Tutorial: lucky click event
       if (this.tutorial) this.tutorial.triggerEvent('luckyClick');
@@ -771,7 +776,7 @@ export class Game {
         if ((amount === 1 && this.purchaseAmount === 1) || amount === this.purchaseAmount) {
           btn.classList.add('active');
         }
-        btn.addEventListener('click', () => this.setPurchaseAmount(amount));
+        btn.addEventListener('click', () => { this.setPurchaseAmount(amount); this.soundManager.uiClick(); });
         buyGroup.appendChild(btn);
       });
 
@@ -797,7 +802,7 @@ export class Game {
         btn.dataset.sort = s.key;
         btn.title = `Sort by ${s.key}`;
         if (s.key === this._buildingSort) btn.classList.add('active');
-        btn.addEventListener('click', () => this.setBuildingSort(s.key));
+        btn.addEventListener('click', () => { this.setBuildingSort(s.key); this.soundManager.uiClick(); });
         sortGroup.appendChild(btn);
       });
 
@@ -811,7 +816,7 @@ export class Game {
   setupPrestigeButton() {
     const btn = document.getElementById("prestige-btn");
     if (btn) {
-      btn.addEventListener("click", () => this.handlePrestige());
+      btn.addEventListener("click", () => { this.soundManager.prestigeConfirm(); this.handlePrestige(); });
     }
 
     // Easter egg: clicking the prestige cookie
@@ -835,14 +840,15 @@ export class Game {
       btn.addEventListener("click", () => {
         this.renderHeavenlyShop();
         overlay.classList.remove("hidden");
+        this.soundManager.panelOpen();
       });
     }
     if (closeBtn && overlay) {
-      closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
+      closeBtn.addEventListener("click", () => { overlay.classList.add("hidden"); this.soundManager.panelClose(); });
     }
     if (overlay) {
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) overlay.classList.add("hidden");
+        if (e.target === overlay) { overlay.classList.add("hidden"); this.soundManager.panelClose(); }
       });
     }
   }
@@ -889,6 +895,7 @@ export class Game {
       if (!owned && canBuy) {
         card.addEventListener("click", () => {
           if (this.prestige.buyUpgrade(upgrade.id)) {
+            this.soundManager.prestigeUpgrade();
             this.renderHeavenlyShop();
             this.calculateCPS();
             this.updateLeftPanel();
@@ -922,6 +929,7 @@ export class Game {
     const overlay = document.getElementById("debug-overlay");
     if (!overlay) return;
     overlay.classList.remove("hidden");
+    this.soundManager.debugPanelOpen();
     this._renderDebugPanel();
 
     // Setup close handlers (once)
@@ -929,9 +937,10 @@ export class Game {
       this._debugBound = true;
       document.getElementById("debug-close").addEventListener("click", () => {
         overlay.classList.add("hidden");
+        this.soundManager.panelClose();
       });
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) overlay.classList.add("hidden");
+        if (e.target === overlay) { overlay.classList.add("hidden"); this.soundManager.panelClose(); }
       });
     }
   }
@@ -1039,6 +1048,7 @@ export class Game {
     // Wire up action buttons
     body.querySelectorAll('.debug-action-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        this.soundManager.debugAction();
         switch (btn.dataset.action) {
           case 'addCookies':
             this.cookies = this.cookies.add(CookieNum.from(1000000));
@@ -1080,11 +1090,11 @@ export class Game {
     const prev = document.getElementById("upgrade-prev");
     const next = document.getElementById("upgrade-next");
     if (prev) prev.addEventListener("click", () => {
-      if (this._upgradePage > 0) { this._upgradePage--; this._upgradeNavDir = 'left'; this.renderUpgradePage(true); this.updateButtonsState(); }
+      if (this._upgradePage > 0) { this._upgradePage--; this._upgradeNavDir = 'left'; this.renderUpgradePage(true); this.updateButtonsState(); this.soundManager.upgradePageNav(); }
     });
     if (next) next.addEventListener("click", () => {
       const totalPages = this._getUpgradeTotalPages();
-      if (this._upgradePage < totalPages - 1) { this._upgradePage++; this._upgradeNavDir = 'right'; this.renderUpgradePage(true); this.updateButtonsState(); }
+      if (this._upgradePage < totalPages - 1) { this._upgradePage++; this._upgradeNavDir = 'right'; this.renderUpgradePage(true); this.updateButtonsState(); this.soundManager.upgradePageNav(); }
     });
   }
 
@@ -1098,16 +1108,17 @@ export class Game {
         this.updateMenu();
         this._syncToggles();
         overlay.classList.remove("hidden");
+        this.soundManager.panelOpen();
         // Easter egg: first time opening settings
         if (this.tutorial) this.tutorial.triggerEvent('settingsOpened');
       });
     }
     if (closeBtn && overlay) {
-      closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
+      closeBtn.addEventListener("click", () => { overlay.classList.add("hidden"); this.soundManager.panelClose(); });
     }
     if (overlay) {
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) overlay.classList.add("hidden");
+        if (e.target === overlay) { overlay.classList.add("hidden"); this.soundManager.panelClose(); }
       });
     }
 
@@ -1115,6 +1126,7 @@ export class Game {
     const replayBtn = document.getElementById("replay-tutorial-btn");
     if (replayBtn) {
       replayBtn.addEventListener("click", () => {
+        this.soundManager.replayTutorial();
         overlay.classList.add("hidden");
         this.tutorial.replayTutorial();
       });
@@ -1140,6 +1152,7 @@ export class Game {
     const saveArea = document.getElementById("save-text-area");
     if (exportBtn && saveArea) {
       exportBtn.addEventListener("click", () => {
+        this.soundManager.exportSave();
         const raw = localStorage.getItem("cookieClickerSave");
         if (raw) {
           saveArea.style.display = "block";
@@ -1156,6 +1169,7 @@ export class Game {
     const importBtn = document.getElementById("import-save-btn");
     if (importBtn && saveArea) {
       importBtn.addEventListener("click", () => {
+        this.soundManager.importSave();
         if (saveArea.style.display === "none") {
           saveArea.style.display = "block";
           saveArea.value = "";
@@ -1174,6 +1188,7 @@ export class Game {
     const wipeBtn = document.getElementById("wipe-save-btn");
     if (wipeBtn) {
       wipeBtn.addEventListener("click", () => {
+        this.soundManager.wipeSave();
         if (confirm("Are you sure? This will permanently delete ALL your progress!")) {
           if (confirm("Really? There is no undo. All cookies, buildings, and upgrades will be gone.")) {
             this._wipedSave = true; // Prevent auto-save from re-writing
@@ -1192,6 +1207,7 @@ export class Game {
     el.checked = this.settings[settingsKey];
     el.addEventListener("change", () => {
       this.settings[settingsKey] = el.checked;
+      this.soundManager.uiClick();
       if (onChange) onChange(el.checked);
       this.saveGame();
     });

@@ -432,12 +432,14 @@ export class Tutorial {
     // Event: Skip
     this.skipBar.querySelector(".tutorial-skip-btn").addEventListener("click", (e) => {
       e.stopPropagation();
+      this.game.soundManager.tutorialSkip();
       this.endTutorial(true);
     });
 
     // Event: Next
     this.tooltip.querySelector(".tutorial-next-btn").addEventListener("click", (e) => {
       e.stopPropagation();
+      this.game.soundManager.tutorialNext();
       this.advanceStep();
     });
   }

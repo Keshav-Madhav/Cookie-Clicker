@@ -165,6 +165,7 @@ function setupMobileNav(game) {
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       switchTab(tab.dataset.tab);
+      if (game.soundManager) game.soundManager.mobileTabSwitch();
     });
   });
 

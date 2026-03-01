@@ -20,6 +20,7 @@ export class MiniGames {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (this._active) return;
+      this.game.soundManager.newsPlayDice();
 
       const games = [
         () => this._slotMachine(),
@@ -108,12 +109,14 @@ export class MiniGames {
     overlay.classList.remove("hidden");
     overlay.classList.add("mini-game-enter");
     setTimeout(() => overlay.classList.remove("mini-game-enter"), 400);
+    this.game.soundManager.panelOpen();
     return overlay;
   }
 
   _close() {
     const overlay = document.getElementById("mini-game-overlay");
     if (!overlay) return;
+    this.game.soundManager.panelClose();
     overlay.classList.add("mini-game-exit");
     setTimeout(() => {
       overlay.classList.add("hidden");
@@ -158,6 +161,7 @@ export class MiniGames {
           const r = document.getElementById(`reel-${i}`);
           if (r && !r.dataset.stopped) r.textContent = pick();
         }
+        this.game.soundManager.slotReelTick();
       }, cfg.spinIntervalMs);
 
       cfg.reelStopDelays.forEach((delay, i) => {
@@ -167,6 +171,7 @@ export class MiniGames {
             r.textContent = results[i];
             r.dataset.stopped = "true";
             r.classList.add("slot-stop");
+            this.game.soundManager.slotReelStop();
           }
         }, delay);
       });
@@ -179,6 +184,7 @@ export class MiniGames {
 
         let won = false;
         if (results[0] === results[1] && results[1] === results[2]) {
+          this.game.soundManager.slotJackpot();
           const r = this._giveReward("jackpot", "slots");
           totalReward += r;
           resultEl.textContent = `✨ JACKPOT! Three ${results[0]}! +${formatNumberInWords(r)} cookies!`;
@@ -191,12 +197,14 @@ export class MiniGames {
           setTimeout(() => this._close(), 2500);
           return;
         } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+          this.game.soundManager.slotPairWin();
           const r = this._giveReward("normal", "slots");
           totalReward += r;
           resultEl.textContent = `A pair! +${formatNumberInWords(r)} cookies!`;
           resultEl.classList.add("mini-win");
           won = true;
         } else {
+          this.game.soundManager.slotLoss();
           const quips = ["No match!", "The slots are cold today.", "Almost!", "Try again?"];
           resultEl.textContent = quips[Math.floor(Math.random() * quips.length)];
         }
@@ -206,13 +214,13 @@ export class MiniGames {
           const btn = document.createElement("button");
           btn.className = "mini-action-btn";
           btn.textContent = `🎰 Spin Again (${spinsLeft} left)`;
-          btn.addEventListener("click", (e) => { e.stopPropagation(); doSpin(); });
+          btn.addEventListener("click", (e) => { e.stopPropagation(); this.game.soundManager.slotSpinAgain(); doSpin(); });
           actionsEl.appendChild(btn);
 
           const closeBtn = document.createElement("button");
           closeBtn.className = "mini-action-btn mini-action-secondary";
           closeBtn.textContent = totalReward > 0 ? `Cash out (+${formatNumberInWords(totalReward)})` : "Leave";
-          closeBtn.addEventListener("click", (e) => { e.stopPropagation(); this._close(); });
+          closeBtn.addEventListener("click", (e) => { e.stopPropagation(); this.game.soundManager.slotCashOut(); this._close(); });
           actionsEl.appendChild(closeBtn);
         } else {
           if (totalReward > 0) {
@@ -253,10 +261,12 @@ export class MiniGames {
       countdown--;
       if (countdown > 0) {
         if (countEl) countEl.textContent = countdown;
+        this.game.soundManager.speedCountdownTick();
       } else {
         clearInterval(cdInterval);
         if (countEl) { countEl.textContent = "0"; countEl.classList.add("speed-go"); }
         if (subEl) subEl.textContent = "GO! Click anywhere in this box!";
+        this.game.soundManager.speedGo();
         active = true;
 
         // Start timer bar
@@ -269,6 +279,7 @@ export class MiniGames {
         // End after duration
         setTimeout(() => {
           active = false;
+          this.game.soundManager.speedEnd();
           if (countEl) countEl.classList.add("mini-win");
           let msg, tier = null;
           if (clicks >= cfg.greatThreshold) { msg = `${clicks} clicks! Inhuman speed!`; tier = "great"; }
@@ -292,6 +303,7 @@ export class MiniGames {
       card.addEventListener("click", () => {
         if (!active) return;
         clicks++;
+        this.game.soundManager.speedTap();
         if (countEl) countEl.textContent = clicks;
       });
     }
@@ -343,6 +355,7 @@ export class MiniGames {
         e.stopPropagation();
         if (!active) return;
         score++;
+        this.game.soundManager.catchCookieCaught();
         const el = document.getElementById("catch-count");
         if (el) el.textContent = score;
         cookie.textContent = "✨";
@@ -350,7 +363,8 @@ export class MiniGames {
         setTimeout(() => cookie.remove(), 200);
       });
       zone.appendChild(cookie);
-      setTimeout(() => { if (cookie.parentNode) cookie.remove(); }, cfg.cookieLifetimeMs);
+      this.game.soundManager.catchCookieSpawn();
+      setTimeout(() => { if (cookie.parentNode) { this.game.soundManager.catchCookieMissed(); cookie.remove(); } }, cfg.cookieLifetimeMs);
       if (active) setTimeout(spawnCookie, cfg.spawnIntervalMinMs + Math.random() * cfg.spawnIntervalRangeMs);
     };
 
@@ -409,6 +423,7 @@ export class MiniGames {
       </div>
     `);
     if (!overlay) return;
+    this.game.soundManager.triviaQuestionAppear();
 
     let answered = false;
     let autoCloseTimer = null;
@@ -429,12 +444,14 @@ export class MiniGames {
         });
 
         if (idx === correctIdx) {
+          this.game.soundManager.triviaCorrect();
           const r = this._giveReward("normal", "trivia");
           if (resultEl) {
             resultEl.textContent = `✅ Correct! +${formatNumberInWords(r)} cookies!`;
             resultEl.classList.add("mini-win");
           }
         } else {
+          this.game.soundManager.triviaWrong();
           if (resultEl) resultEl.textContent = `❌ Nope! It's ${correctAnswer}.`;
         }
         setTimeout(() => this._close(), cfg.resultDisplayMs);
@@ -444,6 +461,7 @@ export class MiniGames {
     autoCloseTimer = setTimeout(() => {
       if (!answered) {
         answered = true;
+        this.game.soundManager.triviaTimeUp();
         const resultEl = document.getElementById("trivia-result");
         if (resultEl) resultEl.textContent = "⏰ Time's up!";
         overlay.querySelectorAll(".trivia-btn").forEach((b, i) => {
@@ -503,6 +521,7 @@ export class MiniGames {
 
         card.textContent = cards[idx];
         card.classList.add("memory-flipped");
+        this.game.soundManager.memoryFlip();
         flipped.push({ idx, card });
 
         if (flipped.length === 2) {
@@ -513,12 +532,14 @@ export class MiniGames {
 
           const [a, b] = flipped;
           if (cards[a.idx] === cards[b.idx]) {
+            this.game.soundManager.memoryMatch();
             a.card.classList.add("memory-matched");
             b.card.classList.add("memory-matched");
             matched++;
             flipped = [];
             checking = false;
             if (matched === totalPairs) {
+              this.game.soundManager.memoryCelebration();
               const res = document.getElementById("memory-result");
               let tier = moves <= cfg.greatMovesThreshold ? "great" : "normal";
               const r = this._giveReward(tier, "memory");
@@ -530,6 +551,7 @@ export class MiniGames {
               setTimeout(() => this._close(), cfg.resultDisplayMs);
             }
           } else {
+            this.game.soundManager.memoryMismatch();
             setTimeout(() => {
               a.card.textContent = "❓";
               b.card.textContent = "❓";
@@ -750,13 +772,14 @@ export class MiniGames {
     const handleMove = (e) => {
       if (!active || !isDrawing) return;
       e.preventDefault();
-      
+
       const pos = getCanvasPos(e);
       const accuracy = scorePoint(pos);
-      
+
       userPath.push({ x: pos.x, y: pos.y, accuracy });
       lastPos = pos;
-      
+      this.game.soundManager.cutterDrawStroke();
+
       drawAll();
       updateStats();
     };
@@ -1012,6 +1035,7 @@ export class MiniGames {
   }
 
   _finishCookieCutter(pointScores, cfg) {
+    this.game.soundManager.cutterShapeComplete();
     const resultEl = document.getElementById('cutter-result');
     
     // Calculate final score
@@ -1171,7 +1195,8 @@ export class MiniGames {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (phase !== 'planning') return;
-        
+        this.game.soundManager.defenseSelectTower();
+
         overlay.querySelectorAll('.td-tower-btn').forEach(b => b.classList.remove('td-selected'));
         btn.classList.add('td-selected');
         selectedTower = btn.dataset.tower;
@@ -1198,6 +1223,7 @@ export class MiniGames {
         const towerType = cfg.towers.find(t => t.id === selectedTower);
         if (!towerType) return;
 
+        this.game.soundManager.defensePlaceTower();
         cell.classList.add('td-has-tower');
         cell.style.setProperty('--tower-color', towerType.color);
         cell.innerHTML = `
@@ -1234,7 +1260,8 @@ export class MiniGames {
     const startBattle = () => {
       if (phase === 'battle') return;
       phase = 'battle';
-      
+      this.game.soundManager.defenseBattleStart();
+
       const phaseEl = document.getElementById('td-phase');
       const phaseIndicator = document.getElementById('td-phase-indicator');
       const instrEl = document.getElementById('td-instructions');
@@ -1340,6 +1367,7 @@ export class MiniGames {
         
         if (enemy.pathIndex >= path.length - 1) {
           lives--;
+          this.game.soundManager.defenseLifeLost();
           enemy.element.classList.add('td-enemy-escaped');
           setTimeout(() => enemy.element.remove(), 300);
           enemies.splice(i, 1);
@@ -1393,20 +1421,22 @@ export class MiniGames {
 
         if (closestEnemy) {
           tower.lastFired = currentTime;
-          
+          this.game.soundManager.defenseTowerFire();
+
           // Visual effects
           tower.element.classList.add('td-tower-fire');
           setTimeout(() => tower.element.classList.remove('td-tower-fire'), 100);
-          
+
           // Projectile
           const towerX = tower.x * cellWidth + cellWidth / 2;
           const towerY = tower.y * cellHeight + cellHeight / 2;
           const enemyX = closestEnemy.x * cellWidth + cellWidth / 2;
           const enemyY = closestEnemy.y * cellHeight + cellHeight / 2;
           createProjectile(towerX, towerY, enemyX, enemyY, tower.type.color);
-          
+
           // Damage
           closestEnemy.health -= tower.type.damage;
+          this.game.soundManager.defenseEnemyHit();
           closestEnemy.element.classList.add('td-enemy-hit');
           setTimeout(() => closestEnemy.element.classList.remove('td-enemy-hit'), 100);
           
@@ -1417,6 +1447,7 @@ export class MiniGames {
           }
           
           if (closestEnemy.health <= 0) {
+            this.game.soundManager.defenseEnemyDestroyed();
             enemiesKilled++;
             closestEnemy.element.classList.add('td-enemy-dead');
             setTimeout(() => closestEnemy.element.remove(), 200);
@@ -1487,6 +1518,7 @@ export class MiniGames {
   }
 
   _finishCookieDefense(lives, cfg) {
+    this.game.soundManager.defenseBattleResult();
     const resultEl = document.getElementById('td-result');
     let tier = null;
     let msg = '';
@@ -1599,6 +1631,7 @@ export class MiniGames {
       oven.dataset.state = 'baking';
       oven.dataset.startTime = Date.now();
       oven.dataset.bakeTime = bakeTime;
+      this.game.soundManager.kitchenOvenOn();
       if (display) display.textContent = '🫓'; // Raw dough
       if (status) status.textContent = 'Baking...';
       oven.classList.add('oven-baking');
@@ -1619,6 +1652,7 @@ export class MiniGames {
       setTimeout(() => {
         if (!active || oven.dataset.state !== 'baking') return;
         oven.dataset.state = 'ready';
+        this.game.soundManager.kitchenCookieReady();
         if (display) display.textContent = '🍪';
         if (status) status.textContent = 'READY!';
         oven.classList.remove('oven-baking');
@@ -1630,6 +1664,7 @@ export class MiniGames {
       setTimeout(() => {
         if (!active || oven.dataset.state !== 'ready') return;
         oven.dataset.state = 'burnt';
+        this.game.soundManager.kitchenBurnt();
         if (display) display.textContent = '💨';
         if (status) status.textContent = 'Burnt!';
         oven.classList.remove('oven-ready');
@@ -1685,14 +1720,16 @@ export class MiniGames {
         const elapsed = Date.now() - parseInt(oven.dataset.startTime);
         const bakeTime = parseFloat(oven.dataset.bakeTime);
         const remaining = bakeTime - elapsed;
-        
+
         if (remaining <= cfg.goodWindowMs) {
           // Close enough — good
+          this.game.soundManager.kitchenGood();
           score += cfg.goodPoints;
           if (display) display.textContent = '✨';
           if (status) status.textContent = `+${cfg.goodPoints} Good!`;
         } else {
           // Too early — raw
+          this.game.soundManager.kitchenRaw();
           score += cfg.rawPoints;
           if (display) display.textContent = '🫓';
           if (status) status.textContent = 'Too early!';
@@ -1714,6 +1751,7 @@ export class MiniGames {
         const timeSinceReady = elapsed - bakeTime;
 
         if (timeSinceReady <= cfg.perfectWindowMs) {
+          this.game.soundManager.kitchenPerfect();
           score += cfg.perfectPoints;
           perfectCount++;
           currentPerfectStreak++;
@@ -1724,6 +1762,7 @@ export class MiniGames {
           if (display) display.textContent = '⭐';
           if (status) status.textContent = `+${cfg.perfectPoints} PERFECT!`;
         } else {
+          this.game.soundManager.kitchenGood();
           score += cfg.goodPoints;
           currentPerfectStreak = 0; // Break the streak
           if (display) display.textContent = '✨';
@@ -1921,6 +1960,7 @@ export class MiniGames {
 
     const showQuestion = () => {
       if (!active) return;
+      this.game.soundManager.mathQuestionAppear();
 
       const q = generateQuestion();
       const wrongAnswers = generateWrongAnswers(q.answer);
@@ -1965,13 +2005,19 @@ export class MiniGames {
             if (selected === q.answer) {
               correctCount++;
               let points = cfg.correctPoints;
-              if (timeTaken < 3000) points += cfg.fastBonusPoints;
+              if (timeTaken < 3000) {
+                points += cfg.fastBonusPoints;
+                this.game.soundManager.mathFastBonus();
+              } else {
+                this.game.soundManager.mathCorrect();
+              }
               score += points;
               if (problemEl) {
                 problemEl.classList.add('math-correct');
                 problemEl.textContent = `✅ +${points}!`;
               }
             } else {
+              this.game.soundManager.mathWrong();
               wrongCount++;
               score = Math.max(0, score - cfg.wrongPenalty);
               btn.classList.add('math-btn-wrong');
@@ -2005,6 +2051,7 @@ export class MiniGames {
       questionStartTime = Date.now();
       questionTimeout = setTimeout(() => {
         if (!active) return;
+        this.game.soundManager.mathTimeUp();
         wrongCount++;
         score = Math.max(0, score - cfg.wrongPenalty);
         if (problemEl) {

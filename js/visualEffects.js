@@ -742,7 +742,8 @@ export class VisualEffects {
 
     hair.addEventListener('click', (e) => {
       e.stopPropagation();
-      
+      this.game.soundManager.anchorHairClick();
+
       // Add bald class to hide hair
       hair.classList.add('anchor-bald');
       
