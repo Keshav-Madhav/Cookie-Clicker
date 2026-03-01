@@ -1186,6 +1186,11 @@ export class Game {
     this._bindSlider("vol-effects", "effectsVolume", (v) => this.soundManager.setEffectsVolume(v));
     this._bindSlider("vol-ambient", "ambientVolume", (v) => this.soundManager.setAmbientVolume(v));
 
+    // ── Element-specific ambient hover sounds ──
+    this._bindHoverAmbient('shop', () => this.soundManager.shopAmbientTick());
+    this._bindHoverAmbient('news-broadcast', () => this.soundManager.newsAmbientTick());
+    this._bindHoverAmbient('click-area', () => this.soundManager.bakeAmbientTick());
+
     // ── Export Save ──
     const exportBtn = document.getElementById("export-save-btn");
     const saveArea = document.getElementById("save-text-area");
@@ -1265,6 +1270,21 @@ export class Game {
       if (label) label.textContent = Math.round(v * 100) + '%';
     });
     el.addEventListener("change", () => this.saveGame());
+  }
+
+  /** Bind hover ambient sounds to an element — plays a tick at random intervals while hovering. */
+  _bindHoverAmbient(elementId, tickFn) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    let timer = null;
+    const schedule = () => {
+      timer = setTimeout(() => {
+        tickFn();
+        schedule();
+      }, 800 + Math.random() * 1800);   // tick every 0.8–2.6 s
+    };
+    el.addEventListener('mouseenter', () => { if (!timer) schedule(); });
+    el.addEventListener('mouseleave', () => { clearTimeout(timer); timer = null; });
   }
 
   /** Sync toggle checkboxes and volume sliders with current settings (called on menu open) */

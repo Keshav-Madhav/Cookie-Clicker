@@ -139,6 +139,7 @@ export class VisualEffects {
 
     // Shop panel effects
     this.shopEffects.init();
+    this._setupBakerBobClick();
 
     // initial render
     this.updateBuildingShowcase();
@@ -762,6 +763,103 @@ export class VisualEffects {
       setTimeout(() => {
         hair.classList.remove('anchor-bald');
       }, 5000);
+    });
+  }
+
+  /* ───────────────────────── Baker Bob (shopkeeper) click ───── */
+  _setupBakerBobClick() {
+    const header = document.getElementById('shop-header-buildings');
+    if (!header) return;
+
+    // Position the hit area over the shopkeeper on the canvas.
+    // Shopkeeper is drawn at (signCx + signW/2 - 16, signCy)
+    // where signCx = w/2, signCy = 16, signW = min(w*0.68, 200).
+    const canvas = header.querySelector('.shop-header-canvas');
+    const w = canvas ? canvas.clientWidth : header.clientWidth;
+    const signW = Math.min(w * 0.68, 200);
+    const shopkeeperX = w / 2 + signW / 2 - 16;  // center of shopkeeper
+
+    const hit = document.createElement('div');
+    hit.id = 'baker-bob-hit';
+    hit.title = 'Click me!';
+    hit.style.left = (shopkeeperX - 12) + 'px';
+    header.appendChild(hit);
+
+    // Speech bubble
+    const bubble = document.createElement('div');
+    bubble.id = 'baker-bob-bubble';
+    bubble.className = 'baker-bubble hidden';
+    bubble.style.left = (shopkeeperX - 60) + 'px';
+    header.appendChild(bubble);
+
+    this._bakerGreeted = false;
+    this._bakerBubbleTimer = null;
+
+    const FIRST_CLICK = "Oh! You found me! I'm Baker Bob, your friendly cookie shopkeeper! 🍪";
+
+    const GREETINGS = [
+      "Hey there, cookie crumbler!",
+      "Back for more, dough-face?",
+      "Oh hi! Didn't see you there.",
+      "Welcome back, sugar!",
+      "Hello hello!",
+      "Top of the batch to ya!",
+      "Hey, you smell great today!",
+      "Cookie-doo, how are you?",
+      "Aye aye, baker!",
+      "Howdy, chip!",
+    ];
+
+    const PUNS = [
+      "I'm on a roll today.",
+      "That's the way the cookie crumbles.",
+      "You're one smart cookie.",
+      "Life is what you bake of it.",
+      "Batter late than never!",
+      "You're baking me crazy.",
+      "Don't be so crumby.",
+      "I knead a break.",
+      "Feeling crummy? Have a cookie!",
+      "That's a tough cookie to crack.",
+      "Whisk it for a biscuit!",
+      "I loaf you a whole batch.",
+      "Donut worry, be happy.",
+      "You're on a roll, keep baking!",
+      "This job is a piece of cake.",
+      "I'm just here for the chips.",
+      "Let's get this bread!",
+      "Muffin compares to you.",
+      "You butter believe it.",
+      "Flour power!",
+    ];
+
+    hit.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      if (this._bakerBubbleTimer) clearTimeout(this._bakerBubbleTimer);
+
+      let msg;
+      if (!this._bakerGreeted) {
+        msg = FIRST_CLICK;
+        this._bakerGreeted = true;
+        this.game.soundManager.anchorGreetFirst();
+        if (this.game.tutorial) this.game.tutorial.triggerEvent('bakerGreet');
+      } else {
+        const greet = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+        const pun = PUNS[Math.floor(Math.random() * PUNS.length)];
+        msg = greet + '\n' + pun;
+        this.game.soundManager.anchorGreet();
+      }
+
+      bubble.textContent = msg;
+      bubble.classList.remove('hidden');
+      bubble.classList.remove('baker-bubble-pop');
+      void bubble.offsetWidth;
+      bubble.classList.add('baker-bubble-pop');
+
+      this._bakerBubbleTimer = setTimeout(() => {
+        bubble.classList.add('hidden');
+      }, 4000);
     });
   }
 

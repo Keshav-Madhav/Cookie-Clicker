@@ -366,6 +366,13 @@ export class Tutorial {
         position: "bottom",
       },
 
+      bakerGreet: {
+        title: "Meet Baker Bob!",
+        text: "You found the tiny shopkeeper! Baker Bob has been running this bakery for decades. Click him again for puns so bad they're good. He kneads the attention.",
+        target: "#shop-header-buildings",
+        position: "left",
+      },
+
       debuggerFound: {
         title: "Console Cowboy",
         text: "You typed 'debugging'? Really? Most people just click cookies, but you... you went looking for the matrix. Fine, here's your debug console. Use it wisely. Or don't. We can't stop you. The cookies aren't real anyway.",

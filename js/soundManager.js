@@ -885,6 +885,27 @@ export class SoundManager {
     this._playTone('triangle', 500, 600, 0.08, 0.03, 0.05);
   }
 
+  /** First time clicking the anchor — special discovery chime. */
+  anchorGreetFirst() {
+    if (!this._canPlayEffects()) return;
+    // Warm hello jingle — rising thirds
+    this._playTone('sine', 392, 392, 0.15, 0.06);
+    this._playTone('sine', 494, 494, 0.15, 0.06, 0.12);
+    this._playTone('sine', 588, 588, 0.15, 0.06, 0.24);
+    this._playTone('triangle', 784, 784, 0.25, 0.05, 0.36);
+    this._playNoise(0.12, 0.02, 0.36, 3500);
+    // Tiny sparkle
+    this._playTone('sine', 1568, 1200, 0.15, 0.03, 0.48);
+  }
+
+  /** Subsequent anchor clicks — short cheerful chirp. */
+  anchorGreet() {
+    if (!this._canPlayEffects()) return;
+    const pitch = 0.9 + Math.random() * 0.3;
+    this._playTone('sine', 520 * pitch, 620 * pitch, 0.06, 0.04);
+    this._playTone('triangle', 660 * pitch, 720 * pitch, 0.05, 0.03, 0.04);
+  }
+
   newsPlayDice() {
     if (!this._canPlayEffects()) return;
     this._playNoise(0.04, 0.04, 0, 3000);
@@ -1639,5 +1660,85 @@ export class SoundManager {
     this._playFM(440, 1.41, 300, 0.25, 0.03, 0.68);
     this._playFM(554, 1.41, 200, 0.2, 0.025, 0.72);
     this._playFM(659, 1.41, 100, 0.2, 0.02, 0.76);
+  }
+
+  // ─── Element-specific ambient hover sounds ──────────────
+  //
+  // Subtle, low-volume textures that play while hovering over
+  // specific areas.  Routed through the ambient bus so the
+  // ambient volume / toggle controls them.
+
+  /** Shop panel — soft coin jingle & register hum. */
+  shopAmbientTick() {
+    if (!this._canPlayAmbient()) return;
+    this._currentBus = this._ambientBus;
+    const pick = Math.random();
+    const v = 0.012;
+    if (pick < 0.35) {
+      // Tiny coin clink
+      this._playTone('triangle', 2800 + Math.random() * 600, 2200, 0.04, v);
+      if (Math.random() > 0.5)
+        this._playTone('triangle', 3200 + Math.random() * 400, 2600, 0.03, v * 0.7, 0.03);
+    } else if (pick < 0.6) {
+      // Cash register ka-ching (tiny)
+      this._playBandNoise(0.025, v * 0.6, 0, 3500, 3);
+      this._playTone('sine', 1800, 1400, 0.05, v * 0.5, 0.02);
+    } else if (pick < 0.8) {
+      // Paper rustle
+      this._playHissNoise(0.06, v * 0.5, 0, 5000);
+    } else {
+      // Shelf creak
+      this._playFM(120 + Math.random() * 60, 2.5, 40, 0.08, v * 0.4);
+    }
+    this._currentBus = null;
+  }
+
+  /** News broadcast area — static crackle & muffled voice. */
+  newsAmbientTick() {
+    if (!this._canPlayAmbient()) return;
+    this._currentBus = this._ambientBus;
+    const pick = Math.random();
+    const v = 0.01;
+    if (pick < 0.35) {
+      // TV static crackle
+      this._playBandNoise(0.04 + Math.random() * 0.03, v, 0,
+        1500 + Math.random() * 1500, 0.8);
+    } else if (pick < 0.6) {
+      // Muffled broadcast voice (distant vowel)
+      const f0 = 100 + Math.random() * 60;
+      this._playVowel(f0, 500 + Math.random() * 200, 1500 + Math.random() * 400,
+        2500, 0.06 + Math.random() * 0.04, v * 0.6);
+    } else if (pick < 0.8) {
+      // Signal blip
+      this._playTone('sine', 1000, 1000, 0.02, v * 0.5);
+      this._playTone('sine', 1000, 1000, 0.02, v * 0.5, 0.06);
+    } else {
+      // Tape hiss
+      this._playHissNoise(0.08, v * 0.4, 0, 6000);
+    }
+    this._currentBus = null;
+  }
+
+  /** Cookie / bake area — warm oven hum & dough sounds. */
+  bakeAmbientTick() {
+    if (!this._canPlayAmbient()) return;
+    this._currentBus = this._ambientBus;
+    const pick = Math.random();
+    const v = 0.01;
+    if (pick < 0.35) {
+      // Oven hum
+      this._playFM(55 + Math.random() * 10, 1, 8, 0.12, v * 0.5);
+    } else if (pick < 0.6) {
+      // Dough squish
+      this._playBandNoise(0.05, v * 0.6, 0, 600 + Math.random() * 400, 1.5);
+      this._playFM(100 + Math.random() * 50, 2, 30, 0.06, v * 0.4, 0.02);
+    } else if (pick < 0.8) {
+      // Timer tick
+      this._playTone('triangle', 1200, 1100, 0.015, v * 0.5);
+    } else {
+      // Cookie cooling sizzle
+      this._playHissNoise(0.05, v * 0.35, 0, 3500 + Math.random() * 1500);
+    }
+    this._currentBus = null;
   }
 }
