@@ -7,6 +7,7 @@ import { Tutorial } from "./tutorial.js";
 import { buildings, upgrades, heavenlyUpgrades } from "./gameData.js";
 import { formatNumberInWords, setShortNumbers } from "./utils.js";
 import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
+import { SoundManager } from "./soundManager.js";
 import {
   GAME, LUCKY_CLICK, FRENZY_BURSTS, PARTICLES,
   EASTER_EGGS, GOLDEN_COOKIE, SOFT_CAP
@@ -34,6 +35,7 @@ export class Game {
       particles: true,       // cookie rain in viewport
       shortNumbers: true,    // e.g. "1.5M" vs "1,500,000"
       shimmers: true,        // shimmer sparkles in viewport
+      sound: true,           // procedural sound effects
     };
 
     // Active buff system (supports multiple concurrent frenzies)
@@ -56,6 +58,7 @@ export class Game {
       goldenCookiesClicked: 0, // golden cookies clicked
       sessionPrestiges: 0,    // prestiges in current session
       miniGamesPlayed: 0,     // total minigames played
+      melodyIndex: 0,         // current position in click melody
     };
 
     // Load buildings & upgrades from gameData.js
@@ -67,6 +70,7 @@ export class Game {
     this.prestige = new PrestigeManager(this);
     this.visualEffects = new VisualEffects(this);
     this.tutorial = new Tutorial(this);
+    this.soundManager = new SoundManager(this);
 
     this.purchaseAmount = 1;
 
@@ -113,6 +117,71 @@ export class Game {
       }
       // Reset idle timer on any key
       this._resetIdleTimer();
+    });
+
+    // ── Keyboard shortcuts ──
+    document.addEventListener('keydown', (e) => {
+      // Skip when typing in inputs
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        if (e.key !== 'Escape') return;
+      }
+
+      // Skip non-Escape when mini-game overlay is open
+      const miniOverlay = document.getElementById('mini-game-overlay');
+      if (miniOverlay && !miniOverlay.classList.contains('hidden') && e.key !== 'Escape') return;
+
+      switch (e.key) {
+        case ' ':
+        case 'Enter': {
+          e.preventDefault();
+          const btn = document.getElementById('cookie-button');
+          if (btn) btn.click();
+          break;
+        }
+        case '1': this.setPurchaseAmount(GAME.purchaseAmounts[0]); break;
+        case '2': this.setPurchaseAmount(GAME.purchaseAmounts[1]); break;
+        case '3': this.setPurchaseAmount(GAME.purchaseAmounts[2]); break;
+        case '4': this.setPurchaseAmount(GAME.purchaseAmounts[3]); break;
+        case '5': this.setPurchaseAmount(GAME.purchaseAmounts[4]); break;
+        case 'g':
+        case 'G': {
+          const gc = document.getElementById('golden-cookie');
+          if (gc && !gc.classList.contains('hidden')) gc.click();
+          break;
+        }
+        case 'm':
+        case 'M': {
+          const menu = document.getElementById('menu-overlay');
+          if (menu) {
+            if (menu.classList.contains('hidden')) {
+              this.updateMenu();
+              this._syncToggles();
+              menu.classList.remove('hidden');
+            } else {
+              menu.classList.add('hidden');
+            }
+          }
+          break;
+        }
+        case 'Escape': {
+          // Close topmost overlay
+          const overlays = ['building-info-panel', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
+          for (const id of overlays) {
+            const ol = document.getElementById(id);
+            if (ol && !ol.classList.contains('hidden')) {
+              if (id === 'building-info-panel') ol.remove();
+              else ol.classList.add('hidden');
+              break;
+            }
+          }
+          // Also close mini-game overlay
+          if (miniOverlay && !miniOverlay.classList.contains('hidden')) {
+            miniOverlay.classList.add('hidden');
+          }
+          break;
+        }
+      }
     });
 
     // Easter egg: selecting the word "cookie" in the news
@@ -363,6 +432,7 @@ export class Game {
     this.createFloatingText(event, `+${formatNumberInWords(clickAmount)}`);
     this.spawnClickParticles(event);
     this.spawnClickRipple(event);
+    this.soundManager.click();
 
     // Flash effect on container
     const container = document.getElementById("cookie-container");
@@ -484,6 +554,7 @@ export class Game {
     });
 
     this.stats.frenziesTriggered++;
+    this.soundManager.frenzy();
     this.updateFrenzyIndicator();
 
     // Tutorial: frenzy event
@@ -998,6 +1069,7 @@ export class Game {
     this._bindToggle("setting-shimmers", "shimmers", (v) => {
       if (this.visualEffects) this.visualEffects.shimmersEnabled = v;
     });
+    this._bindToggle("setting-sound", "sound");
 
     // ── Export Save ──
     const exportBtn = document.getElementById("export-save-btn");
@@ -1063,7 +1135,7 @@ export class Game {
 
   /** Sync toggle checkboxes with current settings (called on menu open) */
   _syncToggles() {
-    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers" };
+    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers", "setting-sound": "sound" };
     for (const [id, key] of Object.entries(map)) {
       const el = document.getElementById(id);
       if (el) el.checked = this.settings[key];
@@ -1107,7 +1179,7 @@ export class Game {
         <div class="menu-stat-card">
           <span class="stat-icon">🍀</span>
           <span class="stat-value">${this.stats.luckyClicks}</span>
-          <span class="stat-label">${(this.luckyClickChance * 100).toFixed(1)}% Luck</span>
+          <span class="stat-label">${(this.luckyClickChance * 100).toFixed(2)}% Luck</span>
         </div>
         <div class="menu-stat-card">
           <span class="stat-icon">🔥</span>

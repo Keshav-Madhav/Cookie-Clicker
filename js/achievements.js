@@ -38,6 +38,7 @@ export class AchievementManager {
     a.unlockedAt = Date.now();
     this._unlockedCount++;
     this.showNotification(a);
+    this.game.soundManager.achievement();
     if (this.game.visualEffects) {
       this.game.visualEffects.triggerCookieBurst(ACHIEVEMENTS.unlockBurst.count, ACHIEVEMENTS.unlockBurst.speed);
     }

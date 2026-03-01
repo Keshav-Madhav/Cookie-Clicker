@@ -77,6 +77,7 @@ export class MiniGames {
     g.updateCookieCount();
     // Income-proportional cookie rain
     if (g.visualEffects) g.visualEffects.triggerIncomeRain(reward);
+    g.soundManager.miniGameWin();
 
     // Track mini-game win for achievements
     if (gameName && g.stats.miniGamesWon) {

@@ -72,6 +72,7 @@ export class PrestigeManager {
     this.heavenlyChips += newChips;
     this.totalCookiesBakedAllTime = this.totalCookiesBakedAllTime.add(this.game.stats.totalCookiesBaked);
     this.timesPrestiged++;
+    this.game.soundManager.prestige();
 
     // Track session prestiges for achievement
     this.game.stats.sessionPrestiges = (this.game.stats.sessionPrestiges || 0) + 1;

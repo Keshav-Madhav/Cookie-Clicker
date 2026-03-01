@@ -856,7 +856,7 @@ export class Tutorial {
           <span>Time away</span><span>${timeStr}</span>
           <span>Base CPS</span><span>${fmt(baseCps)}/s</span>
           <span>Offline multiplier</span><span>${offlineMultiplier}x</span>
-          <span>Effective rate</span><span>${fmt(parseFloat((baseCps * offlineMultiplier).toFixed(1)))}/s</span>
+          <span>Effective rate</span><span>${fmt(parseFloat((baseCps * offlineMultiplier).toFixed(2)))}/s</span>
         </div>
       </div>`;
 

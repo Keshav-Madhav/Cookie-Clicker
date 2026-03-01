@@ -162,6 +162,7 @@ export class Building {
       // Tag this building for purchase flash after deferred DOM rebuild
       this._pendingFlash = true;
       this.game.updateAfterPurchase();
+      this.game.soundManager.purchase();
 
       // Cookie rain burst on building purchase (scales with amount bought)
       if (this.game.visualEffects) {
@@ -362,7 +363,7 @@ export class Building {
       const cpsNum = this.game.cookiesPerSecond.toNumber();
       const totalCpsNum = totalCps.toNumber();
       if (Number.isFinite(cpsNum) && Number.isFinite(totalCpsNum) && cpsNum > 0) {
-        const pct = ((totalCpsNum / cpsNum) * 100).toFixed(1);
+        const pct = ((totalCpsNum / cpsNum) * 100).toFixed(2);
         rows.push(['% of Total CPS', `${pct}%`]);
       }
     }

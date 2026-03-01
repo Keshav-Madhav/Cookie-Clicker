@@ -174,6 +174,7 @@ export class Upgrade {
           }
           this.game.scheduleUpgradeSort();
           this.game.updateAfterPurchase();
+          this.game.soundManager.upgrade();
           return true;
         } else if (this.canUpgradeTier()) {
           this.game.cookies = this.game.cookies.sub(effectiveCost);
@@ -186,6 +187,7 @@ export class Upgrade {
           }
           this.game.scheduleUpgradeSort();
           this.game.updateAfterPurchase();
+          this.game.soundManager.upgrade();
           return true;
         }
         return false;
@@ -211,6 +213,7 @@ export class Upgrade {
           }
           this.game.scheduleUpgradeSort();
           this.game.updateAfterPurchase();
+          this.game.soundManager.upgrade();
           return true;
         }
       }

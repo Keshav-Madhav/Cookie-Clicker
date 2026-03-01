@@ -13,11 +13,11 @@ export const formatNumberInWords = (num) => {
     const n = num.toNumber();
     if (!_useShortNumbers) {
       if (Number.isFinite(n) && Math.abs(n) < 1e15) {
-        return Math.floor(n).toLocaleString('en-US');
+        return parseFloat(n.toFixed(2)).toLocaleString('en-US');
       }
       // Beyond safe integer range: fall through to suffixed display
     } else if (Number.isFinite(n) && n < 10000) {
-      return n.toString();
+      return parseFloat(n.toFixed(2)).toString();
     }
     // Use CookieNum's precise log10 for tier calculation
     const log = num.log10();
@@ -39,10 +39,10 @@ export const formatNumberInWords = (num) => {
 
   // Full comma-separated mode
   if (!_useShortNumbers) {
-    return Math.floor(num).toLocaleString('en-US');
+    return parseFloat(num.toFixed(2)).toLocaleString('en-US');
   }
 
-  if (num < 10000) return num.toString(); // No formatting needed for small numbers
+  if (num < 10000) return parseFloat(num.toFixed(2)).toString();
 
   let tier = Math.floor(Math.log10(num) / 3); // Determine the suffix tier
   if (tier >= suffixes.length) tier = suffixes.length - 1; // Cap at the highest suffix

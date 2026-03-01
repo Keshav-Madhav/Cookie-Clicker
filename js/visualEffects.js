@@ -675,6 +675,7 @@ export class VisualEffects {
       }
       g.stats.luckyClicks++;
       g.stats.goldenCookiesClicked = (g.stats.goldenCookiesClicked || 0) + 1;
+      g.soundManager.goldenCookie();
       g.updateCookieCount();
 
       // Income-proportional cookie rain (or small burst for frenzies)
