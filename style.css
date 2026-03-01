@@ -5457,6 +5457,64 @@ html {
   box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
 }
 
+/* ── Volume sliders ── */
+.settings-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 8px;
+  margin-top: -4px;
+}
+
+.vol-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 6px;
+  background: #4a3828;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #b8860b;
+  border-radius: 50%;
+  border: 2px solid #ffd700;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.vol-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.vol-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #b8860b;
+  border-radius: 50%;
+  border: 2px solid #ffd700;
+  cursor: pointer;
+}
+
+.vol-slider::-moz-range-track {
+  height: 6px;
+  background: #4a3828;
+  border-radius: 3px;
+}
+
+.vol-pct {
+  font-size: 0.72rem;
+  color: #8a7660;
+  min-width: 32px;
+  text-align: right;
+}
+
 /* ── Settings action buttons ── */
 .settings-actions {
   display: flex;

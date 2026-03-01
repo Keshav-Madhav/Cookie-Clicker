@@ -35,8 +35,12 @@ export class Game {
       particles: true,       // cookie rain in viewport
       shortNumbers: true,    // e.g. "1.5M" vs "1,500,000"
       shimmers: true,        // shimmer sparkles in viewport
-      music: true,           // cookie click melody
+      music: true,           // background symphony music
       soundEffects: true,    // procedural sound effects
+      ambient: true,         // bakery ambient soundscape
+      musicVolume: 0.5,      // music volume (0–1)
+      effectsVolume: 1.0,    // effects volume (0–1)
+      ambientVolume: 0.5,    // ambient volume (0–1)
     };
 
     // Active buff system (supports multiple concurrent frenzies)
@@ -95,6 +99,7 @@ export class Game {
     this.setupMenu();
     this.initParticles();
     this.visualEffects.init();
+    this.soundManager.init();
 
     // Easter egg: typing "cookie" or "debugging" anywhere
     this._typedKeys = '';
@@ -1145,9 +1150,25 @@ export class Game {
       if (this.visualEffects) this.visualEffects.shimmersEnabled = v;
     });
     this._bindToggle("setting-music", "music", () => {
+      if (this.settings.music) {
+        this.soundManager.startMusic();
+        this.soundManager.startMelody();
+      } else {
+        this.soundManager.stopMusic();
+        this.soundManager.stopMelody();
+      }
       this._updateRhythmMeterUI();
     });
     this._bindToggle("setting-effects", "soundEffects");
+    this._bindToggle("setting-ambient", "ambient", () => {
+      if (this.settings.ambient) this.soundManager.startAmbient();
+      else this.soundManager.stopAmbient();
+    });
+
+    // Volume sliders
+    this._bindSlider("vol-music", "musicVolume", (v) => this.soundManager.setMusicVolume(v));
+    this._bindSlider("vol-effects", "effectsVolume", (v) => this.soundManager.setEffectsVolume(v));
+    this._bindSlider("vol-ambient", "ambientVolume", (v) => this.soundManager.setAmbientVolume(v));
 
     // ── Export Save ──
     const exportBtn = document.getElementById("export-save-btn");
@@ -1215,12 +1236,36 @@ export class Game {
     });
   }
 
-  /** Sync toggle checkboxes with current settings (called on menu open) */
+  _bindSlider(elementId, settingsKey, onChange) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.value = (this.settings[settingsKey] ?? 0.5) * 100;
+    el.addEventListener("input", () => {
+      const v = el.value / 100;
+      this.settings[settingsKey] = v;
+      if (onChange) onChange(v);
+      // Update the percentage label if present
+      const label = el.parentElement?.querySelector('.vol-pct');
+      if (label) label.textContent = Math.round(v * 100) + '%';
+    });
+    el.addEventListener("change", () => this.saveGame());
+  }
+
+  /** Sync toggle checkboxes and volume sliders with current settings (called on menu open) */
   _syncToggles() {
-    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers", "setting-music": "music", "setting-effects": "soundEffects" };
+    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers", "setting-music": "music", "setting-effects": "soundEffects", "setting-ambient": "ambient" };
     for (const [id, key] of Object.entries(map)) {
       const el = document.getElementById(id);
       if (el) el.checked = this.settings[key];
+    }
+    const sliders = { "vol-music": "musicVolume", "vol-effects": "effectsVolume", "vol-ambient": "ambientVolume" };
+    for (const [id, key] of Object.entries(sliders)) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = (this.settings[key] ?? 0.5) * 100;
+        const label = el.parentElement?.querySelector('.vol-pct');
+        if (label) label.textContent = Math.round((this.settings[key] ?? 0.5) * 100) + '%';
+      }
     }
   }
 

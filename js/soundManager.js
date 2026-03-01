@@ -1,13 +1,15 @@
 /**
  * SoundManager — procedural audio via Web Audio API (no audio files).
  *
- * Every cookie click plays the next melody note — the music goes
- * exactly as fast as you click.  Sync bonus (1.5×) rewards clicking
- * at the piece's own BPM (±20 %).
+ * Three independent layers controlled by separate settings:
  *
- * If you're spam-clicking way faster (>3× the BPM), the music
- * switches to auto-play at the correct tempo so it stays pleasant
- * as ambient background music.
+ *   Music  — symphonies (background + click-driven) PLUS generative
+ *            Minecraft-style piano melodies.
+ *   Ambient — warm bakery drone (pad chords, bass, room tone, shimmer)
+ *            plus random bakery sound events.
+ *   Sound Effects — purchase, upgrade, achievement, golden cookie, etc.
+ *
+ * Sync bonus (1.5×) rewards clicking at the piece's BPM (±20 %).
  */
 import { symphonies } from './symphonies.js';
 
@@ -19,9 +21,32 @@ export class SoundManager {
     this._totalNotes = this._pieces.reduce((s, p) => s + p.notes.length, 0);
     this._clickTimes = [];      // timestamps for rhythm / BPM calc
     this._lastPieceIdx = -1;    // detect piece changes for UI
-    this._autoPlaying = false;  // auto-play mode active
-    this._autoTimer = null;     // setTimeout id for auto-play
     this._lastNoteTime = 0;     // performance.now() of last played note
+
+    // Background music — symphony plays continuously at piece BPM
+    this._musicPlaying = false;
+    this._musicTimer = null;
+
+    // Ambient soundscape — drone, shimmer, bakery events
+    this._ambientActive = false;
+    this._ambientNodes = [];        // { node, gain } for cleanup
+    this._ambientEventTimer = null;
+    this._ambientPadOscs = [];      // pad oscillators (freq-rampable)
+    this._ambientBassOsc = null;    // bass oscillator reference
+    this._ambientChordIdx = 0;      // current chord in progression
+    this._ambientChordTimer = null;
+
+    // Generative melody — under Music setting
+    this._melodyActive = false;
+    this._melodyTimer = null;
+
+    // Volume buses (created lazily in _ensureContext)
+    this._musicBus = null;
+    this._melodyBus = null;   // generative melody → _musicBus (ducked while clicking)
+    this._effectsBus = null;
+    this._ambientBus = null;
+    this._currentBus = null;  // temporary routing override
+    this._melodyDuckTimer = null;
   }
 
   // ─── context ──────────────────────────────────────────────
@@ -31,11 +56,42 @@ export class SoundManager {
       this._ctx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (this._ctx.state === 'suspended') this._ctx.resume();
+    // Create volume bus GainNodes on first use
+    if (!this._musicBus) {
+      this._musicBus = this._ctx.createGain();
+      this._musicBus.gain.value = this.game.settings.musicVolume ?? 0.5;
+      this._musicBus.connect(this._ctx.destination);
+      // Melody sub-bus: generative melodies route here, then to _musicBus.
+      // This bus gets ducked while the player is clicking the cookie.
+      this._melodyBus = this._ctx.createGain();
+      this._melodyBus.gain.value = 1.0;
+      this._melodyBus.connect(this._musicBus);
+    }
+    if (!this._effectsBus) {
+      this._effectsBus = this._ctx.createGain();
+      this._effectsBus.gain.value = this.game.settings.effectsVolume ?? 1.0;
+      this._effectsBus.connect(this._ctx.destination);
+    }
+    if (!this._ambientBus) {
+      this._ambientBus = this._ctx.createGain();
+      this._ambientBus.gain.value = this.game.settings.ambientVolume ?? 0.5;
+      this._ambientBus.connect(this._ctx.destination);
+    }
     return this._ctx;
   }
 
-  _canPlayMusic()  { return !!this.game.settings.music; }
+  /** Returns the current output bus for tone helpers. */
+  _out() {
+    return this._currentBus || this._effectsBus || this._ctx?.destination;
+  }
+
+  _canPlayMusic()   { return !!this.game.settings.music; }
   _canPlayEffects() { return !!this.game.settings.soundEffects; }
+  _canPlayAmbient() { return !!this.game.settings.ambient; }
+
+  setMusicVolume(v)   { if (this._musicBus)   this._musicBus.gain.value = v; }
+  setEffectsVolume(v) { if (this._effectsBus) this._effectsBus.gain.value = v; }
+  setAmbientVolume(v) { if (this._ambientBus) this._ambientBus.gain.value = v; }
 
   // ─── tone helpers ─────────────────────────────────────────
 
@@ -51,7 +107,7 @@ export class SoundManager {
     const g = ctx.createGain();
     g.gain.setValueAtTime(volume, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(this._out());
     osc.start(t);
     osc.stop(t + duration);
   }
@@ -71,7 +127,7 @@ export class SoundManager {
     const g = ctx.createGain();
     g.gain.setValueAtTime(volume, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    src.connect(f).connect(g).connect(ctx.destination);
+    src.connect(f).connect(g).connect(this._out());
     src.start(t);
     src.stop(t + duration);
   }
@@ -113,7 +169,7 @@ export class SoundManager {
       g.gain.linearRampToValueAtTime(fm.gain, t + 0.01);
       g.gain.setValueAtTime(fm.gain, t + duration * 0.7);
       g.gain.exponentialRampToValueAtTime(0.001, t + duration);
-      src.connect(bp).connect(g).connect(ctx.destination);
+      src.connect(bp).connect(g).connect(this._out());
     }
     src.start(t);
     src.stop(t + duration);
@@ -148,7 +204,7 @@ export class SoundManager {
     g.gain.setValueAtTime(0.001, t);
     g.gain.linearRampToValueAtTime(volume, t + 0.005);
     g.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    carrier.connect(g).connect(ctx.destination);
+    carrier.connect(g).connect(this._out());
     mod.start(t);
     carrier.start(t);
     mod.stop(t + duration);
@@ -171,7 +227,7 @@ export class SoundManager {
     const g = ctx.createGain();
     g.gain.setValueAtTime(volume, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    src.connect(f).connect(g).connect(ctx.destination);
+    src.connect(f).connect(g).connect(this._out());
     src.start(t);
     src.stop(t + duration);
   }
@@ -192,18 +248,19 @@ export class SoundManager {
     const g = ctx.createGain();
     g.gain.setValueAtTime(volume, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    src.connect(f).connect(g).connect(ctx.destination);
+    src.connect(f).connect(g).connect(this._out());
     src.start(t);
     src.stop(t + duration);
   }
 
-  // ─── melody note (warm music-box tone) ────────────────────
+  // ─── symphony note (warm music-box tone) ─────────────────
 
-  _playMelodyNote(freq) {
+  _playSymphonyNote(freq) {
     const ctx = this._ensureContext();
     const now = ctx.currentTime;
     const dur = 0.22;
     const vol = 0.08;
+    const out = this._musicBus || ctx.destination;
 
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -212,7 +269,7 @@ export class SoundManager {
     g.gain.setValueAtTime(0.001, now);
     g.gain.linearRampToValueAtTime(vol, now + 0.008);
     g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(out);
     osc.start(now);
     osc.stop(now + dur);
 
@@ -223,7 +280,7 @@ export class SoundManager {
     g2.gain.setValueAtTime(0.001, now);
     g2.gain.linearRampToValueAtTime(vol * 0.12, now + 0.008);
     g2.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.6);
-    osc2.connect(g2).connect(ctx.destination);
+    osc2.connect(g2).connect(out);
     osc2.start(now);
     osc2.stop(now + dur * 0.6);
   }
@@ -249,8 +306,14 @@ export class SoundManager {
   getCurrentBPM()       { return this._getCurrentPiece().piece.bpm; }
   /** Sync target = piece's own BPM. */
   getTargetClickBPM()   { return this.getCurrentBPM(); }
-  /** True when auto-play is driving the melody. */
-  isAutoPlaying()       { return this._autoPlaying; }
+  /** True when background music is playing and user isn't actively clicking. */
+  isAutoPlaying() {
+    if (!this._musicPlaying) return false;
+    if (this._clickTimes.length === 0) return true;
+    const last = this._clickTimes[this._clickTimes.length - 1];
+    const beatMs = 60000 / this.getCurrentBPM();
+    return Date.now() - last > beatMs * 2.5;
+  }
 
   pieceChanged() {
     const cur = this._getCurrentPiece().pieceIdx;
@@ -267,7 +330,7 @@ export class SoundManager {
    */
   isInSync() {
     if (!this.game.settings.music) return false;
-    if (this._autoPlaying) return false;
+    if (this.isAutoPlaying()) return false;
     if (this._clickTimes.length < 4) return false;
 
     const recent = this._clickTimes.slice(-6);
@@ -292,41 +355,38 @@ export class SoundManager {
     return Date.now() - last > (60000 / this.getCurrentBPM()) * 2.5;
   }
 
-  // ─── auto-play with tempo ramp ─────────────────────────────
+  // ─── background music (always-on symphony) ──────────────────
 
-  _startAutoPlay() {
-    if (this._autoPlaying) return;
-    this._autoPlaying = true;
-    this._lastNoteTime = performance.now();
-    // Start at the user's current click rate, will ramp toward piece BPM
-    this._autoBPM = Math.min(this.getClickBPM() || this.getCurrentBPM(), this.getCurrentBPM() * 4);
-    this._autoPlayTick();
+  /** Start the background music timer — symphony plays at piece BPM. */
+  startMusic() {
+    if (this._musicPlaying || !this._canPlayMusic()) return;
+    this._ensureContext();
+    this._musicPlaying = true;
+    this._musicTick();
   }
 
-  _autoPlayTick() {
-    if (!this._autoPlaying || !this._canPlayMusic()) {
-      this._autoPlaying = false;
+  /** Stop the background music timer. */
+  stopMusic() {
+    this._musicPlaying = false;
+    if (this._musicTimer) {
+      clearTimeout(this._musicTimer);
+      this._musicTimer = null;
+    }
+  }
+
+  _musicTick() {
+    if (!this._musicPlaying || !this._canPlayMusic()) {
+      this._musicPlaying = false;
       return;
     }
     this._advanceNote();
     this._lastNoteTime = performance.now();
-
-    // Ease _autoBPM toward the piece's natural BPM (~15% per tick)
-    const target = this.getCurrentBPM();
-    this._autoBPM += (target - this._autoBPM) * 0.15;
-    if (Math.abs(this._autoBPM - target) < 1) this._autoBPM = target;
-
-    const ms = 60000 / this._autoBPM;
-    this._autoTimer = setTimeout(() => this._autoPlayTick(), ms);
+    const ms = 60000 / this.getCurrentBPM();
+    this._musicTimer = setTimeout(() => this._musicTick(), ms);
   }
 
-  stopAutoPlay() {
-    this._autoPlaying = false;
-    if (this._autoTimer) {
-      clearTimeout(this._autoTimer);
-      this._autoTimer = null;
-    }
-  }
+  /** Legacy alias. */
+  stopAutoPlay() { this.stopMusic(); }
 
   // ─── shared note playback ─────────────────────────────────
 
@@ -334,7 +394,7 @@ export class SoundManager {
     const { piece, noteIdx } = this._getCurrentPiece();
     const midi = piece.notes[noteIdx];
     const freq = 440 * Math.pow(2, (midi - 69) / 12);
-    this._playMelodyNote(freq);
+    this._playSymphonyNote(freq);
     this.game.stats.melodyIndex = ((this.game.stats.melodyIndex || 0) + 1) % this._totalNotes;
   }
 
@@ -342,9 +402,9 @@ export class SoundManager {
 
   /**
    * Cookie click.
-   * - Normal speed: each click = next note.
-   * - Fast speed (>2× BPM): auto-play ramps from click rate → piece BPM.
-   * - Slowing back down: auto-play stops, min-gap prevents double notes.
+   * Each click plays the next note immediately and resets the background
+   * music timer so it waits a full beat before the next auto-note.
+   * Min-gap prevents double-hits from rapid clicking.
    */
   click() {
     if (!this._canPlayMusic()) return;
@@ -352,25 +412,590 @@ export class SoundManager {
     this._clickTimes.push(Date.now());
     if (this._clickTimes.length > 12) this._clickTimes.shift();
 
-    const cpm = this.getClickBPM();
-    const threshold = this.getCurrentBPM() * 2;
+    // Ensure background music is running
+    if (!this._musicPlaying) this.startMusic();
 
-    if (cpm > threshold && this._clickTimes.length >= 4) {
-      if (!this._autoPlaying) this._startAutoPlay();
-      return;
-    }
-
-    // Transitioning back to manual — stop auto-play
-    if (this._autoPlaying) this.stopAutoPlay();
-
-    // Minimum gap from last note to avoid double-hits on transition
+    // Minimum gap from last note to avoid double-hits
     const gap = performance.now() - (this._lastNoteTime || 0);
     const minGap = 60000 / (this.getCurrentBPM() * 2.5); // ~40% of a beat
     if (gap < minGap) return;
 
+    // Play note immediately
     this._advanceNote();
     this._lastNoteTime = performance.now();
+
+    // Reset background timer so it waits a full beat from now
+    if (this._musicTimer) clearTimeout(this._musicTimer);
+    const ms = 60000 / this.getCurrentBPM();
+    this._musicTimer = setTimeout(() => this._musicTick(), ms);
+
+    // Duck generative melodies while clicking
+    this._duckMelody();
   }
+
+  /** Smoothly lower melody volume while clicking, restore after inactivity. */
+  _duckMelody() {
+    if (!this._melodyBus) return;
+    const ctx = this._ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+
+    // Quick duck down to 15%
+    this._melodyBus.gain.cancelScheduledValues(t);
+    this._melodyBus.gain.setTargetAtTime(0.15, t, 0.08);
+
+    // Reset the restore timer — melody comes back ~1.8 s after last click
+    if (this._melodyDuckTimer) clearTimeout(this._melodyDuckTimer);
+    this._melodyDuckTimer = setTimeout(() => {
+      if (!this._ctx) return;
+      const rt = this._ctx.currentTime;
+      this._melodyBus.gain.cancelScheduledValues(rt);
+      this._melodyBus.gain.setTargetAtTime(1.0, rt, 0.6);   // slow fade back
+      this._melodyDuckTimer = null;
+    }, 1800);
+  }
+
+  // ─── initialization (call from game.start) ─────────────────
+
+  /** Set up a one-time listener so music, melody & ambient start on first interaction. */
+  init() {
+    const startAudio = () => {
+      this._ensureContext();
+      if (this._canPlayMusic() && !this._musicPlaying) this.startMusic();
+      if (this._canPlayMusic() && !this._melodyActive)  this.startMelody();
+      if (this._canPlayAmbient() && !this._ambientActive) this.startAmbient();
+      document.removeEventListener('click', startAudio);
+      document.removeEventListener('keydown', startAudio);
+    };
+    document.addEventListener('click', startAudio);
+    document.addEventListener('keydown', startAudio);
+  }
+
+  // ─── generative melody (Music setting) ──────────────────────
+
+  /** Start the generative melody engine. */
+  startMelody() {
+    if (this._melodyActive || !this._canPlayMusic()) return;
+    this._ensureContext();
+    this._melodyActive = true;
+    this._scheduleMelody();
+  }
+
+  /** Stop the generative melody engine. */
+  stopMelody() {
+    this._melodyActive = false;
+    if (this._melodyTimer) {
+      clearTimeout(this._melodyTimer);
+      this._melodyTimer = null;
+    }
+  }
+
+  // ─── ambient soundscape ─────────────────────────────────────
+
+  // Smooth voice-led chord progression.  Each entry is
+  //   [bass Hz, pad-voice 1 Hz, pad-voice 2 Hz, pad-voice 3 Hz]
+  // Designed so at most 2 voices move per change, and never all
+  // downward — prevents the "saddening dip" after bright chords.
+  // Bass stays C3-F3, pads stay E4-C5.
+  static _AMBIENT_CHORDS = [
+    [130.8, 329.6, 392.0, 493.9],  // Cmaj7
+    [130.8, 329.6, 440.0, 523.3],  // Am7/C    (G→A, B→C: gentle rise)
+    [146.8, 349.2, 440.0, 523.3],  // Fmaj7    (bass+step, E→F: rise)
+    [146.8, 349.2, 392.0, 493.9],  // Dm11     (A→G, C→B: ease back)
+    [164.8, 329.6, 392.0, 493.9],  // Em7      (bass+step, F→E: settle)
+    [164.8, 329.6, 440.0, 523.3],  // Am/E     (G→A, B→C: lift)
+    [174.6, 349.2, 440.0, 523.3],  // Fmaj7    (bass+step, E→F: rise)
+    [174.6, 349.2, 392.0, 493.9],  // Bb6/F    (A→G, C→B: gentle ease)
+    [146.8, 329.6, 392.0, 523.3],  // Gsus4/D  (bass-step, F→E, B→C: mixed)
+    [130.8, 329.6, 392.0, 493.9],  // Cmaj7    (home: bass-step, C→B)
+  ];
+
+  // C major pentatonic across octaves 3–6 for wide, delicate range.
+  // Used by the generative melody system (controlled by Music setting).
+  static _MELODY_POOL = [
+    130.8, 146.8, 164.8, 196.0, 220.0,           // octave 3
+    261.6, 293.7, 329.6, 392.0, 440.0,           // octave 4
+    523.3, 587.3, 659.3, 784.0, 880.0,           // octave 5
+    1046.5, 1174.7, 1318.5,                       // octave 6 (sparkle)
+  ];
+
+  /** Start the ambient soundscape (drone + shimmer + bakery events). */
+  startAmbient() {
+    if (this._ambientActive) return;
+    this._ensureContext();
+    this._ambientActive = true;
+    this._ambientChordIdx = Math.floor(Math.random() * SoundManager._AMBIENT_CHORDS.length);
+    this._createAmbientDrone();
+    this._scheduleAmbientChord();
+    this._scheduleAmbientEvent();
+  }
+
+  /** Stop the ambient soundscape, fade out all layers. */
+  stopAmbient() {
+    this._ambientActive = false;
+    const ctx = this._ctx;
+    if (ctx) {
+      const t = ctx.currentTime;
+      for (const { node, gain } of this._ambientNodes) {
+        try { gain.gain.setTargetAtTime(0, t, 0.3); } catch (_) {}
+        setTimeout(() => { try { node.stop(); } catch (_) {} }, 1000);
+      }
+    }
+    this._ambientNodes = [];
+    this._ambientPadOscs = [];
+    this._ambientBassOsc = null;
+    for (const k of ['_ambientEventTimer', '_ambientChordTimer']) {
+      if (this[k]) { clearTimeout(this[k]); this[k] = null; }
+    }
+  }
+
+  _createNoiseBuffer(seconds) {
+    const ctx = this._ensureContext();
+    const sr = ctx.sampleRate;
+    const len = Math.floor(sr * seconds);
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  // ── ambient drone (evolving pad + bass + noise + shimmer) ───
+
+  _createAmbientDrone() {
+    const ctx = this._ensureContext();
+    const now = ctx.currentTime;
+    const chord = SoundManager._AMBIENT_CHORDS[this._ambientChordIdx];
+
+    // ── Master gain with slow breathing LFO ──
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0, now);
+    master.gain.linearRampToValueAtTime(1, now + 5);   // fade in
+    master.connect(this._ambientBus || ctx.destination);
+
+    const breathLFO = ctx.createOscillator();
+    breathLFO.type = 'sine';
+    breathLFO.frequency.setValueAtTime(0.055, now);     // ~18 s full cycle
+    const breathDepth = ctx.createGain();
+    breathDepth.gain.setValueAtTime(0.18, now);          // ±18 % volume swell
+    breathLFO.connect(breathDepth).connect(master.gain);
+    breathLFO.start(now);
+    this._ambientNodes.push({ node: breathLFO, gain: breathDepth });
+
+    // ── Bass drone (sine + vibrato) ──
+    const bassOsc = ctx.createOscillator();
+    bassOsc.type = 'sine';
+    bassOsc.frequency.setValueAtTime(chord[0], now);
+    const bassVib = ctx.createOscillator();
+    bassVib.frequency.setValueAtTime(0.25, now);
+    const bassVibG = ctx.createGain();
+    bassVibG.gain.setValueAtTime(1.2, now);
+    bassVib.connect(bassVibG).connect(bassOsc.frequency);
+    bassVib.start(now);
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(0.012, now);
+    bassOsc.connect(bassGain).connect(master);
+    bassOsc.start(now);
+    this._ambientBassOsc = bassOsc;
+    this._ambientNodes.push({ node: bassOsc, gain: bassGain });
+    this._ambientNodes.push({ node: bassVib, gain: bassVibG });
+
+    // ── Pad voices (3 detuned triangle-wave pairs → chord tones) ──
+    this._ambientPadOscs = [];
+    for (let i = 1; i <= 3; i++) {
+      const freq = chord[i];
+      const osc1 = ctx.createOscillator();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(freq, now);
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq * 1.004, now); // gentle chorus detune
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.006, now);
+      osc1.connect(g);
+      osc2.connect(g);
+      g.connect(master);
+      osc1.start(now);
+      osc2.start(now);
+      this._ambientPadOscs.push({ osc1, osc2 });
+      this._ambientNodes.push({ node: osc1, gain: g });
+      this._ambientNodes.push({ node: osc2, gain: g });
+    }
+
+    // ── Room tone (noise with slowly-sweeping lowpass) ──
+    const roomBuf = this._createNoiseBuffer(4);
+    const roomSrc = ctx.createBufferSource();
+    roomSrc.buffer = roomBuf;
+    roomSrc.loop = true;
+    const roomLP = ctx.createBiquadFilter();
+    roomLP.type = 'lowpass';
+    roomLP.frequency.setValueAtTime(200, now);
+    const filterLFO = ctx.createOscillator();
+    filterLFO.type = 'sine';
+    filterLFO.frequency.setValueAtTime(0.025, now);     // ~40 s sweep
+    const filterDepth = ctx.createGain();
+    filterDepth.gain.setValueAtTime(120, now);           // ±120 Hz
+    filterLFO.connect(filterDepth).connect(roomLP.frequency);
+    filterLFO.start(now);
+    const roomGain = ctx.createGain();
+    roomGain.gain.setValueAtTime(0.003, now);
+    roomSrc.connect(roomLP).connect(roomGain).connect(master);
+    roomSrc.start(now);
+    this._ambientNodes.push({ node: roomSrc, gain: roomGain });
+    this._ambientNodes.push({ node: filterLFO, gain: filterDepth });
+
+    // ── High shimmer sparkle ──
+    const shimBuf = this._createNoiseBuffer(3);
+    const shimSrc = ctx.createBufferSource();
+    shimSrc.buffer = shimBuf;
+    shimSrc.loop = true;
+    const shimHP = ctx.createBiquadFilter();
+    shimHP.type = 'highpass';
+    shimHP.frequency.setValueAtTime(5500, now);
+    const shimGain = ctx.createGain();
+    shimGain.gain.setValueAtTime(0.0008, now);
+    shimSrc.connect(shimHP).connect(shimGain).connect(master);
+    shimSrc.start(now);
+    this._ambientNodes.push({ node: shimSrc, gain: shimGain });
+  }
+
+  // ── chord progression (smooth frequency ramps) ─────────────
+
+  _scheduleAmbientChord() {
+    if (!this._ambientActive) return;
+    const delay = 18000 + Math.random() * 14000; // 18–32 s
+    this._ambientChordTimer = setTimeout(() => {
+      if (!this._ambientActive) return;
+      this._ambientChordChange();
+      this._scheduleAmbientChord();
+    }, delay);
+  }
+
+  _ambientChordChange() {
+    const chords = SoundManager._AMBIENT_CHORDS;
+    this._ambientChordIdx = (this._ambientChordIdx + 1) % chords.length;
+    const chord = chords[this._ambientChordIdx];
+    const ctx = this._ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const ramp = 4; // 4-second crossfade
+
+    // Ramp bass
+    if (this._ambientBassOsc) {
+      this._ambientBassOsc.frequency.exponentialRampToValueAtTime(
+        chord[0], t + ramp);
+    }
+    // Ramp pad voices
+    for (let i = 0; i < this._ambientPadOscs.length; i++) {
+      const { osc1, osc2 } = this._ambientPadOscs[i];
+      const f = chord[i + 1];
+      osc1.frequency.exponentialRampToValueAtTime(f, t + ramp);
+      osc2.frequency.exponentialRampToValueAtTime(f * 1.004, t + ramp);
+    }
+  }
+
+  // ── generative melody phrases ─────────────────────────────
+  //
+  // Multiple phrase generators selected at random — each produces
+  // a different musical character, all sharing the same delicate
+  // piano-like note renderer.  Controlled by the Music setting.
+
+  _scheduleMelody() {
+    if (!this._melodyActive) return;
+    // Breathing room between phrases — but not too long
+    const delay = 5000 + Math.random() * 12000; // 5–17 s
+    this._melodyTimer = setTimeout(() => {
+      if (!this._melodyActive || !this._canPlayMusic()) {
+        if (this._melodyActive) this._scheduleMelody();
+        return;
+      }
+      this._playMelody();
+      this._scheduleMelody();
+    }, delay);
+  }
+
+  /** Pick a random phrase type and generate it. */
+  _playMelody() {
+    const r = Math.random();
+    if (r < 0.25)      this._melodyArc();
+    else if (r < 0.45) this._melodyCallResponse();
+    else if (r < 0.60) this._melodyDescending();
+    else if (r < 0.75) this._melodyArpeggio();
+    else if (r < 0.88) this._melodyLullaby();
+    else                this._melodyWander();
+  }
+
+  // ── phrase: gentle arc (ascending then descending or vice-versa) ──
+
+  _melodyArc() {
+    const pool = SoundManager._MELODY_POOL;
+    const count = 8 + Math.floor(Math.random() * 10);         // 8–17 notes
+    const vol = 0.010 + Math.random() * 0.005;
+    let idx = 3 + Math.floor(Math.random() * (pool.length - 6));
+    let time = 0;
+    const ascending = Math.random() > 0.4;
+
+    for (let i = 0; i < count; i++) {
+      this._playGenMelodyNote(pool[idx], vol * (0.6 + Math.random() * 0.4), time);
+
+      time += 0.5 + Math.random() * 1.1;
+      if (i > 0 && i % 4 === 0) time += 0.6 + Math.random() * 1.0; // breath
+
+      // Arc shape: first half one direction, second half the other
+      const inFirstHalf = i < count / 2;
+      const goUp = ascending ? inFirstHalf : !inFirstHalf;
+      if (goUp) {
+        idx = Math.min(idx + (Math.random() < 0.7 ? 1 : 2), pool.length - 1);
+      } else {
+        idx = Math.max(idx - (Math.random() < 0.7 ? 1 : 2), 0);
+      }
+      // Occasional same-note repeat
+      if (Math.random() < 0.12) idx = idx; // no-op, keep position
+    }
+  }
+
+  // ── phrase: call and response (motif, pause, variation) ──
+
+  _melodyCallResponse() {
+    const pool = SoundManager._MELODY_POOL;
+    const vol = 0.010 + Math.random() * 0.005;
+    const motifLen = 3 + Math.floor(Math.random() * 3);       // 3–5 notes
+    const startIdx = 4 + Math.floor(Math.random() * (pool.length - 8));
+
+    // "Call" — short rising motif
+    let time = 0;
+    const motif = [];
+    let idx = startIdx;
+    for (let i = 0; i < motifLen; i++) {
+      motif.push(idx);
+      this._playGenMelodyNote(pool[idx], vol * (0.7 + Math.random() * 0.3), time);
+      time += 0.5 + Math.random() * 0.6;
+      idx = Math.min(idx + 1, pool.length - 1);
+    }
+
+    // Pause
+    time += 1.2 + Math.random() * 1.5;
+
+    // "Response" — same shape shifted or inverted
+    const shift = Math.random() > 0.5 ? 2 : -1;
+    for (let i = 0; i < motifLen; i++) {
+      const ri = Math.random() > 0.3 ? motif[i] + shift : motif[motifLen - 1 - i] + shift;
+      const ci = Math.max(0, Math.min(ri, pool.length - 1));
+      this._playGenMelodyNote(pool[ci], vol * (0.6 + Math.random() * 0.4), time);
+      time += 0.5 + Math.random() * 0.6;
+    }
+
+    // Optional gentle coda — 2 slow notes
+    if (Math.random() < 0.6) {
+      time += 0.8 + Math.random() * 1.0;
+      const coda = startIdx + Math.floor(Math.random() * 3);
+      this._playGenMelodyNote(pool[Math.min(coda, pool.length - 1)], vol * 0.5, time);
+      time += 1.0 + Math.random() * 0.8;
+      this._playGenMelodyNote(pool[Math.min(coda + 2, pool.length - 1)], vol * 0.4, time);
+    }
+  }
+
+  // ── phrase: gentle descending sequence ──
+
+  _melodyDescending() {
+    const pool = SoundManager._MELODY_POOL;
+    const count = 7 + Math.floor(Math.random() * 8);          // 7–14 notes
+    const vol = 0.009 + Math.random() * 0.005;
+    let idx = Math.max(pool.length - 5, Math.floor(pool.length * 0.6 + Math.random() * pool.length * 0.3));
+    let time = 0;
+
+    for (let i = 0; i < count; i++) {
+      this._playGenMelodyNote(pool[idx], vol * (0.6 + Math.random() * 0.4), time);
+      time += 0.6 + Math.random() * 1.0;
+      if (i % 3 === 2) time += 0.5 + Math.random() * 0.8;    // breath every 3
+
+      // Mostly descend with occasional step up for interest
+      if (Math.random() < 0.75) {
+        idx = Math.max(idx - 1, 0);
+      } else {
+        idx = Math.min(idx + 1, pool.length - 1);
+      }
+    }
+  }
+
+  // ── phrase: spread arpeggio across registers ──
+
+  _melodyArpeggio() {
+    const pool = SoundManager._MELODY_POOL;
+    const vol = 0.009 + Math.random() * 0.004;
+    // Pick 4-5 chord tones spread across the pool
+    const root = 2 + Math.floor(Math.random() * 4);
+    const tones = [root, root + 2, root + 4, root + 7];
+    if (Math.random() > 0.4) tones.push(root + 9);
+
+    let time = 0;
+    const passes = 2 + Math.floor(Math.random() * 2);         // 2–3 passes
+    for (let p = 0; p < passes; p++) {
+      const ascending = p % 2 === 0;
+      const order = ascending ? [...tones] : [...tones].reverse();
+      for (const t of order) {
+        const ci = Math.max(0, Math.min(t, pool.length - 1));
+        this._playGenMelodyNote(pool[ci], vol * (0.55 + Math.random() * 0.45), time);
+        time += 0.7 + Math.random() * 0.9;
+      }
+      time += 1.0 + Math.random() * 1.5; // pause between passes
+    }
+  }
+
+  // ── phrase: lullaby — very slow, extra delicate ──
+
+  _melodyLullaby() {
+    const pool = SoundManager._MELODY_POOL;
+    const count = 6 + Math.floor(Math.random() * 6);          // 6–11 notes
+    const vol = 0.007 + Math.random() * 0.004;                // softer
+    let idx = 5 + Math.floor(Math.random() * (pool.length - 8));
+    let time = 0;
+
+    for (let i = 0; i < count; i++) {
+      this._playGenMelodyNote(pool[idx], vol * (0.5 + Math.random() * 0.5), time);
+      time += 1.2 + Math.random() * 1.8;                      // very wide spacing
+
+      // Gentle rocking motion — step up, step down, step up…
+      if (i % 2 === 0) {
+        idx = Math.min(idx + (Math.random() < 0.6 ? 1 : 2), pool.length - 1);
+      } else {
+        idx = Math.max(idx - 1, 0);
+      }
+    }
+  }
+
+  // ── phrase: free wander (original Minecraft-style) ──
+
+  _melodyWander() {
+    const pool = SoundManager._MELODY_POOL;
+    const count = 10 + Math.floor(Math.random() * 12);        // 10–21 notes
+    const vol = 0.010 + Math.random() * 0.005;
+    let idx = 3 + Math.floor(Math.random() * (pool.length - 6));
+    let time = 0;
+
+    for (let i = 0; i < count; i++) {
+      this._playGenMelodyNote(pool[idx], vol * (0.6 + Math.random() * 0.4), time);
+
+      time += 0.5 + Math.random() * 1.0;
+      if (Math.random() < 0.18) time += 0.8 + Math.random() * 1.2; // rest
+      if (i > 0 && i % 4 === 0) time += 0.4 + Math.random() * 0.8; // breath
+
+      const r = Math.random();
+      if (r < 0.40)      idx = Math.min(idx + 1, pool.length - 1);
+      else if (r < 0.72) idx = Math.max(idx - 1, 0);
+      else if (r < 0.85) idx = Math.min(idx + 2 + Math.floor(Math.random() * 2), pool.length - 1);
+      else { /* repeat */ }
+
+      // Gravity toward middle register
+      if (idx < 3 && Math.random() < 0.5) idx++;
+      if (idx > pool.length - 3 && Math.random() < 0.5) idx--;
+    }
+  }
+
+  /** Delicate piano-like tone — quick attack, long singing decay. */
+  _playGenMelodyNote(freq, volume = 0.010, delay = 0) {
+    const ctx = this._ensureContext();
+    const t = ctx.currentTime + delay;
+    const dur = 3.0 + Math.random() * 3.0;                    // 3–6 s
+    const out = this._melodyBus || this._musicBus || ctx.destination;
+
+    // Warm sine fundamental
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(volume, t + 0.035);        // crisp piano attack
+    g.gain.setTargetAtTime(volume * 0.50, t + 0.035, 0.7);   // natural decay curve
+    g.gain.setTargetAtTime(0.001, t + dur * 0.6, dur * 0.22); // long tail
+    osc.connect(g).connect(out);
+    osc.start(t);
+    osc.stop(t + dur + 0.5);
+
+    // Soft octave partial — gives warmth
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2.002, t);
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.001, t);
+    g2.gain.linearRampToValueAtTime(volume * 0.055, t + 0.03);
+    g2.gain.setTargetAtTime(0.001, t + 0.25, dur * 0.16);
+    osc2.connect(g2).connect(out);
+    osc2.start(t);
+    osc2.stop(t + dur * 0.45);
+
+    // Very faint fifth partial — subtle body
+    const osc3 = ctx.createOscillator();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(freq * 3.001, t);
+    const g3 = ctx.createGain();
+    g3.gain.setValueAtTime(0.001, t);
+    g3.gain.linearRampToValueAtTime(volume * 0.018, t + 0.025);
+    g3.gain.setTargetAtTime(0.001, t + 0.12, dur * 0.09);
+    osc3.connect(g3).connect(out);
+    osc3.start(t);
+    osc3.stop(t + dur * 0.25);
+  }
+
+  // ── bakery sound events ────────────────────────────────────
+
+  _scheduleAmbientEvent() {
+    if (!this._ambientActive) return;
+    const delay = 4000 + Math.random() * 8000; // 4–12 s
+    this._ambientEventTimer = setTimeout(() => {
+      if (!this._ambientActive) return;
+      this._playAmbientEvent();
+      this._scheduleAmbientEvent();
+    }, delay);
+  }
+
+  _playAmbientEvent() {
+    if (!this._canPlayAmbient()) return;
+    this._currentBus = this._ambientBus;        // route through ambient bus
+    const vol = 0.014 + Math.random() * 0.012;
+    const pick = Math.random();
+
+    if (pick < 0.22) {
+      // Crackle / pop
+      this._playBandNoise(0.03 + Math.random() * 0.04, vol, 0,
+        800 + Math.random() * 1200, 2);
+      if (Math.random() > 0.5) {
+        this._playBandNoise(0.02, vol * 0.6, 0.06,
+          1000 + Math.random() * 800, 3);
+      }
+    } else if (pick < 0.36) {
+      // Gentle steam hiss
+      this._playHissNoise(0.12 + Math.random() * 0.18, vol * 0.5, 0,
+        3000 + Math.random() * 2000);
+    } else if (pick < 0.46) {
+      // Soft bubble pop
+      this._playFM(180 + Math.random() * 120, 2, 60, 0.08, vol * 0.7);
+    } else if (pick < 0.55) {
+      // Distant timer ding
+      this._playTone('sine', 1350 + Math.random() * 250, 1200, 0.35, vol * 0.4);
+    } else if (pick < 0.64) {
+      // Cookie sheet scrape
+      this._playBandNoise(0.18, vol * 0.35, 0, 2200 + Math.random() * 800, 0.5);
+      this._playFM(280, 3.5, 120, 0.12, vol * 0.25, 0.04);
+    } else if (pick < 0.73) {
+      // Butter sizzle
+      this._playNoise(0.08 + Math.random() * 0.12, vol * 0.4, 0, 3200);
+    } else if (pick < 0.82) {
+      // Soft wooden knock
+      this._playFM(120, 1.4, 200, 0.06, vol * 0.6);
+      this._playBandNoise(0.04, vol * 0.3, 0.02, 600, 1.5);
+    } else if (pick < 0.91) {
+      // Oven door creak
+      this._playTone('sawtooth', 60, 90, 0.25, vol * 0.2);
+      this._playBandNoise(0.15, vol * 0.2, 0.05, 400, 0.8);
+    } else {
+      // Resonant harmonic bell (new — musical event)
+      const bellFreq = [329.6, 392.0, 440.0, 523.3][Math.floor(Math.random() * 4)];
+      this._playFM(bellFreq, 1.4, bellFreq * 0.8, 1.2, vol * 0.3);
+    }
+    this._currentBus = null;                    // reset routing
+  }
+
+  // ─── public sound events ──────────────────────────────────
 
   purchase(count = 1, buildingIndex = 0) {
     if (!this._canPlayEffects()) return;
