@@ -35,7 +35,8 @@ export class Game {
       particles: true,       // cookie rain in viewport
       shortNumbers: true,    // e.g. "1.5M" vs "1,500,000"
       shimmers: true,        // shimmer sparkles in viewport
-      sound: true,           // procedural sound effects
+      music: true,           // cookie click melody
+      soundEffects: true,    // procedural sound effects
     };
 
     // Active buff system (supports multiple concurrent frenzies)
@@ -646,7 +647,7 @@ export class Game {
     const meter = document.getElementById('rhythm-meter');
     if (!meter) return;
 
-    const soundOn = this.settings.sound;
+    const soundOn = this.settings.music;
     meter.classList.toggle('active', soundOn);
     meter.classList.toggle('synced', this._rhythmSynced);
 
@@ -1143,9 +1144,10 @@ export class Game {
     this._bindToggle("setting-shimmers", "shimmers", (v) => {
       if (this.visualEffects) this.visualEffects.shimmersEnabled = v;
     });
-    this._bindToggle("setting-sound", "sound", () => {
+    this._bindToggle("setting-music", "music", () => {
       this._updateRhythmMeterUI();
     });
+    this._bindToggle("setting-effects", "soundEffects");
 
     // ── Export Save ──
     const exportBtn = document.getElementById("export-save-btn");
@@ -1215,7 +1217,7 @@ export class Game {
 
   /** Sync toggle checkboxes with current settings (called on menu open) */
   _syncToggles() {
-    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers", "setting-sound": "sound" };
+    const map = { "setting-particles": "particles", "setting-short-numbers": "shortNumbers", "setting-shimmers": "shimmers", "setting-music": "music", "setting-effects": "soundEffects" };
     for (const [id, key] of Object.entries(map)) {
       const el = document.getElementById(id);
       if (el) el.checked = this.settings[key];
@@ -1650,8 +1652,19 @@ export class Game {
     floatingText.classList.add("cookie-text");
     if (isSpecial) floatingText.classList.add("special-text");
 
-    floatingText.style.left = `${event.clientX}px`;
-    floatingText.style.top = `${event.clientY}px`;
+    let x = event.clientX;
+    let y = event.clientY;
+    // Synthetic clicks (keyboard Space/Enter) have 0,0 — fall back to cookie center
+    if (!x && !y) {
+      const btn = document.getElementById('cookie-button');
+      if (btn) {
+        const r = btn.getBoundingClientRect();
+        x = r.left + r.width / 2;
+        y = r.top + r.height * 0.3;
+      }
+    }
+    floatingText.style.left = `${x}px`;
+    floatingText.style.top = `${y}px`;
 
     document.body.appendChild(floatingText);
     this._floatingTexts.push(floatingText);

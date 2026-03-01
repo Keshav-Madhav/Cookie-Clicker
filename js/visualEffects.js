@@ -899,6 +899,16 @@ export class VisualEffects {
         }
         row.appendChild(iconsWrap);
 
+        // Click handler — open info panel + play building sound
+        row.addEventListener('click', () => {
+          if (row.classList.contains('baker-row-locked')) return;
+          const idx = this.game.buildings.findIndex(bl => bl.name === b.name);
+          if (idx >= 0) {
+            this.game.buildings[idx].showInfoPanel(idx);
+            this.game.soundManager.buildingInfo(idx);
+          }
+        });
+
         container.appendChild(row);
         // Draw bg after append so dimensions are available
         requestAnimationFrame(() => {

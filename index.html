@@ -69,55 +69,75 @@
             <button id="menu-close" class="menu-close-btn">✕</button>
           </div>
           <div class="menu-content">
-            <!-- Stats section -->
-            <div class="menu-section">
-              <h3>📊 Statistics</h3>
-              <div id="menu-stats" class="menu-stats-grid"></div>
-            </div>
-            <!-- Achievements section -->
-            <div class="menu-section">
-              <h3>🏆 Achievements</h3>
-              <div id="menu-achv-bar-container">
-                <div class="menu-achv-header">
-                  <span id="menu-achv-count">0 / 0</span>
-                  <span id="menu-achv-pct">0%</span>
+            <div class="menu-left">
+              <!-- Settings section -->
+              <div class="menu-section">
+                <h3>⚙️ Settings</h3>
+                <div class="settings-group">
+                  <label class="settings-toggle">
+                    <span>Cookie Rain</span>
+                    <input type="checkbox" id="setting-particles" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <label class="settings-toggle">
+                    <span>Number Shorthand</span>
+                    <input type="checkbox" id="setting-short-numbers" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <label class="settings-toggle">
+                    <span>Shimmer Effects</span>
+                    <input type="checkbox" id="setting-shimmers" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <label class="settings-toggle">
+                    <span>Music</span>
+                    <input type="checkbox" id="setting-music" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <label class="settings-toggle">
+                    <span>Sound Effects</span>
+                    <input type="checkbox" id="setting-effects" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
                 </div>
-                <div class="menu-achv-bar"><div class="menu-achv-bar-fill" id="menu-achv-fill"></div></div>
+                <div class="settings-actions">
+                  <button id="replay-tutorial-btn" class="tutorial-replay-btn">🔄 Replay Tutorial</button>
+                  <button id="export-save-btn" class="settings-btn settings-btn-export">📤 Export Save</button>
+                  <button id="import-save-btn" class="settings-btn settings-btn-import">📥 Import Save</button>
+                  <button id="wipe-save-btn" class="settings-btn settings-btn-danger">🗑️ Wipe Save</button>
+                </div>
+                <textarea id="save-text-area" class="save-textarea" placeholder="Paste save data here..." style="display:none;"></textarea>
               </div>
-              <div id="menu-achievements-list" class="menu-achievements-list"></div>
+              <!-- Controls section -->
+              <div class="menu-section">
+                <h3>🎮 Controls</h3>
+                <div class="controls-grid">
+                  <div class="control-row"><span><kbd>Space</kbd> / <kbd>Enter</kbd></span><span>Click cookie</span></div>
+                  <div class="control-row"><span><kbd>1</kbd>-<kbd>5</kbd></span><span>Purchase amount (1/10/50/100/max)</span></div>
+                  <div class="control-row"><span><kbd>G</kbd></span><span>Click golden cookie</span></div>
+                  <div class="control-row"><span><kbd>M</kbd></span><span>Toggle menu</span></div>
+                  <div class="control-row"><span><kbd>Esc</kbd></span><span>Close overlays</span></div>
+                </div>
+              </div>
             </div>
-            <!-- Settings section -->
-            <div class="menu-section">
-              <h3>⚙️ Settings</h3>
-              <div class="settings-group">
-                <label class="settings-toggle">
-                  <span>Cookie Rain</span>
-                  <input type="checkbox" id="setting-particles" checked>
-                  <span class="toggle-slider"></span>
-                </label>
-                <label class="settings-toggle">
-                  <span>Number Shorthand</span>
-                  <input type="checkbox" id="setting-short-numbers" checked>
-                  <span class="toggle-slider"></span>
-                </label>
-                <label class="settings-toggle">
-                  <span>Shimmer Effects</span>
-                  <input type="checkbox" id="setting-shimmers" checked>
-                  <span class="toggle-slider"></span>
-                </label>
-                <label class="settings-toggle">
-                  <span>Sound Effects</span>
-                  <input type="checkbox" id="setting-sound" checked>
-                  <span class="toggle-slider"></span>
-                </label>
+            <div class="menu-right">
+              <!-- Stats section -->
+              <div class="menu-section">
+                <h3>📊 Statistics</h3>
+                <div id="menu-stats" class="menu-stats-grid"></div>
               </div>
-              <div class="settings-actions">
-                <button id="replay-tutorial-btn" class="tutorial-replay-btn">🔄 Replay Tutorial</button>
-                <button id="export-save-btn" class="settings-btn settings-btn-export">📤 Export Save</button>
-                <button id="import-save-btn" class="settings-btn settings-btn-import">📥 Import Save</button>
-                <button id="wipe-save-btn" class="settings-btn settings-btn-danger">🗑️ Wipe Save</button>
+              <!-- Achievements section -->
+              <div class="menu-section">
+                <h3>🏆 Achievements</h3>
+                <div id="menu-achv-bar-container">
+                  <div class="menu-achv-header">
+                    <span id="menu-achv-count">0 / 0</span>
+                    <span id="menu-achv-pct">0%</span>
+                  </div>
+                  <div class="menu-achv-bar"><div class="menu-achv-bar-fill" id="menu-achv-fill"></div></div>
+                </div>
+                <div id="menu-achievements-list" class="menu-achievements-list"></div>
               </div>
-              <textarea id="save-text-area" class="save-textarea" placeholder="Paste save data here..." style="display:none;"></textarea>
             </div>
           </div>
         </div>

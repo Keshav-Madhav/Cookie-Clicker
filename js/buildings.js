@@ -6,6 +6,7 @@ import { CookieNum } from "./cookieNum.js";
 export class Building {
   constructor(index, game) {
     this.game = game; // Store game instance
+    this.index = index;
     this.building = buildings[index];
     this.name = this.building.name;
     this.baseCost = CookieNum.from(this.building.cost); // Store original cost for calculations
@@ -162,7 +163,7 @@ export class Building {
       // Tag this building for purchase flash after deferred DOM rebuild
       this._pendingFlash = true;
       this.game.updateAfterPurchase();
-      this.game.soundManager.purchase();
+      this.game.soundManager.purchase(this.count, this.index);
 
       // Cookie rain burst on building purchase (scales with amount bought)
       if (this.game.visualEffects) {
@@ -528,10 +529,16 @@ export class Building {
       button.dataset.buildingFlavor = this.flavor;
     }
 
-    // Building icon
+    // Building icon — clicking opens info panel + plays sound
     const iconCanvas = getBuildingIcon(this.name, 44);
     iconCanvas.classList.add('building-row-icon');
     if (locked) iconCanvas.classList.add('building-icon-locked');
+    iconCanvas.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.showInfoPanel(index);
+      this.game.soundManager.buildingInfo(index);
+    });
     button.appendChild(iconCanvas);
 
     let subDiv = document.createElement("div");
@@ -550,7 +557,7 @@ export class Building {
       e.stopPropagation();
       e.preventDefault();
       this.showInfoPanel(index);
-      this.game.soundManager.panelOpen();
+      this.game.soundManager.buildingInfo(index);
     });
     button.appendChild(infoBtn);
 
