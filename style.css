@@ -301,6 +301,83 @@ html {
   100% { background: rgba(230, 126, 34, 0.35); }
 }
 
+/* Click BPM (above cookie) */
+#click-bpm {
+  font-size: 0.72rem;
+  color: #a89070;
+  text-align: center;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease, color 0.3s ease;
+  pointer-events: none;
+}
+#click-bpm.active {
+  opacity: 0.7;
+  min-height: 16px;
+  margin-bottom: 2px;
+}
+#click-bpm.synced {
+  opacity: 1;
+  color: #5dbe8a;
+}
+
+/* Rhythm Meter */
+#rhythm-meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: #a89070;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease, color 0.3s ease;
+  pointer-events: none;
+}
+
+#rhythm-meter.active {
+  opacity: 0.7;
+  min-height: 18px;
+  margin: 2px 0;
+}
+
+#rhythm-meter.synced {
+  opacity: 1;
+  color: #5dbe8a;
+}
+
+#rhythm-beat {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: rhythmBeat var(--beat-dur, 500ms) ease-out infinite;
+}
+
+#rhythm-meter.synced #rhythm-beat {
+  box-shadow: 0 0 8px rgba(93, 190, 138, 0.6);
+}
+
+#rhythm-piece {
+  opacity: 0.8;
+}
+
+#rhythm-bpm {
+  opacity: 0.6;
+  font-size: 0.65rem;
+}
+
+#rhythm-sync {
+  font-weight: bold;
+  color: #5dbe8a;
+}
+
+@keyframes rhythmBeat {
+  0%   { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.3; }
+}
+
 /* ============================
    LEFT PANEL DASHBOARD
    ============================ */
@@ -4547,6 +4624,14 @@ html {
   #frenzy-indicator {
     font-size: 0.75rem;
     order: 4;
+  }
+
+  #click-bpm {
+    font-size: 0.65rem;
+  }
+  #rhythm-meter {
+    order: 5;
+    font-size: 0.68rem;
   }
 
   /* Left panel info: push Power/Prestige below cookie on mobile */

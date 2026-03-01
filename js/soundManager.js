@@ -1,116 +1,270 @@
 /**
  * SoundManager — procedural audio via Web Audio API (no audio files).
- * Every public method checks `this.game.settings.sound` before playing.
- * AudioContext is lazily initialised on first user gesture (autoplay policy).
  *
- * Cookie click plays sequential notes from a long classical melody medley.
- * The position persists across saves via game.stats.melodyIndex.
+ * Every cookie click plays the next melody note — the music goes
+ * exactly as fast as you click.  Sync bonus (1.5×) rewards clicking
+ * at the piece's own BPM (±20 %).
+ *
+ * If you're spam-clicking way faster (>3× the BPM), the music
+ * switches to auto-play at the correct tempo so it stays pleasant
+ * as ambient background music.
  */
+import { symphonies } from './symphonies.js';
+
 export class SoundManager {
   constructor(game) {
     this.game = game;
     this._ctx = null;
-    this._melody = buildMelody();
+    this._pieces = symphonies;
+    this._totalNotes = this._pieces.reduce((s, p) => s + p.notes.length, 0);
+    this._clickTimes = [];      // timestamps for rhythm / BPM calc
+    this._lastPieceIdx = -1;    // detect piece changes for UI
+    this._autoPlaying = false;  // auto-play mode active
+    this._autoTimer = null;     // setTimeout id for auto-play
+    this._lastNoteTime = 0;     // performance.now() of last played note
   }
 
-  /** Lazily create / resume AudioContext (must follow a user gesture). */
+  // ─── context ──────────────────────────────────────────────
+
   _ensureContext() {
     if (!this._ctx) {
       this._ctx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (this._ctx.state === 'suspended') {
-      this._ctx.resume();
-    }
+    if (this._ctx.state === 'suspended') this._ctx.resume();
     return this._ctx;
   }
 
-  _canPlay() {
-    return !!this.game.settings.sound;
-  }
+  _canPlay() { return !!this.game.settings.sound; }
 
-  // ─── helpers ──────────────────────────────────────────────
+  // ─── tone helpers ─────────────────────────────────────────
 
   _playTone(type, startHz, endHz, duration, volume = 0.08, delay = 0) {
     const ctx = this._ensureContext();
-    const now = ctx.currentTime + delay;
-
+    const t = ctx.currentTime + delay;
     const osc = ctx.createOscillator();
     osc.type = type;
-    osc.frequency.setValueAtTime(startHz, now);
+    osc.frequency.setValueAtTime(startHz, t);
     if (startHz !== endHz) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(endHz, 1), now + duration);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(endHz, 1), t + duration);
     }
-
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + duration);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(volume, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + duration);
   }
 
-  _playNoise(duration, volume = 0.04, delay = 0, filterFreq = 2000) {
+  _playNoise(duration, volume = 0.04, delay = 0, freq = 2000) {
     const ctx = this._ensureContext();
-    const now = ctx.currentTime + delay;
-    const sampleRate = ctx.sampleRate;
-    const len = Math.floor(sampleRate * duration);
-    const buffer = ctx.createBuffer(1, len, sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-
+    const t = ctx.currentTime + delay;
+    const sr = ctx.sampleRate;
+    const len = Math.floor(sr * duration);
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     const src = ctx.createBufferSource();
-    src.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = filterFreq;
-    filter.Q.value = 0.5;
-
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    src.connect(filter).connect(gain).connect(ctx.destination);
-    src.start(now);
-    src.stop(now + duration);
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = freq; f.Q.value = 0.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(volume, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    src.connect(f).connect(g).connect(ctx.destination);
+    src.start(t);
+    src.stop(t + duration);
   }
 
-  _playSequence(type, freqs, noteDuration, volume = 0.06) {
-    freqs.forEach((hz, i) => {
-      this._playTone(type, hz, hz, noteDuration * 0.85, volume, i * noteDuration);
-    });
+  _playSequence(type, freqs, dur, vol = 0.06) {
+    freqs.forEach((hz, i) => this._playTone(type, hz, hz, dur * 0.85, vol, i * dur));
+  }
+
+  // ─── melody note (warm music-box tone) ────────────────────
+
+  _playMelodyNote(freq) {
+    const ctx = this._ensureContext();
+    const now = ctx.currentTime;
+    const dur = 0.22;
+    const vol = 0.08;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur);
+
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(freq * 3, now);
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.001, now);
+    g2.gain.linearRampToValueAtTime(vol * 0.12, now + 0.008);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.6);
+    osc2.connect(g2).connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + dur * 0.6);
+  }
+
+  // ─── piece / melody helpers ───────────────────────────────
+
+  _getCurrentPiece() {
+    return this._getPieceAt((this.game.stats.melodyIndex || 0) % this._totalNotes);
+  }
+
+  _getPieceAt(idx) {
+    let cum = 0;
+    for (let i = 0; i < this._pieces.length; i++) {
+      if (idx < cum + this._pieces[i].notes.length) {
+        return { piece: this._pieces[i], noteIdx: idx - cum, pieceIdx: i };
+      }
+      cum += this._pieces[i].notes.length;
+    }
+    return { piece: this._pieces[0], noteIdx: 0, pieceIdx: 0 };
+  }
+
+  getCurrentPieceName() { return this._getCurrentPiece().piece.name; }
+  getCurrentBPM()       { return this._getCurrentPiece().piece.bpm; }
+  /** Sync target = piece's own BPM. */
+  getTargetClickBPM()   { return this.getCurrentBPM(); }
+  /** True when auto-play is driving the melody. */
+  isAutoPlaying()       { return this._autoPlaying; }
+
+  pieceChanged() {
+    const cur = this._getCurrentPiece().pieceIdx;
+    const changed = cur !== this._lastPieceIdx;
+    this._lastPieceIdx = cur;
+    return changed;
+  }
+
+  // ─── rhythm detection ─────────────────────────────────────
+
+  /**
+   * Sync bonus when clicking at the piece's BPM ±20 %.
+   * Not awarded during auto-play.
+   */
+  isInSync() {
+    if (!this.game.settings.sound) return false;
+    if (this._autoPlaying) return false;
+    if (this._clickTimes.length < 4) return false;
+
+    const recent = this._clickTimes.slice(-6);
+    const span = recent[recent.length - 1] - recent[0];
+    const avgInterval = span / (recent.length - 1);
+
+    const target = 60000 / this.getCurrentBPM();
+    return avgInterval >= target * 0.8 && avgInterval <= target * 1.2;
+  }
+
+  getClickBPM() {
+    if (this._clickTimes.length < 2) return 0;
+    const recent = this._clickTimes.slice(-6);
+    const span = recent[recent.length - 1] - recent[0];
+    if (span <= 0) return 0;
+    return Math.round(60000 / (span / (recent.length - 1)));
+  }
+
+  syncTimedOut() {
+    if (this._clickTimes.length === 0) return true;
+    const last = this._clickTimes[this._clickTimes.length - 1];
+    return Date.now() - last > (60000 / this.getCurrentBPM()) * 2.5;
+  }
+
+  // ─── auto-play with tempo ramp ─────────────────────────────
+
+  _startAutoPlay() {
+    if (this._autoPlaying) return;
+    this._autoPlaying = true;
+    this._lastNoteTime = performance.now();
+    // Start at the user's current click rate, will ramp toward piece BPM
+    this._autoBPM = Math.min(this.getClickBPM() || this.getCurrentBPM(), this.getCurrentBPM() * 4);
+    this._autoPlayTick();
+  }
+
+  _autoPlayTick() {
+    if (!this._autoPlaying || !this._canPlay()) {
+      this._autoPlaying = false;
+      return;
+    }
+    this._advanceNote();
+    this._lastNoteTime = performance.now();
+
+    // Ease _autoBPM toward the piece's natural BPM (~15% per tick)
+    const target = this.getCurrentBPM();
+    this._autoBPM += (target - this._autoBPM) * 0.15;
+    if (Math.abs(this._autoBPM - target) < 1) this._autoBPM = target;
+
+    const ms = 60000 / this._autoBPM;
+    this._autoTimer = setTimeout(() => this._autoPlayTick(), ms);
+  }
+
+  stopAutoPlay() {
+    this._autoPlaying = false;
+    if (this._autoTimer) {
+      clearTimeout(this._autoTimer);
+      this._autoTimer = null;
+    }
+  }
+
+  // ─── shared note playback ─────────────────────────────────
+
+  _advanceNote() {
+    const { piece, noteIdx } = this._getCurrentPiece();
+    const midi = piece.notes[noteIdx];
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    this._playMelodyNote(freq);
+    this.game.stats.melodyIndex = ((this.game.stats.melodyIndex || 0) + 1) % this._totalNotes;
   }
 
   // ─── public sound events ──────────────────────────────────
 
   /**
-   * Cookie click — plays the next note in the melody.
-   * Soft sine, gentle and warm. The melody loops when exhausted.
+   * Cookie click.
+   * - Normal speed: each click = next note.
+   * - Fast speed (>2× BPM): auto-play ramps from click rate → piece BPM.
+   * - Slowing back down: auto-play stops, min-gap prevents double notes.
    */
   click() {
     if (!this._canPlay()) return;
-    const idx = this.game.stats.melodyIndex || 0;
-    const midi = this._melody[idx % this._melody.length];
-    const freq = 440 * Math.pow(2, (midi - 69) / 12);
-    this._playTone('sine', freq, freq, 0.12, 0.05);
-    this.game.stats.melodyIndex = (idx + 1) % this._melody.length;
+
+    this._clickTimes.push(Date.now());
+    if (this._clickTimes.length > 12) this._clickTimes.shift();
+
+    const cpm = this.getClickBPM();
+    const threshold = this.getCurrentBPM() * 2;
+
+    if (cpm > threshold && this._clickTimes.length >= 4) {
+      if (!this._autoPlaying) this._startAutoPlay();
+      return;
+    }
+
+    // Transitioning back to manual — stop auto-play
+    if (this._autoPlaying) this.stopAutoPlay();
+
+    // Minimum gap from last note to avoid double-hits on transition
+    const gap = performance.now() - (this._lastNoteTime || 0);
+    const minGap = 60000 / (this.getCurrentBPM() * 2.5); // ~40% of a beat
+    if (gap < minGap) return;
+
+    this._advanceNote();
+    this._lastNoteTime = performance.now();
   }
 
-  /** Building purchase — soft single "doop" */
   purchase() {
     if (!this._canPlay()) return;
     this._playTone('triangle', 350, 280, 0.1, 0.06);
   }
 
-  /** Upgrade bought — gentle two-note rising chime */
   upgrade() {
     if (!this._canPlay()) return;
     this._playTone('sine', 440, 440, 0.12, 0.06);
     this._playTone('sine', 660, 660, 0.15, 0.07, 0.1);
   }
 
-  /** Achievement unlocked — warm major chord bloom */
   achievement() {
     if (!this._canPlay()) return;
     this._playTone('sine', 330, 330, 0.4, 0.05);
@@ -119,7 +273,6 @@ export class SoundManager {
     this._playTone('triangle', 660, 660, 0.3, 0.04, 0.24);
   }
 
-  /** Golden cookie clicked — sparkly shimmer */
   goldenCookie() {
     if (!this._canPlay()) return;
     this._playTone('sine', 880, 1100, 0.25, 0.05);
@@ -127,20 +280,17 @@ export class SoundManager {
     this._playNoise(0.15, 0.03, 0, 3000);
   }
 
-  /** Frenzy started — low rumble swell */
   frenzy() {
     if (!this._canPlay()) return;
     this._playTone('triangle', 120, 300, 0.35, 0.07);
     this._playTone('sine', 200, 500, 0.25, 0.04, 0.15);
   }
 
-  /** Mini-game win — playful ascending three-note motif */
   miniGameWin() {
     if (!this._canPlay()) return;
     this._playSequence('triangle', [392, 494, 588], 0.1, 0.06);
   }
 
-  /** Prestige — slow deep bloom into bright resolve */
   prestige() {
     if (!this._canPlay()) return;
     this._playTone('sine', 165, 220, 0.5, 0.06);
@@ -148,136 +298,4 @@ export class SoundManager {
     this._playTone('triangle', 440, 550, 0.4, 0.05, 0.7);
     this._playNoise(0.5, 0.03, 0.6, 1500);
   }
-}
-
-// ─── melody data ────────────────────────────────────────────
-// MIDI note numbers. Each click advances one note.
-// A medley of classical themes, ~600 notes total.
-
-function buildMelody() {
-  // ── 1. Beethoven — Ode to Joy (Symphony No. 9, 4th movement) ──
-  const odeToJoy = [
-    64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62,
-    64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60,
-    62, 62, 64, 60, 62, 64, 65, 64, 60, 62, 64, 65, 64, 62, 60, 62, 55,
-    64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60,
-  ];
-
-  // ── 2. Bach — Cello Suite No. 1, Prelude (opening) ──
-  const bachCello = [
-    60, 64, 67, 72, 76, 67, 72, 76,
-    60, 62, 67, 72, 76, 67, 72, 76,
-    60, 64, 69, 72, 76, 69, 72, 76,
-    60, 64, 67, 72, 76, 67, 72, 76,
-    60, 62, 65, 69, 74, 65, 69, 74,
-    59, 62, 67, 72, 74, 67, 72, 74,
-    59, 62, 67, 72, 76, 67, 72, 76,
-    60, 64, 67, 72, 76, 67, 72, 76,
-  ];
-
-  // ── 3. Mozart — Eine Kleine Nachtmusik (opening) ──
-  const eineKleine = [
-    67, 62, 62, 67, 62, 62, 67, 62, 67, 71, 74,
-    72, 69, 69, 74, 69, 69, 74, 69, 72, 74, 67,
-    62, 67, 71, 74, 79, 74, 71, 67,
-    62, 67, 71, 74, 79, 74, 71, 67,
-    69, 74, 72, 67, 69, 74, 72, 67,
-    69, 67, 66, 67,
-  ];
-
-  // ── 4. Pachelbel — Canon in D (treble melody) ──
-  const canon = [
-    78, 76, 74, 73, 71, 69, 71, 73,
-    66, 68, 69, 66, 69, 71,
-    73, 74, 73, 71, 69, 68, 66, 68,
-    69, 66, 69, 71, 73, 74, 76, 78,
-    74, 73, 74, 78, 76, 74, 73, 71,
-    69, 71, 73, 74, 73, 71, 69, 68,
-  ];
-
-  // ── 5. Debussy — Clair de Lune (opening motif) ──
-  const clairDeLune = [
-    68, 70, 73, 75, 73, 70, 68, 66,
-    68, 70, 73, 75, 77, 75, 73, 70,
-    68, 66, 63, 61, 63, 66, 68, 70,
-    73, 75, 73, 70, 68, 66, 63, 61,
-  ];
-
-  // ── 6. Grieg — Morning Mood (Peer Gynt) ──
-  const morningMood = [
-    64, 66, 68, 69, 71, 69, 68, 66,
-    64, 66, 68, 69, 71, 76, 74, 71,
-    69, 68, 66, 64, 66, 68, 69, 71,
-    69, 68, 66, 64, 62, 64, 66, 68,
-    64, 66, 68, 69, 71, 69, 68, 66,
-  ];
-
-  // ── 7. Dvořák — New World Symphony (Largo, "Going Home") ──
-  const newWorld = [
-    64, 66, 69, 69, 71, 69, 66, 64,
-    62, 64, 66, 64, 62, 59,
-    64, 66, 69, 69, 71, 69, 66, 64,
-    62, 64, 66, 69, 66, 64,
-    62, 59, 62, 64, 66, 64, 62, 59,
-    57, 59, 62, 64, 62, 59, 57,
-  ];
-
-  // ── 8. Tchaikovsky — Swan Lake (theme) ──
-  const swanLake = [
-    64, 71, 69, 68, 69, 71, 76, 74,
-    73, 71, 69, 68, 69, 71, 64,
-    64, 71, 69, 68, 69, 71, 76, 74,
-    73, 71, 73, 74, 76,
-    76, 74, 73, 71, 69, 68, 69, 71,
-    73, 74, 73, 71, 69, 68, 66, 64,
-  ];
-
-  // ── 9. Beethoven — Moonlight Sonata (1st movement, treble) ──
-  const moonlight = [
-    68, 61, 64, 68, 61, 64, 68, 61, 64, 68, 61, 64,
-    68, 61, 64, 68, 61, 64, 68, 61, 64, 68, 61, 64,
-    69, 61, 64, 69, 61, 64, 69, 61, 64, 69, 61, 64,
-    68, 59, 64, 68, 59, 64, 68, 59, 64, 68, 59, 64,
-  ];
-
-  // ── 10. Vivaldi — Spring (Four Seasons, opening) ──
-  const spring = [
-    64, 64, 64, 62, 64, 67, 67, 67,
-    65, 67, 72, 71, 69, 71, 67,
-    64, 64, 64, 62, 64, 67, 67, 67,
-    65, 67, 72, 71, 69, 71, 67,
-    69, 71, 72, 69, 71, 72, 74,
-    72, 71, 69, 67, 69, 71, 67,
-  ];
-
-  // ── 11. Chopin — Nocturne Op. 9 No. 2 (melody) ──
-  const nocturne = [
-    75, 72, 68, 67, 68, 72, 75, 72,
-    80, 79, 77, 75, 72, 68, 67, 68,
-    72, 75, 77, 79, 80, 79, 77, 75,
-    72, 68, 67, 63, 65, 67, 68, 72,
-  ];
-
-  // ── 12. Satie — Gymnopédie No. 1 (melody) ──
-  const gymnopedie = [
-    71, 69, 66, 62, 64, 66, 69, 71,
-    74, 71, 69, 66, 62, 64, 66, 69,
-    71, 74, 76, 74, 71, 69, 66, 62,
-    64, 66, 62, 59, 57, 59, 62, 66,
-  ];
-
-  return [
-    ...odeToJoy,
-    ...bachCello,
-    ...eineKleine,
-    ...canon,
-    ...clairDeLune,
-    ...morningMood,
-    ...newWorld,
-    ...swanLake,
-    ...moonlight,
-    ...spring,
-    ...nocturne,
-    ...gymnopedie,
-  ];
 }

@@ -71,6 +71,7 @@ export class Game {
     this.visualEffects = new VisualEffects(this);
     this.tutorial = new Tutorial(this);
     this.soundManager = new SoundManager(this);
+    this._rhythmSynced = false;
 
     this.purchaseAmount = 1;
 
@@ -211,6 +212,7 @@ export class Game {
     this.visualEffects.particlesEnabled = this.settings.particles;
     this.visualEffects.shimmersEnabled = this.settings.shimmers;
     setShortNumbers(this.settings.shortNumbers);
+    this._updateRhythmMeterUI();
     this.tutorial.init();
 
     // Main game loop - 1 second tick
@@ -251,6 +253,17 @@ export class Game {
       if (this.activeBuffs.length > 0) {
         this.expireBuffs();
         this.updateFrenzyIndicator();
+      }
+      // Lose rhythm sync / stop auto-play if player stops clicking
+      if (this.soundManager.syncTimedOut()) {
+        if (this._rhythmSynced) {
+          this._rhythmSynced = false;
+          this._updateRhythmMeterUI();
+        }
+        if (this.soundManager.isAutoPlaying()) {
+          this.soundManager.stopAutoPlay();
+          this._updateRhythmMeterUI();
+        }
       }
     }, 200);
 
@@ -399,6 +412,8 @@ export class Game {
     for (const buff of this.activeBuffs) {
       if (buff.type === 'click') cpc = cpc.mul(buff.multiplier);
     }
+    // Rhythm sync bonus — clicking in time with the melody
+    if (this._rhythmSynced) cpc = cpc.mul(1.5);
     return cpc;
   }
 
@@ -433,6 +448,7 @@ export class Game {
     this.spawnClickParticles(event);
     this.spawnClickRipple(event);
     this.soundManager.click();
+    this._updateRhythmSync();
 
     // Flash effect on container
     const container = document.getElementById("cookie-container");
@@ -610,6 +626,52 @@ export class Game {
     } else {
       indicator.innerHTML = '';
       indicator.classList.remove("active");
+    }
+  }
+
+  /** Check rhythm sync after each click and update UI. */
+  _updateRhythmSync() {
+    const synced = this.soundManager.isInSync();
+    this._rhythmSynced = synced;
+    this._updateRhythmMeterUI();
+  }
+
+  /** Refresh the rhythm meter display. */
+  _updateRhythmMeterUI() {
+    const meter = document.getElementById('rhythm-meter');
+    if (!meter) return;
+
+    const soundOn = this.settings.sound;
+    meter.classList.toggle('active', soundOn);
+    meter.classList.toggle('synced', this._rhythmSynced);
+
+    // Update beat pulse speed when piece changes (pulse at click rate, not note rate)
+    if (this.soundManager.pieceChanged() || !meter.style.getPropertyValue('--beat-dur')) {
+      const ms = Math.round(60000 / this.soundManager.getTargetClickBPM());
+      meter.style.setProperty('--beat-dur', ms + 'ms');
+    }
+
+    const pieceEl = document.getElementById('rhythm-piece');
+    if (pieceEl) pieceEl.textContent = '♪ ' + this.soundManager.getCurrentPieceName();
+
+    const bpmEl = document.getElementById('rhythm-bpm');
+    if (bpmEl) bpmEl.textContent = this.soundManager.getTargetClickBPM() + ' bpm';
+
+    const syncEl = document.getElementById('rhythm-sync');
+    const auto = this.soundManager.isAutoPlaying();
+    if (syncEl) syncEl.textContent = this._rhythmSynced ? '· 1.5×' : auto ? '· auto' : '';
+
+    // Click BPM above cookie
+    const clickBpmEl = document.getElementById('click-bpm');
+    if (clickBpmEl) {
+      const cBpm = this.soundManager.getClickBPM();
+      if (cBpm > 0 && soundOn) {
+        clickBpmEl.textContent = cBpm + ' clicks/min';
+        clickBpmEl.classList.add('active');
+        clickBpmEl.classList.toggle('synced', this._rhythmSynced);
+      } else {
+        clickBpmEl.classList.remove('active', 'synced');
+      }
     }
   }
 
@@ -1069,7 +1131,9 @@ export class Game {
     this._bindToggle("setting-shimmers", "shimmers", (v) => {
       if (this.visualEffects) this.visualEffects.shimmersEnabled = v;
     });
-    this._bindToggle("setting-sound", "sound");
+    this._bindToggle("setting-sound", "sound", () => {
+      this._updateRhythmMeterUI();
+    });
 
     // ── Export Save ──
     const exportBtn = document.getElementById("export-save-btn");
