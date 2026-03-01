@@ -723,6 +723,45 @@ html {
   pointer-events: none;
 }
 
+/* ─── Now Playing ─── */
+#now-playing {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+#now-playing.active {
+  opacity: 0.5;
+}
+
+#now-playing-label {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #8b7355;
+  margin-right: 5px;
+}
+
+#now-playing-title {
+  font-size: 0.6rem;
+  color: #c4a882;
+  font-style: italic;
+  letter-spacing: 0.5px;
+}
+
+#now-playing-artist {
+  font-size: 0.5rem;
+  color: #6b5a45;
+  margin-left: 4px;
+}
+
 /* ─── Viewport wrapper ─── */
 #viewport-wrap {
   position: relative;

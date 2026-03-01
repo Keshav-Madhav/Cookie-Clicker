@@ -303,6 +303,7 @@ export class SoundManager {
   }
 
   getCurrentPieceName() { return this._getCurrentPiece().piece.name; }
+  getGenerativeMelodyName() { return this._gameMusic ? this._gameMusic.getCurrentName() : ''; }
   getCurrentBPM()       { return this._getCurrentPiece().piece.bpm; }
   /** Sync target = piece's own BPM. */
   getTargetClickBPM()   { return this.getCurrentBPM(); }

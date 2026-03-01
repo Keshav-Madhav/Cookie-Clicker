@@ -106,6 +106,11 @@ export class VisualEffects {
         <!-- building row -->
         <div id="building-showcase"></div>
       </div>
+      <div id="now-playing">
+        <span id="now-playing-label">Now Playing</span>
+        <span id="now-playing-title"></span>
+        <span id="now-playing-artist">by — The Creator</span>
+      </div>
     `;
 
     this.canvas = document.getElementById("viewport-canvas");

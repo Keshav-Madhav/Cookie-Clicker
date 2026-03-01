@@ -275,6 +275,8 @@ export class Game {
           this._updateRhythmMeterUI();
         }
       }
+      // Keep "Now Playing" in sync with current melody
+      this._updateNowPlaying();
     }, 200);
 
     // Auto-save
@@ -684,6 +686,20 @@ export class Game {
         clickBpmEl.classList.remove('active', 'synced');
       }
     }
+  }
+
+  /** Keep the "Now Playing" widget in the middle panel up-to-date. */
+  _updateNowPlaying() {
+    try {
+      const npTitle = document.getElementById('now-playing-title');
+      if (npTitle) {
+        const melodyName = this.soundManager.getGenerativeMelodyName();
+        const pieceName = this.soundManager.getCurrentPieceName();
+        npTitle.textContent = melodyName || pieceName || '';
+      }
+      const npWrap = document.getElementById('now-playing');
+      if (npWrap) npWrap.classList.toggle('active', this.settings.music && this.settings.musicVolume > 0);
+    } catch (_) { /* soundManager not ready yet */ }
   }
 
   setPurchaseAmount(amount) {
@@ -1166,7 +1182,7 @@ export class Game {
     });
 
     // Volume sliders
-    this._bindSlider("vol-music", "musicVolume", (v) => this.soundManager.setMusicVolume(v));
+    this._bindSlider("vol-music", "musicVolume", (v) => { this.soundManager.setMusicVolume(v); this._updateNowPlaying(); });
     this._bindSlider("vol-effects", "effectsVolume", (v) => this.soundManager.setEffectsVolume(v));
     this._bindSlider("vol-ambient", "ambientVolume", (v) => this.soundManager.setAmbientVolume(v));
 

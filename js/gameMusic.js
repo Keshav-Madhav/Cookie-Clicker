@@ -17,6 +17,7 @@ export class GameMusic {
     this._out = outputNode;
     this._active = false;
     this._timer = null;
+    this._currentName = '';
   }
 
   // ─── note pool ──────────────────────────────────────────────
@@ -62,9 +63,28 @@ export class GameMusic {
     'echoReflection',  'starlight',        'hymn',
   ];
 
+  // Pretty display names for each composition.
+  static _DISPLAY_NAMES = {
+    gentleArc:       'Gentle Arc',
+    callAndResponse: 'Call & Response',
+    fallingLeaves:   'Falling Leaves',
+    spreadArpeggio:  'Spread Arpeggio',
+    lullaby:         'Lullaby',
+    freeWander:      'Free Wander',
+    ripple:          'Ripple',
+    musicBox:        'Music Box',
+    cascade:         'Cascade',
+    echoReflection:  'Echo Reflection',
+    starlight:       'Starlight',
+    hymn:            'Hymn',
+  };
+
+  getCurrentName() { return this._currentName; }
+
   _play() {
     const list = GameMusic._COMPOSITIONS;
     const name = list[Math.floor(Math.random() * list.length)];
+    this._currentName = GameMusic._DISPLAY_NAMES[name] || name;
     this[name]();
   }
 
