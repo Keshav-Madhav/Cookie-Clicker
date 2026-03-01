@@ -38,9 +38,9 @@ export class Game {
       music: true,           // background symphony music
       soundEffects: true,    // procedural sound effects
       ambient: true,         // bakery ambient soundscape
-      musicVolume: 0.5,      // music volume (0–1)
-      effectsVolume: 1.0,    // effects volume (0–1)
-      ambientVolume: 0.5,    // ambient volume (0–1)
+      musicVolume: 0.8,      // music volume (0–1)
+      effectsVolume: 0.75,    // effects volume (0–1)
+      ambientVolume: 0.3,    // ambient volume (0–1)
     };
 
     // Active buff system (supports multiple concurrent frenzies)

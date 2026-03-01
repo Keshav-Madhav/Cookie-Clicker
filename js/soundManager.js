@@ -12,6 +12,7 @@
  * Sync bonus (1.5×) rewards clicking at the piece's BPM (±20 %).
  */
 import { symphonies } from './symphonies.js';
+import { GameMusic } from './gameMusic.js';
 
 export class SoundManager {
   constructor(game) {
@@ -36,9 +37,8 @@ export class SoundManager {
     this._ambientChordIdx = 0;      // current chord in progression
     this._ambientChordTimer = null;
 
-    // Generative melody — under Music setting
-    this._melodyActive = false;
-    this._melodyTimer = null;
+    // Generative melody engine (created lazily)
+    this._gameMusic = null;
 
     // Volume buses (created lazily in _ensureContext)
     this._musicBus = null;
@@ -457,37 +457,46 @@ export class SoundManager {
 
   // ─── initialization (call from game.start) ─────────────────
 
-  /** Set up a one-time listener so music, melody & ambient start on first interaction. */
+  /** Start music & ambient immediately; fall back to first interaction if browser blocks autoplay. */
   init() {
-    const startAudio = () => {
-      this._ensureContext();
+    this._ensureContext();
+
+    const startAll = () => {
       if (this._canPlayMusic() && !this._musicPlaying) this.startMusic();
-      if (this._canPlayMusic() && !this._melodyActive)  this.startMelody();
+      if (this._canPlayMusic()) this.startMelody();
       if (this._canPlayAmbient() && !this._ambientActive) this.startAmbient();
-      document.removeEventListener('click', startAudio);
-      document.removeEventListener('keydown', startAudio);
     };
-    document.addEventListener('click', startAudio);
-    document.addEventListener('keydown', startAudio);
+
+    // Try starting right away
+    startAll();
+
+    // If the browser suspended the context, also listen for first interaction
+    if (this._ctx.state !== 'running') {
+      const onInteract = () => {
+        this._ctx.resume().then(() => startAll());
+        document.removeEventListener('click', onInteract);
+        document.removeEventListener('keydown', onInteract);
+      };
+      document.addEventListener('click', onInteract);
+      document.addEventListener('keydown', onInteract);
+    }
   }
 
   // ─── generative melody (Music setting) ──────────────────────
 
   /** Start the generative melody engine. */
   startMelody() {
-    if (this._melodyActive || !this._canPlayMusic()) return;
+    if (!this._canPlayMusic()) return;
     this._ensureContext();
-    this._melodyActive = true;
-    this._scheduleMelody();
+    if (!this._gameMusic) {
+      this._gameMusic = new GameMusic(this._ctx, this._melodyBus || this._musicBus);
+    }
+    this._gameMusic.start();
   }
 
   /** Stop the generative melody engine. */
   stopMelody() {
-    this._melodyActive = false;
-    if (this._melodyTimer) {
-      clearTimeout(this._melodyTimer);
-      this._melodyTimer = null;
-    }
+    if (this._gameMusic) this._gameMusic.stop();
   }
 
   // ─── ambient soundscape ─────────────────────────────────────
@@ -508,15 +517,6 @@ export class SoundManager {
     [174.6, 349.2, 392.0, 493.9],  // Bb6/F    (A→G, C→B: gentle ease)
     [146.8, 329.6, 392.0, 523.3],  // Gsus4/D  (bass-step, F→E, B→C: mixed)
     [130.8, 329.6, 392.0, 493.9],  // Cmaj7    (home: bass-step, C→B)
-  ];
-
-  // C major pentatonic across octaves 3–6 for wide, delicate range.
-  // Used by the generative melody system (controlled by Music setting).
-  static _MELODY_POOL = [
-    130.8, 146.8, 164.8, 196.0, 220.0,           // octave 3
-    261.6, 293.7, 329.6, 392.0, 440.0,           // octave 4
-    523.3, 587.3, 659.3, 784.0, 880.0,           // octave 5
-    1046.5, 1174.7, 1318.5,                       // octave 6 (sparkle)
   ];
 
   /** Start the ambient soundscape (drone + shimmer + bakery events). */
@@ -691,249 +691,6 @@ export class SoundManager {
       osc1.frequency.exponentialRampToValueAtTime(f, t + ramp);
       osc2.frequency.exponentialRampToValueAtTime(f * 1.004, t + ramp);
     }
-  }
-
-  // ── generative melody phrases ─────────────────────────────
-  //
-  // Multiple phrase generators selected at random — each produces
-  // a different musical character, all sharing the same delicate
-  // piano-like note renderer.  Controlled by the Music setting.
-
-  _scheduleMelody() {
-    if (!this._melodyActive) return;
-    // Breathing room between phrases — but not too long
-    const delay = 5000 + Math.random() * 12000; // 5–17 s
-    this._melodyTimer = setTimeout(() => {
-      if (!this._melodyActive || !this._canPlayMusic()) {
-        if (this._melodyActive) this._scheduleMelody();
-        return;
-      }
-      this._playMelody();
-      this._scheduleMelody();
-    }, delay);
-  }
-
-  /** Pick a random phrase type and generate it. */
-  _playMelody() {
-    const r = Math.random();
-    if (r < 0.25)      this._melodyArc();
-    else if (r < 0.45) this._melodyCallResponse();
-    else if (r < 0.60) this._melodyDescending();
-    else if (r < 0.75) this._melodyArpeggio();
-    else if (r < 0.88) this._melodyLullaby();
-    else                this._melodyWander();
-  }
-
-  // ── phrase: gentle arc (ascending then descending or vice-versa) ──
-
-  _melodyArc() {
-    const pool = SoundManager._MELODY_POOL;
-    const count = 8 + Math.floor(Math.random() * 10);         // 8–17 notes
-    const vol = 0.010 + Math.random() * 0.005;
-    let idx = 3 + Math.floor(Math.random() * (pool.length - 6));
-    let time = 0;
-    const ascending = Math.random() > 0.4;
-
-    for (let i = 0; i < count; i++) {
-      this._playGenMelodyNote(pool[idx], vol * (0.6 + Math.random() * 0.4), time);
-
-      time += 0.5 + Math.random() * 1.1;
-      if (i > 0 && i % 4 === 0) time += 0.6 + Math.random() * 1.0; // breath
-
-      // Arc shape: first half one direction, second half the other
-      const inFirstHalf = i < count / 2;
-      const goUp = ascending ? inFirstHalf : !inFirstHalf;
-      if (goUp) {
-        idx = Math.min(idx + (Math.random() < 0.7 ? 1 : 2), pool.length - 1);
-      } else {
-        idx = Math.max(idx - (Math.random() < 0.7 ? 1 : 2), 0);
-      }
-      // Occasional same-note repeat
-      if (Math.random() < 0.12) idx = idx; // no-op, keep position
-    }
-  }
-
-  // ── phrase: call and response (motif, pause, variation) ──
-
-  _melodyCallResponse() {
-    const pool = SoundManager._MELODY_POOL;
-    const vol = 0.010 + Math.random() * 0.005;
-    const motifLen = 3 + Math.floor(Math.random() * 3);       // 3–5 notes
-    const startIdx = 4 + Math.floor(Math.random() * (pool.length - 8));
-
-    // "Call" — short rising motif
-    let time = 0;
-    const motif = [];
-    let idx = startIdx;
-    for (let i = 0; i < motifLen; i++) {
-      motif.push(idx);
-      this._playGenMelodyNote(pool[idx], vol * (0.7 + Math.random() * 0.3), time);
-      time += 0.5 + Math.random() * 0.6;
-      idx = Math.min(idx + 1, pool.length - 1);
-    }
-
-    // Pause
-    time += 1.2 + Math.random() * 1.5;
-
-    // "Response" — same shape shifted or inverted
-    const shift = Math.random() > 0.5 ? 2 : -1;
-    for (let i = 0; i < motifLen; i++) {
-      const ri = Math.random() > 0.3 ? motif[i] + shift : motif[motifLen - 1 - i] + shift;
-      const ci = Math.max(0, Math.min(ri, pool.length - 1));
-      this._playGenMelodyNote(pool[ci], vol * (0.6 + Math.random() * 0.4), time);
-      time += 0.5 + Math.random() * 0.6;
-    }
-
-    // Optional gentle coda — 2 slow notes
-    if (Math.random() < 0.6) {
-      time += 0.8 + Math.random() * 1.0;
-      const coda = startIdx + Math.floor(Math.random() * 3);
-      this._playGenMelodyNote(pool[Math.min(coda, pool.length - 1)], vol * 0.5, time);
-      time += 1.0 + Math.random() * 0.8;
-      this._playGenMelodyNote(pool[Math.min(coda + 2, pool.length - 1)], vol * 0.4, time);
-    }
-  }
-
-  // ── phrase: gentle descending sequence ──
-
-  _melodyDescending() {
-    const pool = SoundManager._MELODY_POOL;
-    const count = 7 + Math.floor(Math.random() * 8);          // 7–14 notes
-    const vol = 0.009 + Math.random() * 0.005;
-    let idx = Math.max(pool.length - 5, Math.floor(pool.length * 0.6 + Math.random() * pool.length * 0.3));
-    let time = 0;
-
-    for (let i = 0; i < count; i++) {
-      this._playGenMelodyNote(pool[idx], vol * (0.6 + Math.random() * 0.4), time);
-      time += 0.6 + Math.random() * 1.0;
-      if (i % 3 === 2) time += 0.5 + Math.random() * 0.8;    // breath every 3
-
-      // Mostly descend with occasional step up for interest
-      if (Math.random() < 0.75) {
-        idx = Math.max(idx - 1, 0);
-      } else {
-        idx = Math.min(idx + 1, pool.length - 1);
-      }
-    }
-  }
-
-  // ── phrase: spread arpeggio across registers ──
-
-  _melodyArpeggio() {
-    const pool = SoundManager._MELODY_POOL;
-    const vol = 0.009 + Math.random() * 0.004;
-    // Pick 4-5 chord tones spread across the pool
-    const root = 2 + Math.floor(Math.random() * 4);
-    const tones = [root, root + 2, root + 4, root + 7];
-    if (Math.random() > 0.4) tones.push(root + 9);
-
-    let time = 0;
-    const passes = 2 + Math.floor(Math.random() * 2);         // 2–3 passes
-    for (let p = 0; p < passes; p++) {
-      const ascending = p % 2 === 0;
-      const order = ascending ? [...tones] : [...tones].reverse();
-      for (const t of order) {
-        const ci = Math.max(0, Math.min(t, pool.length - 1));
-        this._playGenMelodyNote(pool[ci], vol * (0.55 + Math.random() * 0.45), time);
-        time += 0.7 + Math.random() * 0.9;
-      }
-      time += 1.0 + Math.random() * 1.5; // pause between passes
-    }
-  }
-
-  // ── phrase: lullaby — very slow, extra delicate ──
-
-  _melodyLullaby() {
-    const pool = SoundManager._MELODY_POOL;
-    const count = 6 + Math.floor(Math.random() * 6);          // 6–11 notes
-    const vol = 0.007 + Math.random() * 0.004;                // softer
-    let idx = 5 + Math.floor(Math.random() * (pool.length - 8));
-    let time = 0;
-
-    for (let i = 0; i < count; i++) {
-      this._playGenMelodyNote(pool[idx], vol * (0.5 + Math.random() * 0.5), time);
-      time += 1.2 + Math.random() * 1.8;                      // very wide spacing
-
-      // Gentle rocking motion — step up, step down, step up…
-      if (i % 2 === 0) {
-        idx = Math.min(idx + (Math.random() < 0.6 ? 1 : 2), pool.length - 1);
-      } else {
-        idx = Math.max(idx - 1, 0);
-      }
-    }
-  }
-
-  // ── phrase: free wander (original Minecraft-style) ──
-
-  _melodyWander() {
-    const pool = SoundManager._MELODY_POOL;
-    const count = 10 + Math.floor(Math.random() * 12);        // 10–21 notes
-    const vol = 0.010 + Math.random() * 0.005;
-    let idx = 3 + Math.floor(Math.random() * (pool.length - 6));
-    let time = 0;
-
-    for (let i = 0; i < count; i++) {
-      this._playGenMelodyNote(pool[idx], vol * (0.6 + Math.random() * 0.4), time);
-
-      time += 0.5 + Math.random() * 1.0;
-      if (Math.random() < 0.18) time += 0.8 + Math.random() * 1.2; // rest
-      if (i > 0 && i % 4 === 0) time += 0.4 + Math.random() * 0.8; // breath
-
-      const r = Math.random();
-      if (r < 0.40)      idx = Math.min(idx + 1, pool.length - 1);
-      else if (r < 0.72) idx = Math.max(idx - 1, 0);
-      else if (r < 0.85) idx = Math.min(idx + 2 + Math.floor(Math.random() * 2), pool.length - 1);
-      else { /* repeat */ }
-
-      // Gravity toward middle register
-      if (idx < 3 && Math.random() < 0.5) idx++;
-      if (idx > pool.length - 3 && Math.random() < 0.5) idx--;
-    }
-  }
-
-  /** Delicate piano-like tone — quick attack, long singing decay. */
-  _playGenMelodyNote(freq, volume = 0.010, delay = 0) {
-    const ctx = this._ensureContext();
-    const t = ctx.currentTime + delay;
-    const dur = 3.0 + Math.random() * 3.0;                    // 3–6 s
-    const out = this._melodyBus || this._musicBus || ctx.destination;
-
-    // Warm sine fundamental
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, t);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.001, t);
-    g.gain.linearRampToValueAtTime(volume, t + 0.035);        // crisp piano attack
-    g.gain.setTargetAtTime(volume * 0.50, t + 0.035, 0.7);   // natural decay curve
-    g.gain.setTargetAtTime(0.001, t + dur * 0.6, dur * 0.22); // long tail
-    osc.connect(g).connect(out);
-    osc.start(t);
-    osc.stop(t + dur + 0.5);
-
-    // Soft octave partial — gives warmth
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(freq * 2.002, t);
-    const g2 = ctx.createGain();
-    g2.gain.setValueAtTime(0.001, t);
-    g2.gain.linearRampToValueAtTime(volume * 0.055, t + 0.03);
-    g2.gain.setTargetAtTime(0.001, t + 0.25, dur * 0.16);
-    osc2.connect(g2).connect(out);
-    osc2.start(t);
-    osc2.stop(t + dur * 0.45);
-
-    // Very faint fifth partial — subtle body
-    const osc3 = ctx.createOscillator();
-    osc3.type = 'sine';
-    osc3.frequency.setValueAtTime(freq * 3.001, t);
-    const g3 = ctx.createGain();
-    g3.gain.setValueAtTime(0.001, t);
-    g3.gain.linearRampToValueAtTime(volume * 0.018, t + 0.025);
-    g3.gain.setTargetAtTime(0.001, t + 0.12, dur * 0.09);
-    osc3.connect(g3).connect(out);
-    osc3.start(t);
-    osc3.stop(t + dur * 0.25);
   }
 
   // ── bakery sound events ────────────────────────────────────
