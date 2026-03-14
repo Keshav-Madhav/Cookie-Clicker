@@ -379,6 +379,51 @@ export class Tutorial {
         target: "#debug-overlay",
         position: "right",
       },
+
+      /* ─────────────── GRANDMAPOCALYPSE ─────────────── */
+
+      grandmaResearchAvailable: {
+        title: "Grandma Research Unlocked!",
+        text: "With 15+ grandmas, a new 'Grandma Research' section has appeared in the shop. Researching unlocks powerful grandma CPS multipliers... but be warned: deeper research awakens something ancient. The rewards are immense, but so are the consequences.",
+        target: "#grandmapocalypse-panel",
+        position: "left",
+      },
+      grandmapocalypseStage1: {
+        title: "The Grandmas Stir...",
+        text: "You've triggered Stage 1 of the Grandmapocalypse. Wrinklers will now spawn on your cookie, draining CPS — but they return 110% when popped. Wrath cookies (red) replace some golden cookies with risky outcomes: Clot halves your CPS, Ruin steals cookies, but Elder Frenzy gives 666x production!",
+        target: "#grandmapocalypse-panel",
+        position: "left",
+      },
+      grandmapocalypseStage2: {
+        title: "The Grandmapocalypse Deepens",
+        text: "Stage 2 brings harsher punishments. Clot now cuts 75% CPS, Ruin takes 40% of your bank, and a new curse — Building Freeze — halts production. But Elder Frenzy at 1111x and Cookie Storm at 10800x CPS make it worth the gamble. Your cookies also slowly decay now. Stay active!",
+        target: "#grandmapocalypse-panel",
+        position: "left",
+      },
+      grandmapocalypseStage3: {
+        title: "THE ELDER PACT",
+        text: "Maximum apocalypse. ALL cookies are now wrath cookies. Clot: -90% CPS for 2 minutes. Ruin: lose 60% of your bank. But Elder Frenzy is a staggering 7777x and Cookie Storm gives 66,600x CPS. Elder Wrinklers (dark red) drain 10% but return 150%. Use Elder Pledge for temporary peace — but it gets shorter and pricier each time.",
+        target: "#grandmapocalypse-panel",
+        position: "left",
+      },
+      wrinklerFirst: {
+        title: "A Wrinkler Appeared!",
+        text: "That slug-like creature latching onto your cookie is a Wrinkler. It drains 6% of your CPS — but when you click it to pop, it returns 110% of everything it ate. Let them feed, then pop for profit! Shiny gold ones are rare and return 350%.",
+        target: "#cookie-container",
+        position: "right",
+      },
+      wrathCookieFirst: {
+        title: "Wrath Cookie!",
+        text: "That red cookie is a Wrath Cookie — the grandmapocalypse's version of a golden cookie. It's a gamble: you might get a devastating Clot or Ruin, or you might hit Elder Frenzy for a massive temporary boost. Higher stages = bigger risks AND bigger rewards. Feeling lucky?",
+        target: "#golden-cookie",
+        position: "left",
+      },
+      elderPledgeFirst: {
+        title: "Elder Pledge",
+        text: "You can temporarily calm the grandmas with an Elder Pledge. It reverts everything to normal for a while — no wrinklers, no wrath cookies, no decay. But it costs cookies, gets more expensive each time, and the duration shrinks. Peace is borrowed, never bought.",
+        target: "#grandmapocalypse-panel",
+        position: "left",
+      },
     };
 
     /* ── rapid-click tracking ── */

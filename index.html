@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Cookie Clicker Clone</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="grandmapocalypse.css">
 </head>
   <body>
     <div id="game-container">
@@ -177,6 +178,24 @@
             <button class="upgrade-nav-btn" id="upgrade-next">▶</button>
           </div>
           <div id="upgrade-list"></div>
+        </div>
+
+        <!-- Grandmapocalypse Research (appears when grandmas owned) -->
+        <div id="grandmapocalypse-panel" class="gp-shop-section hidden">
+          <div id="gp-toggle-btn" class="gp-shop-header">
+            <span id="gp-stage-badge" class="gp-stage-indicator">0</span>
+            <span class="gp-header-text">Grandma Research</span>
+            <span id="gp-pledge-timer" class="gp-pledge-bar hidden"></span>
+            <span class="gp-expand-arrow">▾</span>
+          </div>
+          <div id="gp-section-body" class="gp-shop-body">
+            <div id="gp-research-list" class="gp-research-list"></div>
+            <div id="gp-actions" class="gp-actions">
+              <button id="gp-pledge-btn" class="gp-btn gp-pledge hidden">Elder Pledge</button>
+              <button id="gp-covenant-btn" class="gp-btn gp-covenant hidden">Elder Covenant</button>
+              <button id="gp-revoke-btn" class="gp-btn gp-revoke hidden">Revoke Covenant</button>
+            </div>
+          </div>
         </div>
 
         <div class="shop-header" id="shop-header-buildings">

@@ -384,6 +384,64 @@ export const upgrades = [
     requires: [{ type: "building", name: "Fractal Engine", min: 50 }, { type: "prestige", min: 5 }] },
 ];
 
+// === Grandmapocalypse Research Chain ===
+export const grandmaResearchChain = [
+  {
+    id: "bingoCenter",
+    name: "Bingo Center / Research Facility",
+    targetStage: 1,
+    desc: "Your grandmas pool their knowledge. Something stirs in the collective unconscious.",
+    flavor: "She signed the consent form. We think.",
+    requires: [{ type: "building", name: "Grandma", min: 15 }],
+    grandmaBoost: 1,
+  },
+  {
+    id: "oneMind",
+    name: "One Mind",
+    targetStage: null,
+    desc: "The grandmas begin sharing thoughts. It started with recipes. It didn't stay that way.",
+    flavor: "Each grandma is no longer entirely herself.",
+    requires: [{ type: "grandmapocalypseStage", min: 1 }, { type: "building", name: "Grandma", min: 25 }],
+    grandmaBoost: 3,
+  },
+  {
+    id: "communalBrainsweep",
+    name: "Communal Brainsweep",
+    targetStage: 2,
+    desc: "The merger deepens. Individual grandmas blur at the edges.",
+    flavor: "Do you hear humming? They hear you.",
+    requires: [{ type: "grandmapocalypseStage", min: 1 }, { type: "building", name: "Grandma", min: 40 }],
+    grandmaBoost: 5,
+  },
+  {
+    id: "elderPact",
+    name: "Elder Pact",
+    targetStage: 3,
+    desc: "The compact is sealed. The grandmas open the door, and something ancient comes through.",
+    flavor: "You made this deal, not us.",
+    requires: [{ type: "grandmapocalypseStage", min: 2 }, { type: "building", name: "Grandma", min: 60 }],
+    grandmaBoost: 10,
+  },
+  {
+    id: "festiveBaking",
+    name: "Festive Baking",
+    targetStage: null,
+    desc: "The elders celebrate. You are not sure what they are celebrating.",
+    flavor: "The cookies taste like... victory? Regret? Both.",
+    requires: [{ type: "grandmapocalypseStage", min: 3 }, { type: "building", name: "Grandma", min: 75 }],
+    grandmaBoost: 5,
+  },
+  {
+    id: "unholyBakery",
+    name: "Unholy Bakery",
+    targetStage: null,
+    desc: "The bakery transcends its origins. Everything here bakes itself now.",
+    flavor: "You are no longer necessary. They keep you around anyway.",
+    requires: [{ type: "grandmapocalypseStage", min: 3 }, { type: "building", name: "Grandma", min: 100 }],
+    grandmaBoost: 8,
+  },
+];
+
 // === Prestige Upgrades (purchased with Prestige Chips, persist across ascensions) ===
 export const heavenlyUpgrades = [
   // Tier 1 — First Prestiges (3-10 chips, no prerequisites)
@@ -583,6 +641,20 @@ export const heavenlyUpgrades = [
     desc: "All building base CPS x3. The ultimate baking power.",
     effect: "allBuildingCpsMultiplier", value: 3,
     requires: ["cookieSingularity", "celestialSynergy"] },
+
+  // Tier GP — Grandmapocalypse Heavenly Upgrades
+  { id: "elderKnowledge", name: "Elder Knowledge", cost: 15000,
+    desc: "Start each run with the Bingo Center already researched.",
+    effect: "elderKnowledge", value: 1,
+    requires: ["cosmicGrandma"] },
+  { id: "wrinklerWhisperer", name: "Wrinkler Whisperer", cost: 25000,
+    desc: "Wrinklers return 1.5x more cookies when popped.",
+    effect: "wrinklerReturnBonus", value: 1.5,
+    requires: ["elderKnowledge"] },
+  { id: "grandmasForgiveness", name: "Grandma's Forgiveness", cost: 40000,
+    desc: "Elder Pledge costs 50% less.",
+    effect: "elderPledgeDiscount", value: 0.5,
+    requires: ["wrinklerWhisperer"] },
 ];
 
 // === Achievements ===
@@ -689,7 +761,7 @@ export const achievements = [
   // Heavenly shop achievements
   { id: "heavenly_1", name: "Window Shopper", desc: "Purchase your first heavenly upgrade", type: "heavenlyUpgradesPurchased", requirement: 1 },
   { id: "heavenly_10", name: "Heavenly Spender", desc: "Purchase 10 heavenly upgrades", type: "heavenlyUpgradesPurchased", requirement: 10 },
-  { id: "heavenly_all", name: "Heavenly Completionist", desc: "Purchase all heavenly upgrades", type: "heavenlyUpgradesPurchased", requirement: 29 },
+  { id: "heavenly_all", name: "Heavenly Completionist", desc: "Purchase all heavenly upgrades", type: "heavenlyUpgradesPurchased", requirement: 47 },
 
   // Extended building milestones
   { id: "buildings_2000", name: "Cookie Multiverse Corp", desc: "Own 2,000 buildings", type: "totalBuildings", requirement: 2000 },
@@ -703,4 +775,22 @@ export const achievements = [
   // Secret / Easter egg achievements
   { id: "debugger", name: "Console Cowboy", desc: "Open the debug console", type: "manual" },
 
+  // === Grandmapocalypse Achievements ===
+  { id: "gp_stage1", name: "Unrest", desc: "Trigger Grandmapocalypse Stage 1 — the grandmas stir", type: "grandmapocalypseStage", requirement: 1 },
+  { id: "gp_stage2", name: "Angered", desc: "Reach Grandmapocalypse Stage 2 — the hivemind awakens", type: "grandmapocalypseStage", requirement: 2 },
+  { id: "gp_stage3", name: "Elder Pact", desc: "Seal the Elder Pact — maximum grandmapocalypse", type: "grandmapocalypseStage", requirement: 3 },
+  { id: "gp_pledge", name: "False Peace", desc: "Use the Elder Pledge to temporarily calm the grandmas", type: "elderPledge", requirement: 1 },
+  { id: "gp_pledge5", name: "Repeat Offender", desc: "Use the Elder Pledge 5 times — they always come back", type: "elderPledge", requirement: 5 },
+  { id: "gp_covenant", name: "Pact Breaker", desc: "Sign the Elder Covenant — peace at a price", type: "elderCovenant", requirement: 1 },
+  { id: "wrinkler_first", name: "Uninvited Guest", desc: "Let a wrinkler latch onto your cookie", type: "wrinklersFed", requirement: 1 },
+  { id: "wrinkler_pop1", name: "Pest Control", desc: "Pop your first wrinkler", type: "wrinklersPopped", requirement: 1 },
+  { id: "wrinkler_pop50", name: "Exterminator", desc: "Pop 50 wrinklers", type: "wrinklersPopped", requirement: 50 },
+  { id: "wrinkler_pop200", name: "Wrinkler Slayer", desc: "Pop 200 wrinklers total", type: "wrinklersPopped", requirement: 200 },
+  { id: "wrinkler_max", name: "All Hands", desc: "Have 12 wrinklers latched at once", type: "wrinklersMaxed", requirement: 12 },
+  { id: "wrinkler_shiny", name: "Rare Find", desc: "Pop a shiny wrinkler — they glisten with gold", type: "wrinklerShiny", requirement: 1 },
+  { id: "wrath_cookie_1", name: "Wrath Magnet", desc: "Click your first wrath cookie", type: "wrathCookiesClicked", requirement: 1 },
+  { id: "wrath_cookie_50", name: "Glutton for Punishment", desc: "Click 50 wrath cookies", type: "wrathCookiesClicked", requirement: 50 },
+  { id: "wrath_clot", name: "The Clot Thickens", desc: "Survive a Clot penalty from a wrath cookie", type: "wrathClotSurvived", requirement: 1 },
+  { id: "wrath_elder_frenzy", name: "Riding the Lightning", desc: "Get a 666x Elder Frenzy from a wrath cookie", type: "elderFrenzyTriggered", requirement: 1 },
+  { id: "wrinkler_profit", name: "Patient Investor", desc: "Pop a wrinkler that ate 1 hour worth of CPS", type: "wrinklerBigPop", requirement: 1 },
 ]; 

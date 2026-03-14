@@ -46,6 +46,67 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
+    // Grandmapocalypse research tooltips
+    const gpItem = e.target.closest('.gp-research-item');
+    if (gpItem) {
+      const name = gpItem.querySelector('.gp-research-name');
+      const desc = gpItem.querySelector('.gp-research-desc');
+      const req = gpItem.querySelector('.gp-research-req');
+      const btn = gpItem.querySelector('.gp-research-buy-btn');
+      let html = '';
+      if (name) html += `<p style="font-weight:bold;color:#d4a870">${name.textContent}</p>`;
+      if (desc) html += `<p style="font-size:11px">${desc.textContent}</p>`;
+      if (req) html += `<p style="color:#e07050;font-size:10px">${req.textContent}</p>`;
+      if (btn) html += `<p style="color:#a0d060;font-size:10px">Cost: ${btn.textContent}</p>`;
+      if (gpItem.classList.contains('locked')) html += `<p style="color:#e07050;font-size:10px">🔒 Requirements not met</p>`;
+      if (html) {
+        globalTooltip.innerHTML = html;
+        globalTooltip.style.opacity = '1';
+        const rect = gpItem.getBoundingClientRect();
+        globalTooltip.style.left = Math.max(4, rect.left - globalTooltip.offsetWidth - 10) + 'px';
+        globalTooltip.style.top = rect.top + 'px';
+      }
+    }
+
+    // Grandmapocalypse action button tooltips
+    const gpBtn = e.target.closest('.gp-btn');
+    if (gpBtn) {
+      let html = '';
+      if (gpBtn.classList.contains('gp-pledge')) {
+        html = `<p style="font-weight:bold;color:#a0d060">Elder Pledge</p><p style="font-size:11px">Temporarily calms the grandmas. No wrinklers, no wrath cookies, no cookie decay. Gets shorter and more expensive each use.</p>`;
+      } else if (gpBtn.classList.contains('gp-covenant')) {
+        html = `<p style="font-weight:bold;color:#e06050">Elder Covenant</p><p style="font-size:11px">Permanently calms the grandmas, but costs 15% of your CPS forever. Can be revoked, but the grandmas will return angrier.</p>`;
+      } else if (gpBtn.classList.contains('gp-revoke')) {
+        html = `<p style="font-weight:bold;color:#60a0d0">Revoke Covenant</p><p style="font-size:11px">Break the covenant with the elders. The grandmapocalypse returns at its previous stage. Your CPS penalty is removed.</p>`;
+      }
+      if (html) {
+        globalTooltip.innerHTML = html;
+        globalTooltip.style.opacity = '1';
+        const rect = gpBtn.getBoundingClientRect();
+        globalTooltip.style.left = Math.max(4, rect.left - globalTooltip.offsetWidth - 10) + 'px';
+        globalTooltip.style.top = rect.top + 'px';
+      }
+    }
+
+    // Grandmapocalypse purchased summary tooltip
+    const gpSummary = e.target.closest('.gp-purchased-summary');
+    if (gpSummary) {
+      const game = window._gameRef;
+      if (game && game.grandmapocalypse) {
+        const purchased = [...game.grandmapocalypse.researchPurchased];
+        const names = purchased.map(id => {
+          const r = game.grandmapocalypse.getResearchChain().find(x => x.id === id);
+          return r ? r.name : id;
+        });
+        globalTooltip.innerHTML = `<p style="font-weight:bold;color:#d4a870">Completed Research</p>` +
+          names.map(n => `<p style="font-size:10px;color:#a0d060">✓ ${n}</p>`).join('');
+        globalTooltip.style.opacity = '1';
+        const rect = gpSummary.getBoundingClientRect();
+        globalTooltip.style.left = Math.max(4, rect.left - globalTooltip.offsetWidth - 10) + 'px';
+        globalTooltip.style.top = rect.top + 'px';
+      }
+    }
+
     // Building tooltips
     const building = e.target.closest('.building');
     if (building) {
@@ -65,7 +126,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.body.addEventListener('mouseout', function(e) {
-    if (e.target.closest('.upgrade-btn') || e.target.closest('.building')) {
+    if (e.target.closest('.upgrade-btn') || e.target.closest('.building') ||
+        e.target.closest('.gp-research-item') || e.target.closest('.gp-btn') ||
+        e.target.closest('.gp-purchased-summary')) {
       globalTooltip.style.opacity = '0';
     }
   });
@@ -74,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let touchTimer = null;
   let touchTarget = null;
   document.body.addEventListener('touchstart', function(e) {
-    const btn = e.target.closest('.upgrade-btn') || e.target.closest('.building');
+    const btn = e.target.closest('.upgrade-btn') || e.target.closest('.building') || e.target.closest('.gp-research-item') || e.target.closest('.gp-btn');
     if (!btn) return;
     touchTarget = btn;
     touchTimer = setTimeout(() => {
@@ -97,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }, { passive: true });
 
   const game = new Game();
+  window._gameRef = game; // for tooltip access
   game._saveLoaded.then(() => {
     game.start();
     setupMobileNav(game);

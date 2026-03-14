@@ -36,6 +36,10 @@ export class Building {
         const effectiveMin = Math.max(1, cond.min - discount);
         return this.game.prestige.timesPrestiged >= effectiveMin;
       }
+      case "grandmapocalypseStage":
+        return this.game.grandmapocalypse
+          ? this.game.grandmapocalypse.stage >= cond.min
+          : false;
       default:
         return true;
     }

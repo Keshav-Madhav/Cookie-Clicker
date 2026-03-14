@@ -1,7 +1,7 @@
 import { formatNumberInWords } from "./utils.js";
 import { MiniGames } from "./miniGames.js";
 import { getBuildingIcon, getRowBackground, clearRowBgCache } from "./buildingIcons.js";
-import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN } from "./config.js";
+import { VISUAL, NEWS, GOLDEN_COOKIE, MILK, INCOME_RAIN, GRANDMAPOCALYPSE } from "./config.js";
 import { RowAnimator } from "./rowAnimations.js";
 import { ShopEffects } from "./shopEffects.js";
 import { CookieNum } from "./cookieNum.js";
@@ -584,6 +584,23 @@ export class VisualEffects {
     if (buildings > 10) msgs.push(`You now own ${buildings} buildings across your cookie empire.`);
     if (g.prestige.getSpendableChips() > 0) msgs.push(`Your ${formatNumberInWords(g.prestige.getSpendableChips())} heavenly chips glow with prestige.`);
     if (g.activeBuffs.length > 0) msgs.push("FRENZY IS ACTIVE! Bake faster!");
+
+    // Grandmapocalypse stage-specific news
+    if (g.grandmapocalypse && g.grandmapocalypse.stage > 0 &&
+        !g.grandmapocalypse.elderPledgeActive && !g.grandmapocalypse.covenantActive) {
+      const stageKey = `newsStage${g.grandmapocalypse.stage}`;
+      const stagePool = GRANDMAPOCALYPSE[stageKey] || [];
+      if (stagePool.length > 0) {
+        const idx1 = Math.floor(Math.random() * stagePool.length);
+        msgs.push(stagePool[idx1]);
+        if (g.grandmapocalypse.stage >= 2 && stagePool.length > 1) {
+          let idx2 = Math.floor(Math.random() * (stagePool.length - 1));
+          if (idx2 >= idx1) idx2++; // avoid duplicate
+          msgs.push(stagePool[idx2]);
+        }
+      }
+    }
+
     return msgs;
   }
 
@@ -593,7 +610,11 @@ export class VisualEffects {
     const freqBonus = this.game.prestige ? this.game.prestige.getGoldenCookieFrequencyBonus() : 0;
     const freqBonus2 = this.game.prestige ? this.game.prestige.getGoldenCookieFrequencyBonus2() : 0;
     const freqMult = 1 - freqBonus - freqBonus2; // stacks: e.g. 0.20 + 0.40 = 60% faster
-    const delay = (Math.random() * GOLDEN_COOKIE.delayRangeSec + GOLDEN_COOKIE.delayMinSec) * 1000 * freqMult;
+    // Grandmapocalypse: wrath cookies spawn faster at higher stages
+    const gpStage = this.game.grandmapocalypse ? this.game.grandmapocalypse.stage : 0;
+    const wrathSpeedMult = (gpStage > 0 && !this.game.grandmapocalypse.elderPledgeActive && !this.game.grandmapocalypse.covenantActive)
+      ? (GRANDMAPOCALYPSE.wrathSpawnSpeedMult[gpStage] || 1) : 1;
+    const delay = (Math.random() * GOLDEN_COOKIE.delayRangeSec + GOLDEN_COOKIE.delayMinSec) * 1000 * freqMult * wrathSpeedMult;
     this.goldenCookieTimer = setTimeout(() => this._spawnGoldenCookie(), delay);
   }
 
@@ -611,6 +632,14 @@ export class VisualEffects {
     const rangeY = wH * 0.5 - 70;
     el.style.left = (marginX + Math.random() * Math.max(rangeX, 40)) + "px";
     el.style.top  = (marginY + Math.random() * Math.max(rangeY, 40)) + "px";
+
+    // Determine if this should be a wrath cookie (grandmapocalypse)
+    const wrathProb = this.game.grandmapocalypse ? this.game.grandmapocalypse.getWrathCookieProbability() : 0;
+    const isWrathCookie = Math.random() < wrathProb;
+    el.dataset.isWrath = isWrathCookie ? "1" : "0";
+    el.textContent = isWrathCookie ? "🔴" : "🍪";
+    el.classList.toggle("wrath-cookie", isWrathCookie);
+
     el.classList.remove("hidden");
     el.classList.add("golden-appear");
 
@@ -630,7 +659,8 @@ export class VisualEffects {
       el.classList.add("golden-fade");
       setTimeout(() => {
         el.classList.add("hidden");
-        el.classList.remove("golden-appear", "golden-fade");
+        el.classList.remove("golden-appear", "golden-fade", "wrath-cookie");
+        el.dataset.isWrath = "0";
         if (this.game._mobileNav) this.game._mobileNav.clearGoldenBadge();
         this._scheduleGoldenCookie();
       }, 600);
@@ -645,6 +675,12 @@ export class VisualEffects {
     el.addEventListener("click", (e) => {
       e.stopPropagation();
       clearTimeout(this._goldenTimeout);
+
+      // Branch: wrath cookie vs golden cookie
+      if (el.dataset.isWrath === "1") {
+        this._handleWrathCookieClick(el);
+        return;
+      }
 
       // Reward
       const roll = Math.random();
@@ -707,6 +743,111 @@ export class VisualEffects {
     });
   }
 
+  _handleWrathCookieClick(el) {
+    const g = this.game;
+    const roll = Math.random();
+    const stage = g.grandmapocalypse ? g.grandmapocalypse.stage : 1;
+    const stageKey = `stage${Math.min(Math.max(stage, 1), 3)}`;
+
+    // Stage-specific outcome table and effect values
+    const WO = GRANDMAPOCALYPSE[`wrathOutcomesStage${Math.min(Math.max(stage, 1), 3)}`]
+      || GRANDMAPOCALYPSE.wrathOutcomesStage1;
+    const clotCfg = GRANDMAPOCALYPSE.clot[stageKey] || GRANDMAPOCALYPSE.clot.stage1;
+    const ruinCfg = GRANDMAPOCALYPSE.ruin[stageKey] || GRANDMAPOCALYPSE.ruin.stage1;
+    const cursedCfg = GRANDMAPOCALYPSE.cursedFingers[stageKey] || GRANDMAPOCALYPSE.cursedFingers.stage1;
+    const frenCfg = GRANDMAPOCALYPSE.elderFrenzy[stageKey] || GRANDMAPOCALYPSE.elderFrenzy.stage1;
+    const stormCfg = GRANDMAPOCALYPSE.cookieStorm[stageKey] || GRANDMAPOCALYPSE.cookieStorm.stage1;
+
+    let msg = "";
+    let incomeAmount = 0;
+
+    if (roll < WO.clotRollMax) {
+      // Clot: slash CPS — worse at higher stages
+      g.startFrenzy('cps', clotCfg.multiplier, clotCfg.durationSec);
+      const pct = Math.round((1 - clotCfg.multiplier) * 100);
+      msg = `🩸 CLOT! CPS -${pct}% for ${clotCfg.durationSec}s!`;
+      g.stats.wrathClotSurvived = (g.stats.wrathClotSurvived || 0) + 1;
+      g.soundManager.wrathCookie();
+    } else if (roll < WO.ruinRollMax) {
+      // Ruin: lose cookies — bigger loss at higher stages
+      const lost = g.cookies.mul(ruinCfg.cookieFractionLost);
+      g.cookies = g.cookies.sub(lost);
+      if (g.cookies.lt(0)) g.cookies = CookieNum.ZERO;
+      const pct = Math.round(ruinCfg.cookieFractionLost * 100);
+      msg = `💀 RUIN! Lost ${pct}% (${formatNumberInWords(lost)}) cookies!`;
+      g.soundManager.wrathCookie();
+    } else if (roll < WO.cursedFingersRollMax) {
+      // Cursed Fingers: click damage slashed
+      g.startFrenzy('click', cursedCfg.multiplier, cursedCfg.durationSec);
+      msg = `🖐️ CURSED FINGERS! Clicks crippled for ${cursedCfg.durationSec}s!`;
+      g.soundManager.wrathCookie();
+    } else if (roll < WO.buildingFreezeRollMax) {
+      // Building Freeze: CPS slashed (simulated by a CPS debuff)
+      const freezeCfg = GRANDMAPOCALYPSE.buildingFreeze[stageKey] || GRANDMAPOCALYPSE.buildingFreeze.stage1;
+      const freezeMult = 1 - freezeCfg.cpsFractionLost;
+      g.startFrenzy('cps', freezeMult, freezeCfg.durationSec);
+      const pct = Math.round(freezeCfg.cpsFractionLost * 100);
+      msg = `🥶 BUILDING FREEZE! ${pct}% production halted for ${freezeCfg.durationSec}s!`;
+      g.soundManager.wrathCookie();
+    } else if (roll < WO.elderFrenzyRollMax) {
+      // Elder Frenzy: enormous brief boost — bigger at higher stages
+      g.startFrenzy('cps', frenCfg.multiplier, frenCfg.durationSec);
+      msg = `👵 ELDER FRENZY! ${frenCfg.multiplier}x for ${frenCfg.durationSec}s!`;
+      g.stats.elderFrenzyTriggered = (g.stats.elderFrenzyTriggered || 0) + 1;
+      g.soundManager.wrathCookieWin();
+    } else if (roll < WO.luckyRollMax) {
+      // Lucky
+      const gcRewardMult = g.prestige ? g.prestige.getGoldenCookieRewardMultiplier() * g.prestige.getGoldenCookieRewardMultiplier2() : 1;
+      const bonus = CookieNum.max(
+        CookieNum.from(GOLDEN_COOKIE.lucky.minCookies),
+        g.getEffectiveCPS().mul(GOLDEN_COOKIE.lucky.cpsMultiplier)
+      ).mul(gcRewardMult);
+      g.cookies = g.cookies.add(bonus);
+      g.stats.totalCookiesBaked = g.stats.totalCookiesBaked.add(bonus);
+      msg = `🍀 Lucky! +${formatNumberInWords(bonus)}`;
+      incomeAmount = bonus.toNumber();
+      g.soundManager.wrathCookieWin();
+    } else {
+      // Cookie Storm — bigger at higher stages
+      const gcRewardMult = g.prestige ? g.prestige.getGoldenCookieRewardMultiplier() * g.prestige.getGoldenCookieRewardMultiplier2() : 1;
+      const bonus = CookieNum.max(
+        CookieNum.from(stormCfg.minCookies),
+        g.getEffectiveCPS().mul(stormCfg.cpsMultiplier)
+      ).mul(gcRewardMult);
+      g.cookies = g.cookies.add(bonus);
+      g.stats.totalCookiesBaked = g.stats.totalCookiesBaked.add(bonus);
+      msg = `🌑 Dark Storm! +${formatNumberInWords(bonus)}`;
+      incomeAmount = bonus.toNumber();
+      g.soundManager.wrathCookieWin();
+    }
+
+    g.stats.wrathCookiesClicked = (g.stats.wrathCookiesClicked || 0) + 1;
+    g.stats.goldenCookiesClicked = (g.stats.goldenCookiesClicked || 0) + 1;
+    // Tutorial: first wrath cookie clicked
+    if (g.stats.wrathCookiesClicked === 1 && g.tutorial) {
+      g.tutorial.triggerEvent('wrathCookieFirst');
+    }
+    g.updateCookieCount();
+
+    if (incomeAmount > 0) {
+      this.triggerIncomeRain(incomeAmount);
+    } else {
+      this.triggerCookieBurst(VISUAL.burst.defaultCount, VISUAL.burst.defaultSpeed);
+    }
+
+    this._goldenBurst(el);
+    this._showRewardText(msg);
+
+    el.classList.add("hidden");
+    el.classList.remove("golden-appear", "golden-fade", "wrath-cookie");
+    el.dataset.isWrath = "0";
+
+    if (this.game._mobileNav) this.game._mobileNav.clearGoldenBadge();
+
+    g.achievementManager.check();
+    this._scheduleGoldenCookie();
+  }
+
   _goldenBurst(el) {
     const rect = el.getBoundingClientRect();
     const wrapRect = document.getElementById("viewport-wrap").getBoundingClientRect();
@@ -736,6 +877,35 @@ export class VisualEffects {
     el.textContent = msg;
     wrap.appendChild(el);
     setTimeout(() => el.remove(), GOLDEN_COOKIE.rewardTextMs);
+  }
+
+  /* ───────────── grandmapocalypse visual helpers ───────────── */
+
+  showStageTransitionText(msg) {
+    const wrap = document.getElementById("viewport-wrap");
+    if (!wrap) return;
+    const el = document.createElement("div");
+    el.className = "stage-transition-text";
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+
+  updateNewsPool() {
+    // Force a news rotation with stage-aware content
+    const el = document.getElementById("news-text");
+    if (el) {
+      const dynamic = this._getDynamicNews();
+      if (dynamic.length > 0) {
+        el.classList.add("news-exit");
+        setTimeout(() => {
+          el.textContent = dynamic[dynamic.length - 1];
+          el.classList.remove("news-exit");
+          el.classList.add("news-enter");
+          setTimeout(() => el.classList.remove("news-enter"), 500);
+        }, 400);
+      }
+    }
   }
 
   /* ───────────────────────── anchor hair click easter egg ── */
@@ -1116,8 +1286,14 @@ export class VisualEffects {
       this.game.tutorial.triggerEvent('niceMilk');
     }
 
-    // Milk color shifts — solid, no transparency fade
+    // Grandmapocalypse milk color override
+    const milkOverride = getComputedStyle(document.documentElement).getPropertyValue('--milk-override-color').trim();
     const wavePath = document.querySelector("#milk-wave path");
+    if (milkOverride && milkOverride !== 'none' && milkOverride !== '') {
+      el.style.background = `linear-gradient(to top, ${milkOverride}ee, ${milkOverride}cc)`;
+      if (wavePath) wavePath.style.fill = `${milkOverride}cc`;
+    } else
+    // Milk color shifts — solid, no transparency fade
     if (pct > MILK.goldenThreshold) {
       // Golden milk
       el.style.background = "linear-gradient(to top, rgba(255,223,100,0.95), rgba(255,235,160,0.80))";
@@ -1139,7 +1315,10 @@ export class VisualEffects {
     // Update label
     if (label) {
       if (pct > 0) {
-        const milkName = pct > MILK.goldenThreshold ? "Golden Milk" : pct > MILK.lavenderThreshold ? "Lavender Milk" : pct > MILK.warmThreshold ? "Caramel Milk" : "Plain Milk";
+        const gpStage = this.game.grandmapocalypse ? this.game.grandmapocalypse.stage : 0;
+        const isBloodMilk = milkOverride && milkOverride !== 'none' && milkOverride !== '';
+        const milkName = isBloodMilk ? (gpStage >= 3 ? "Elder Blood" : "Blood Milk")
+          : pct > MILK.goldenThreshold ? "Golden Milk" : pct > MILK.lavenderThreshold ? "Lavender Milk" : pct > MILK.warmThreshold ? "Caramel Milk" : "Plain Milk";
         label.textContent = `🥛 ${milkName} | ${Math.floor(pct)}% achievements`;
         label.classList.add("visible");
       } else {

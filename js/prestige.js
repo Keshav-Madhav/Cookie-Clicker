@@ -181,6 +181,9 @@ export class PrestigeManager {
       case 'cpsPerAchievement3':
       case 'hcInterest2':
       case 'prestigeBuildingDiscount2':
+      case 'elderKnowledge':
+      case 'wrinklerReturnBonus':
+      case 'elderPledgeDiscount':
         // Checked dynamically during gameplay
         break;
       default:
@@ -453,6 +456,22 @@ export class PrestigeManager {
       return this._getUpgradeData('realityArchitect').value;
     }
     return 0;
+  }
+
+  // === Grandmapocalypse Heavenly Upgrade Getters ===
+
+  getElderPledgeDiscount() {
+    if (this.hasUpgrade('grandmasForgiveness')) {
+      return this._getUpgradeData('grandmasForgiveness').value;
+    }
+    return 0;
+  }
+
+  getWrinklerReturnBonus() {
+    if (this.hasUpgrade('wrinklerWhisperer')) {
+      return this._getUpgradeData('wrinklerWhisperer').value;
+    }
+    return 1;
   }
 
   // === Save / Load ===

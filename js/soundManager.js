@@ -1741,4 +1741,145 @@ export class SoundManager {
     }
     this._currentBus = null;
   }
+
+  // ─── Grandmapocalypse Sounds ──────────────────────────────
+  //
+  //  Design: procedural dark/metal aesthetic using FM synthesis
+  //  for guitar-like distortion, formants for eerie vocals,
+  //  and layered sequences for mini-riffs. Cool, not annoying.
+
+  /** Distorted power chord — FM synthesis with high mod depth. */
+  _playPowerChord(rootHz, duration, volume = 0.05, delay = 0) {
+    // Root + fifth (×1.5) + octave (×2) with distortion via FM
+    this._playFM(rootHz, 1, 80, duration, volume, delay, 'sawtooth');
+    this._playFM(rootHz * 1.5, 1, 60, duration, volume * 0.7, delay);
+    this._playFM(rootHz * 2, 1.5, 40, duration * 0.8, volume * 0.4, delay);
+    // Gritty noise bed for texture
+    this._playBandNoise(duration * 0.5, volume * 0.3, delay, rootHz * 2, 2);
+  }
+
+  /** Quick palm-muted chug — percussive guitar hit. */
+  _playChug(hz, volume = 0.04, delay = 0) {
+    this._playFM(hz, 2, 120, 0.08, volume, delay, 'sawtooth');
+    this._playBandNoise(0.06, volume * 0.5, delay, hz * 1.5, 4);
+  }
+
+  wrinklerSpawn() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    // Slimy emergence — wet bandnoise + low FM growl + descending glide
+    this._playBandNoise(0.25, 0.04, 0, 350, 2.5);
+    this._playFM(100, 3, 50, 0.5, 0.03, 0.05);
+    this._playTone('sine', 200, 60, 0.6, 0.03, 0.02);
+  }
+
+  wrinklerPop() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    // Satisfying squelch-pop + reward arpeggio (ascending minor)
+    this._playBandNoise(0.1, 0.07, 0, 500, 4);
+    this._playFM(200, 1.4, 80, 0.08, 0.06, 0.01);  // metallic pop
+    // Reward sparkle — ascending notes
+    this._playTone('sine', 330, 330, 0.12, 0.05, 0.08);   // E4
+    this._playTone('sine', 392, 392, 0.12, 0.05, 0.15);   // G4
+    this._playTone('sine', 494, 494, 0.12, 0.05, 0.22);   // B4
+    this._playTone('triangle', 659, 659, 0.18, 0.04, 0.29); // E5 (ring out)
+  }
+
+  wrathCookie() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    // Menacing power chord stab — E minor (82 Hz root)
+    this._playPowerChord(82, 0.6, 0.05);
+    // Eerie vocal whisper after the hit
+    this._playVowel(90, 600, 1000, 2500, 0.4, 0.02, 0.3);
+    // Reverse-style noise swell
+    this._playNoise(0.3, 0.01, 0, 150);
+    this._playNoise(0.2, 0.04, 0.15, 300);
+  }
+
+  /** Wrath cookie positive outcome — dark but triumphant. */
+  wrathCookieWin() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    // Quick ascending power riff — E-G-A-B
+    this._playChug(82, 0.04, 0);
+    this._playChug(98, 0.04, 0.1);
+    this._playChug(110, 0.05, 0.2);
+    this._playPowerChord(123, 0.5, 0.04, 0.3); // B2 ring out
+  }
+
+  elderPledge() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    // Relief — clean descending arpeggio (Am → C → G → Em)
+    // Like putting down a heavy guitar and picking up an acoustic
+    this._playTone('sine', 440, 440, 0.2, 0.05, 0);     // A4
+    this._playTone('sine', 392, 392, 0.2, 0.05, 0.12);  // G4
+    this._playTone('sine', 330, 330, 0.2, 0.05, 0.24);  // E4
+    this._playTone('sine', 262, 262, 0.25, 0.05, 0.36); // C4
+    this._playTone('triangle', 196, 196, 0.4, 0.04, 0.48); // G3 (warm resolution)
+    // Gentle shimmer
+    this._playHissNoise(0.3, 0.015, 0.36, 5000);
+  }
+
+  elderCovenant() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    // Solemn pact — deep sustained power chord with slow fade
+    this._playPowerChord(55, 2.5, 0.05);  // A1 — very low, ominous
+    // Slow tolling bell via FM
+    this._playFM(220, 1.4, 200, 1.5, 0.04, 0.3);
+    this._playFM(220, 1.4, 200, 1.2, 0.03, 1.0);
+    // Dark vocal drone — "ooh"
+    this._playVowel(65, 330, 1260, 2500, 2.0, 0.03, 0.5);
+  }
+
+  stageTransition(stage) {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+
+    if (stage === 1) {
+      // Ominous intro riff — two palm-muted chugs + sustained minor chord
+      // Like the opening of a metal track
+      this._playChug(82, 0.04, 0);       // E2
+      this._playChug(82, 0.04, 0.15);    // E2 again
+      this._playPowerChord(82, 1.0, 0.04, 0.35);  // E minor ring
+      // Eerie whisper underneath
+      this._playVowel(82, 830, 1170, 2500, 0.8, 0.015, 0.5); // "ah"
+    }
+
+    else if (stage === 2) {
+      // Heavier — descending chromatic riff (E-Eb-D-Db) + crash
+      this._playChug(82, 0.05, 0);       // E2
+      this._playChug(78, 0.05, 0.12);    // Eb2
+      this._playChug(73, 0.05, 0.24);    // D2
+      this._playPowerChord(69, 1.2, 0.05, 0.36); // Db2 — tritone from root, evil
+      // Crash cymbal
+      this._playHissNoise(0.8, 0.04, 0.36, 6000);
+      this._playBandNoise(0.6, 0.03, 0.36, 3000, 1.5);
+      // Growl vocal
+      this._playVowel(55, 600, 1000, 2500, 0.6, 0.02, 0.6); // low "eh"
+    }
+
+    else if (stage === 3) {
+      // Full breakdown — rapid palm mutes into massive sustained chord
+      // The "oh shit" moment
+      const chugs = [82, 82, 98, 82, 82, 110, 82, 82];
+      chugs.forEach((hz, i) => this._playChug(hz, 0.05, i * 0.08));
+      const riffEnd = chugs.length * 0.08;
+      // Massive open chord — E5 power chord with extra dissonance
+      this._playPowerChord(82, 2.5, 0.06, riffEnd);
+      this._playFM(87, 1, 100, 2.0, 0.03, riffEnd); // slight detune for thickness
+      // Double kick drum hits
+      this._playFM(40, 2, 200, 0.06, 0.06, riffEnd);
+      this._playFM(40, 2, 200, 0.06, 0.06, riffEnd + 0.08);
+      // Cymbal crash + ride
+      this._playHissNoise(1.5, 0.05, riffEnd, 7000);
+      this._playBandNoise(1.0, 0.03, riffEnd, 4000, 1.5);
+      // Demonic vocal — low "ooh" sliding down
+      this._playVowel(60, 330, 1260, 2500, 2.0, 0.03, riffEnd + 0.2);
+      this._playVowel(45, 430, 980, 2500, 1.5, 0.02, riffEnd + 1.0);
+    }
+  }
 }

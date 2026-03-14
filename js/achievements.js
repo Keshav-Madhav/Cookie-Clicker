@@ -117,6 +117,42 @@ export class AchievementManager {
         case "sessionPrestiges":
           met = stats.sessionPrestiges >= achievement.requirement;
           break;
+        // Grandmapocalypse achievements
+        case "grandmapocalypseStage":
+          met = this.game.grandmapocalypse &&
+                this.game.grandmapocalypse.stage >= achievement.requirement;
+          break;
+        case "wrinklersPopped":
+          met = (stats.wrinklersPopped || 0) >= achievement.requirement;
+          break;
+        case "wrinklersFed":
+          met = (stats.wrinklersFed || 0) >= achievement.requirement;
+          break;
+        case "wrinklerShiny":
+          met = (stats.shinyWrinklersPopped || 0) >= achievement.requirement;
+          break;
+        case "wrinklersMaxed":
+          met = this.game.wrinklerManager &&
+                this.game.wrinklerManager.getWrinklerCount() >= achievement.requirement;
+          break;
+        case "elderPledge":
+          met = (stats.elderPledgesUsed || 0) >= achievement.requirement;
+          break;
+        case "elderCovenant":
+          met = !!(stats.elderCovenantSigned);
+          break;
+        case "wrathCookiesClicked":
+          met = (stats.wrathCookiesClicked || 0) >= achievement.requirement;
+          break;
+        case "wrathClotSurvived":
+          met = (stats.wrathClotSurvived || 0) >= achievement.requirement;
+          break;
+        case "elderFrenzyTriggered":
+          met = (stats.elderFrenzyTriggered || 0) >= achievement.requirement;
+          break;
+        case "wrinklerBigPop":
+          met = (stats.wrinklerBigPop || 0) >= achievement.requirement;
+          break;
       }
 
       if (met) {

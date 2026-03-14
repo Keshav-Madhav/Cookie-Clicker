@@ -112,6 +112,10 @@ export class Upgrade {
       case "miniGamesWon":
         return Array.isArray(this.game.stats.miniGamesWon) &&
                this.game.stats.miniGamesWon.length >= cond.min;
+      case "grandmapocalypseStage":
+        return this.game.grandmapocalypse
+          ? this.game.grandmapocalypse.stage >= cond.min
+          : false;
       default:
         return true;
     }
@@ -151,6 +155,8 @@ export class Upgrade {
           return `Need ${cond.min} upgrades purchased`;
         case "miniGamesWon":
           return `Need ${cond.min} mini-game type${cond.min > 1 ? 's' : ''} won`;
+        case "grandmapocalypseStage":
+          return `Need Grandmapocalypse Stage ${cond.min}`;
         default:
           return 'Unknown requirement';
       }

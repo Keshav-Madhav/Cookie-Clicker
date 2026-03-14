@@ -79,8 +79,14 @@ html {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+#click-area-content::-webkit-scrollbar {
+  display: none; /* Chrome/Safari — hide scrollbar, keep scroll */
 }
 
 #click-area::before {
@@ -266,15 +272,14 @@ html {
   font-size: 0.8rem;
   color: #f8c471;
   min-height: 0;
-  transition: all 0.3s ease;
-  overflow: hidden;
+  transition: padding 0.3s ease, margin 0.3s ease, background 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 #frenzy-indicator.active {
-  min-height: 24px;
   padding: 3px 8px;
   background: rgba(230, 126, 34, 0.2);
   border-radius: 6px;
@@ -294,6 +299,10 @@ html {
 
 .buff-click {
   color: #85c1e9;
+}
+
+.buff-debuff {
+  color: #e06050;
 }
 
 @keyframes frenzyPulse {
@@ -385,14 +394,12 @@ html {
   position: relative;
   z-index: 1;
   flex: 0 1 auto;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-top: 4px;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   min-height: 0;
-  scroll-behavior: smooth;
 }
 
 .left-section {

@@ -10,8 +10,10 @@ import { encryptSave, decryptSave, isEncrypted } from "./saveCrypto.js";
 import { SoundManager } from "./soundManager.js";
 import {
   GAME, LUCKY_CLICK, FRENZY_BURSTS, PARTICLES,
-  EASTER_EGGS, GOLDEN_COOKIE, SOFT_CAP
+  EASTER_EGGS, GOLDEN_COOKIE, SOFT_CAP, GRANDMAPOCALYPSE
 } from "./config.js";
+import { GrandmapocalypseManager } from "./grandmapocalypse.js";
+import { WrinklerManager } from "./wrinklerManager.js";
 import { CookieNum } from "./cookieNum.js";
 
 export class Game {
@@ -64,6 +66,16 @@ export class Game {
       sessionPrestiges: 0,    // prestiges in current session
       miniGamesPlayed: 0,     // total minigames played
       melodyIndex: 0,         // current position in click melody
+      // Grandmapocalypse stats
+      wrinklersPopped: 0,
+      wrinklersFed: 0,
+      shinyWrinklersPopped: 0,
+      wrinklerBigPop: 0,
+      elderPledgesUsed: 0,
+      elderCovenantSigned: false,
+      wrathCookiesClicked: 0,
+      wrathClotSurvived: 0,
+      elderFrenzyTriggered: 0,
     };
 
     // Load buildings & upgrades from gameData.js
@@ -76,6 +88,9 @@ export class Game {
     this.visualEffects = new VisualEffects(this);
     this.tutorial = new Tutorial(this);
     this.soundManager = new SoundManager(this);
+    this.grandmapocalypse = new GrandmapocalypseManager(this);
+    this.wrinklerManager = new WrinklerManager(this);
+    this._grandmapocalypseGrandmaBoost = 1;
     this._rhythmSynced = false;
 
     this.purchaseAmount = 1;
@@ -100,6 +115,19 @@ export class Game {
     this.initParticles();
     this.visualEffects.init();
     this.soundManager.init();
+    this.wrinklerManager.init();
+
+    // Apply Elder Knowledge heavenly upgrade: give bingo center for free
+    if (this.prestige.hasUpgrade('elderKnowledge') &&
+        !this.grandmapocalypse.hasResearch('bingoCenter')) {
+      this.grandmapocalypse.researchPurchased.add('bingoCenter');
+      this.grandmapocalypse.stage = 1;
+      this.grandmapocalypse._previousStage = 1;
+      this.grandmapocalypse._applyResearchBoosts();
+    }
+
+    // Render grandmapocalypse research panel
+    this.grandmapocalypse._renderResearchPanel();
 
     // Easter egg: typing "cookie" or "debugging" anywhere
     this._typedKeys = '';
@@ -239,6 +267,27 @@ export class Game {
       this.updateLeftPanel();
       this.visualEffects.update();
 
+      // Grandmapocalypse tick
+      if (this.grandmapocalypse) {
+        this.grandmapocalypse.tick();
+
+        // Cookie decay — cookies slowly rot at higher stages
+        const gpStage = this.grandmapocalypse.stage;
+        if (gpStage >= 1 && !this.grandmapocalypse.elderPledgeActive && !this.grandmapocalypse.covenantActive) {
+          const decayKey = `stage${gpStage}`;
+          const decayRate = GRANDMAPOCALYPSE.cookieDecay[decayKey] || 0;
+          if (decayRate > 0 && this.cookies.gt(0)) {
+            const decayed = this.cookies.mul(decayRate);
+            this.cookies = this.cookies.sub(decayed);
+            if (this.cookies.lt(0)) this.cookies = CookieNum.ZERO;
+          }
+        }
+      }
+      // Wrinkler feeding tick
+      if (this.wrinklerManager && this.grandmapocalypse && this.grandmapocalypse.stage >= 1) {
+        this.wrinklerManager.update(GAME.tickIntervalMs);
+      }
+
       // Easter egg: night owl (playing between configured hours)
       const hr = new Date().getHours();
       const mins = new Date().getMinutes();
@@ -337,6 +386,21 @@ export class Game {
     for (const buff of this.activeBuffs) {
       if (buff.type === 'cps') cps = cps.mul(buff.multiplier);
     }
+
+    // Wrinkler visual drain — reduces displayed CPS to show wrinklers intercepting production
+    // Note: wrinklers accumulate cookies independently and return them at 1.1x on pop
+    if (this.wrinklerManager && this.grandmapocalypse && this.grandmapocalypse.stage >= 1 &&
+        !this.grandmapocalypse.elderPledgeActive && !this.grandmapocalypse.covenantActive) {
+      const wrinklers = this.wrinklerManager.wrinklers;
+      if (wrinklers.length > 0) {
+        let drainFraction = 0;
+        for (const w of wrinklers) {
+          drainFraction += w.elder ? GRANDMAPOCALYPSE.elderWrinklerDrainFraction : GRANDMAPOCALYPSE.wrinklerCpsDrainFraction;
+        }
+        cps = cps.mul(Math.max(0, 1 - drainFraction));
+      }
+    }
+
     return cps;
   }
 
@@ -572,8 +636,12 @@ export class Game {
 
     const wasAlreadyActive = this.activeBuffs.length > 0;
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier * (this.prestige ? this.prestige.getFrenzyDurationMultiplier() : 1);
-    // Frenzy Overload + Frenzy Mastery: amplify frenzy multiplier
-    const effectiveMultiplier = multiplier * this.prestige.getFrenzyBonusMultiplier() * this.prestige.getFrenzyBonusMultiplier2();
+    // Frenzy Overload + Frenzy Mastery: amplify frenzy multiplier (buffs only, not debuffs)
+    const isDebuff = multiplier < 1;
+    const frenzyBonus = (!isDebuff && this.prestige)
+      ? this.prestige.getFrenzyBonusMultiplier() * this.prestige.getFrenzyBonusMultiplier2()
+      : 1;
+    const effectiveMultiplier = multiplier * frenzyBonus;
 
     this.activeBuffs.push({
       id: Date.now() + Math.random(),
@@ -627,8 +695,14 @@ export class Game {
       for (const buff of this.activeBuffs) {
         const remaining = Math.max(0, Math.ceil((buff.endTime - Date.now()) / 1000));
         const line = document.createElement('div');
-        line.className = `buff-line buff-${buff.type}`;
-        if (buff.type === 'cps') {
+        const isDebuff = buff.multiplier < 1;
+        line.className = `buff-line buff-${buff.type}${isDebuff ? ' buff-debuff' : ''}`;
+        if (isDebuff && buff.type === 'click') {
+          line.textContent = `🖐️ CURSED ${buff.multiplier}x Clicks (${remaining}s)`;
+        } else if (isDebuff) {
+          const pct = Math.round((1 - buff.multiplier) * 100);
+          line.textContent = `🩸 CLOT -${pct}% CPS (${remaining}s)`;
+        } else if (buff.type === 'cps') {
           line.textContent = `🔥 FRENZY ${buff.multiplier}x CPS (${remaining}s)`;
         } else {
           line.textContent = `⚡ CLICK FRENZY ${buff.multiplier}x (${remaining}s)`;
@@ -1017,11 +1091,39 @@ export class Game {
         <h3>Quick Actions</h3>
         <div class="debug-actions">
           <button class="debug-action-btn" data-action="addCookies">+1M Cookies</button>
+          <button class="debug-action-btn" data-action="addBillion">+1B Cookies</button>
           <button class="debug-action-btn" data-action="addChips">+100 Chips</button>
           <button class="debug-action-btn" data-action="maxBuildings">Max Buildings</button>
           <button class="debug-action-btn" data-action="unlockAll">Unlock All Upgrades</button>
           <button class="debug-action-btn" data-action="triggerFrenzy">Trigger Frenzy</button>
           <button class="debug-action-btn" data-action="resetSave">Reset Save</button>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <h3>Grandmapocalypse</h3>
+        <div class="debug-info">
+          <span>Stage: ${this.grandmapocalypse ? this.grandmapocalypse.stage : 0}</span>
+          <span>Research: ${this.grandmapocalypse ? [...this.grandmapocalypse.researchPurchased].join(', ') || 'none' : 'none'}</span>
+          <span>Wrinklers: ${this.wrinklerManager ? this.wrinklerManager.getWrinklerCount() : 0}/${GRANDMAPOCALYPSE.maxWrinklers}</span>
+          <span>Wrinklers: ${this.wrinklerManager ? this.wrinklerManager.getWrinklerCount() : 0}/${GRANDMAPOCALYPSE.maxWrinklers} (${this.wrinklerManager ? this.wrinklerManager.wrinklers.filter(w => w.elder).length : 0} elder)</span>
+          <span>Wrinkler drain: ${this.wrinklerManager ? (() => { let d=0; for(const w of this.wrinklerManager.wrinklers) d += w.elder ? GRANDMAPOCALYPSE.elderWrinklerDrainFraction : GRANDMAPOCALYPSE.wrinklerCpsDrainFraction; return (d*100).toFixed(0); })() : 0}%</span>
+          <span>Cookies in wrinklers: ${this.wrinklerManager ? fmt(this.wrinklerManager.getTotalCookiesEaten()) : 0}</span>
+          <span>Cookie decay: ${this.grandmapocalypse && this.grandmapocalypse.stage >= 2 ? ((GRANDMAPOCALYPSE.cookieDecay['stage'+this.grandmapocalypse.stage]||0)*100).toFixed(3)+'%/s' : 'none'}</span>
+          <span>Pledge active: ${this.grandmapocalypse ? (this.grandmapocalypse.elderPledgeActive ? 'Yes' : 'No') : 'No'}</span>
+          <span>Covenant: ${this.grandmapocalypse ? (this.grandmapocalypse.covenantActive ? 'Yes (-'+GRANDMAPOCALYPSE.covenantCpsPenalty*100+'% CPS)' : 'No') : 'No'}</span>
+          <span>Wrath cookie chance: ${this.grandmapocalypse ? (this.grandmapocalypse.getWrathCookieProbability() * 100).toFixed(0) : 0}%</span>
+        </div>
+        <div class="debug-actions" style="margin-top:8px">
+          <button class="debug-action-btn" data-action="gpStage1">Set Stage 1</button>
+          <button class="debug-action-btn" data-action="gpStage2">Set Stage 2</button>
+          <button class="debug-action-btn" data-action="gpStage3">Set Stage 3</button>
+          <button class="debug-action-btn" data-action="gpReset">Reset GP</button>
+          <button class="debug-action-btn" data-action="spawnWrinkler">+1 Wrinkler</button>
+          <button class="debug-action-btn" data-action="spawnShiny">+1 Shiny</button>
+          <button class="debug-action-btn" data-action="popAll">Pop All</button>
+          <button class="debug-action-btn" data-action="triggerWrath">Trigger Wrath</button>
+          <button class="debug-action-btn" data-action="triggerElderFrenzy">Elder Frenzy</button>
         </div>
       </div>
 
@@ -1037,6 +1139,8 @@ export class Game {
           <span>Achievement mult: x${this.achievementManager.getMultiplier().toFixed(2)}</span>
           <span>Chips balance: ${fmt(spendable)}</span>
           <span>Buffs: ${this.activeBuffs.length > 0 ? this.activeBuffs.map(b => b.type + ' x' + b.multiplier).join(', ') : 'none'}</span>
+          <span>Wrinklers popped: ${this.stats.wrinklersPopped || 0}</span>
+          <span>Wrath clicked: ${this.stats.wrathCookiesClicked || 0}</span>
         </div>
       </div>
     `;
@@ -1088,6 +1192,81 @@ export class Game {
             break;
           case 'triggerFrenzy':
             this.startFrenzy('cps', 7, 60);
+            break;
+          case 'addBillion':
+            this.cookies = this.cookies.add(CookieNum.from(1000000000));
+            break;
+          case 'gpStage1':
+          case 'gpStage2':
+          case 'gpStage3': {
+            if (!this.grandmapocalypse) break;
+            const targetStage = btn.dataset.action === 'gpStage1' ? 1 : btn.dataset.action === 'gpStage2' ? 2 : 3;
+            // Grant required research
+            this.grandmapocalypse.researchPurchased.add('bingoCenter');
+            if (targetStage >= 2) this.grandmapocalypse.researchPurchased.add('communalBrainsweep');
+            if (targetStage >= 3) this.grandmapocalypse.researchPurchased.add('elderPact');
+            this.grandmapocalypse.stage = targetStage;
+            this.grandmapocalypse._previousStage = targetStage;
+            this.grandmapocalypse._applyResearchBoosts();
+            this.grandmapocalypse._onStageChange(targetStage);
+            this.calculateCPS();
+            this.grandmapocalypse._panelOpen = true;
+            const gpEl = document.getElementById("grandmapocalypse-panel");
+            if (gpEl) gpEl.classList.add("gp-expanded");
+            this.grandmapocalypse._renderResearchPanel();
+            break;
+          }
+          case 'gpReset':
+            if (this.grandmapocalypse) {
+              this.grandmapocalypse.stage = 0;
+              this.grandmapocalypse._previousStage = 0;
+              this.grandmapocalypse.researchPurchased.clear();
+              this.grandmapocalypse.elderPledgeActive = false;
+              this.grandmapocalypse.covenantActive = false;
+              this.grandmapocalypse._covenantPenaltyApplied = false;
+              this._grandmapocalypseGrandmaBoost = 1;
+              this.globalCpsMultiplier = 1;
+              this.grandmapocalypse.applyStageTheme(0);
+              if (this.wrinklerManager) { this.wrinklerManager.wrinklers = []; this.wrinklerManager._stopSpawning(); }
+              this.calculateCPS();
+              this.grandmapocalypse._renderResearchPanel();
+            }
+            break;
+          case 'spawnWrinkler':
+            if (this.wrinklerManager && this.grandmapocalypse && this.grandmapocalypse.stage >= 1) {
+              this.wrinklerManager._spawnWrinkler();
+            }
+            break;
+          case 'spawnShiny':
+            if (this.wrinklerManager && this.grandmapocalypse && this.grandmapocalypse.stage >= 1) {
+              const orig = GRANDMAPOCALYPSE.shinyWrinklerChance;
+              GRANDMAPOCALYPSE.shinyWrinklerChance = 1;
+              this.wrinklerManager._spawnWrinkler();
+              GRANDMAPOCALYPSE.shinyWrinklerChance = orig;
+            }
+            break;
+          case 'popAll':
+            if (this.wrinklerManager) {
+              while (this.wrinklerManager.wrinklers.length > 0) {
+                this.wrinklerManager.popWrinkler(this.wrinklerManager.wrinklers[0].id);
+              }
+            }
+            break;
+          case 'triggerWrath':
+            if (this.visualEffects) {
+              const el = document.getElementById("golden-cookie");
+              if (el) {
+                el.dataset.isWrath = "1";
+                el.textContent = "🔴";
+                el.classList.add("wrath-cookie");
+                el.classList.remove("hidden");
+                el.classList.add("golden-appear");
+              }
+            }
+            break;
+          case 'triggerElderFrenzy':
+            this.startFrenzy('cps', 666, 6);
+            this.stats.elderFrenzyTriggered = (this.stats.elderFrenzyTriggered || 0) + 1;
             break;
           case 'resetSave':
             if (confirm('Are you sure? This will wipe ALL save data.')) {
@@ -1570,6 +1749,34 @@ export class Game {
     this.frenzyDurationMultiplier = 1;
     this.activeBuffs = [];
 
+    // Reset grandmapocalypse state
+    if (this.grandmapocalypse) {
+      const keepStage = this.prestige.hasUpgrade('elderKnowledge');
+      this.grandmapocalypse.stage = keepStage ? 1 : 0;
+      this.grandmapocalypse.researchPurchased = keepStage ? new Set(['bingoCenter']) : new Set();
+      this.grandmapocalypse.elderPledgeActive = false;
+      clearTimeout(this.grandmapocalypse._pledgeTimer);
+      this.grandmapocalypse.pledgeCount = 0;
+      this.grandmapocalypse.covenantActive = false;
+      this.grandmapocalypse._covenantPenaltyApplied = false;
+      this.grandmapocalypse._previousStage = keepStage ? 1 : 0;
+      this._grandmapocalypseGrandmaBoost = 1;
+      this.grandmapocalypse._applyResearchBoosts();
+      this.grandmapocalypse.applyStageTheme(keepStage ? 1 : 0);
+      this.grandmapocalypse._panelOpen = false;
+      const gpPanel = document.getElementById("grandmapocalypse-panel");
+      if (gpPanel) gpPanel.classList.remove("gp-expanded");
+      this.grandmapocalypse._renderResearchPanel();
+    }
+    // Clear wrinklers on prestige
+    if (this.wrinklerManager) {
+      this.wrinklerManager.wrinklers = [];
+      this.wrinklerManager._stopSpawning();
+      if (this.grandmapocalypse && this.grandmapocalypse.stage >= 1) {
+        this.wrinklerManager.onStageChange(this.grandmapocalypse.stage);
+      }
+    }
+
     // Reset middle panel / UI state
     this._upgradePage = 0;
     this._upgradeOrder = [];
@@ -1697,6 +1904,16 @@ export class Game {
       goldenCookiesClicked: 0,
       sessionPrestiges: (this.stats.sessionPrestiges || 0) + 1,
       miniGamesPlayed: 0,
+      // Grandmapocalypse stats (persist across prestiges)
+      wrinklersPopped: this.stats.wrinklersPopped || 0,
+      wrinklersFed: this.stats.wrinklersFed || 0,
+      shinyWrinklersPopped: this.stats.shinyWrinklersPopped || 0,
+      wrinklerBigPop: this.stats.wrinklerBigPop || 0,
+      elderPledgesUsed: this.stats.elderPledgesUsed || 0,
+      elderCovenantSigned: this.stats.elderCovenantSigned || false,
+      wrathCookiesClicked: this.stats.wrathCookiesClicked || 0,
+      wrathClotSurvived: this.stats.wrathClotSurvived || 0,
+      elderFrenzyTriggered: this.stats.elderFrenzyTriggered || 0,
     };
 
     // Reset purchase amount to default
@@ -1892,6 +2109,8 @@ export class Game {
       this._purchaseRenderTimer = null;
       this.renderUpgradePage();
       this.renderBuildingList(false);
+      // Refresh research panel costs/availability
+      if (this.grandmapocalypse) this.grandmapocalypse._renderResearchPanel();
     }, 150);
   }
 
@@ -2098,6 +2317,16 @@ export class Game {
       }
     }
 
+    // Grandmapocalypse boost to Grandma buildings
+    if (this._grandmapocalypseGrandmaBoost > 1) {
+      const grandmaBuilding = this.buildings.find(b => b.name === "Grandma");
+      if (grandmaBuilding && grandmaBuilding.count > 0) {
+        const baseGrandmaCps = grandmaBuilding.cps.mul(grandmaBuilding.count);
+        const boostedExtra = baseGrandmaCps.mul(this._grandmapocalypseGrandmaBoost - 1);
+        baseCps = baseCps.add(boostedExtra);
+      }
+    }
+
     this.cookiesPerSecond = baseCps;
     return this.cookiesPerSecond;
   }
@@ -2235,9 +2464,11 @@ export class Game {
       achievements: this.achievementManager.getSaveData(),
       prestige: this.prestige.getSaveData(),
       tutorial: this.tutorial.getSaveData(),
+      grandmapocalypse: this.grandmapocalypse ? this.grandmapocalypse.getSaveData() : null,
+      wrinklers: this.wrinklerManager ? this.wrinklerManager.getSaveData() : null,
       settings: this.settings,
       lastSavedTime: Date.now(),
-      saveVersion: 5,
+      saveVersion: 6,
     };
     const jsonStr = JSON.stringify(saveData);
     this._savePending = true;
@@ -2433,6 +2664,15 @@ export class Game {
         }
       }
     }
+
+    // Load grandmapocalypse and wrinkler state
+    if (data.grandmapocalypse && this.grandmapocalypse) {
+      this.grandmapocalypse.loadSaveData(data.grandmapocalypse);
+    }
+    if (data.wrinklers && this.wrinklerManager) {
+      this.wrinklerManager.loadSaveData(data.wrinklers);
+    }
+    // V5 → V6: grandmapocalypse + wrinklers added. No migration needed; fields default gracefully.
 
     // Apply heavenly upgrade effects (e.g. Cosmic Grandma)
     this.prestige.applyAllEffects();
