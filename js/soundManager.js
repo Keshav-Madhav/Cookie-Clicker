@@ -491,6 +491,16 @@ export class SoundManager {
     this._ensureContext();
     if (!this._gameMusic) {
       this._gameMusic = new GameMusic(this._ctx, this._melodyBus || this._musicBus);
+      // Restore the correct apocalypse stage from save data.
+      // loadSaveData calls applyStageTheme via requestAnimationFrame, but _gameMusic
+      // doesn't exist yet at that point, so we sync it explicitly here.
+      if (this.game.grandmapocalypse) {
+        const gp = this.game.grandmapocalypse;
+        const effectiveStage = (gp.elderPledgeActive || gp.covenantActive)
+          ? 0
+          : gp.getStage();
+        this._gameMusic.setApocalypseMode(effectiveStage);
+      }
     }
     this._gameMusic.start();
   }

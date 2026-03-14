@@ -183,6 +183,59 @@ export class WrinklerManager {
     }
   }
 
+  /**
+   * Release every wrinkler at once — returns their stored cookies in a single
+   * batch (one pop sound, one floating label) and clears the canvas.
+   * Called by Elder Pledge and Elder Covenant so the player isn't penalised for
+   * having wrinklers when they decide to make peace.
+   */
+  releaseAll() {
+    this._stopSpawning();
+    if (this.wrinklers.length === 0) {
+      this.wrinklers = [];
+      return;
+    }
+
+    let totalCookies = CookieNum.ZERO;
+    const count = this.wrinklers.length;
+
+    for (const w of this.wrinklers) {
+      const returnMult = w.shiny  ? GRANDMAPOCALYPSE.shinyReturnMultiplier
+        : w.elder ? GRANDMAPOCALYPSE.elderWrinklerReturnMultiplier
+        :           GRANDMAPOCALYPSE.wrinklerReturnMultiplier;
+      const prestigeBonus = this.game.prestige && this.game.prestige.getWrinklerReturnBonus
+        ? this.game.prestige.getWrinklerReturnBonus() : 1;
+      totalCookies = totalCookies.add(w.cookiesEaten.mul(returnMult * prestigeBonus));
+    }
+
+    this.wrinklers = [];
+
+    if (count > 0) {
+      this.game.cookies = this.game.cookies.add(totalCookies);
+      this.game.stats.totalCookiesBaked = this.game.stats.totalCookiesBaked.add(totalCookies);
+      this.game.stats.wrinklersPopped = (this.game.stats.wrinklersPopped || 0) + count;
+
+      if (this.game.soundManager && this.game.soundManager.wrinklerPop) {
+        this.game.soundManager.wrinklerPop();
+      }
+
+      if (this.game.createFloatingText) {
+        const btn = document.getElementById("cookie-button");
+        if (btn) {
+          const rect = btn.getBoundingClientRect();
+          const ev = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 4 };
+          const label = count > 1
+            ? `+${formatNumberInWords(totalCookies)} (${count} wrinklers released)`
+            : `+${formatNumberInWords(totalCookies)} (wrinkler released)`;
+          this.game.createFloatingText(ev, label, true);
+        }
+      }
+
+      this.game.updateCookieCount();
+      this.game.achievementManager.check();
+    }
+  }
+
   getWrinklerCount() {
     return this.wrinklers.length;
   }

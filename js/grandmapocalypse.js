@@ -130,6 +130,10 @@ export class GrandmapocalypseManager {
   applyStageTheme(stage) {
     const theme = GRANDMAPOCALYPSE.themes[stage];
     if (!theme) return;
+    // Switch music mode
+    if (this.game.soundManager && this.game.soundManager._gameMusic) {
+      this.game.soundManager._gameMusic.setApocalypseMode(stage);
+    }
     const root = document.documentElement;
     root.style.setProperty('--gp-bg-tint', theme.bgTint);
     root.style.setProperty('--gp-cookie-filter', theme.cookieFilter);
@@ -183,13 +187,13 @@ export class GrandmapocalypseManager {
       this.game.tutorial.triggerEvent('elderPledgeFirst');
     }
 
-    // Clear existing wrinklers during pledge
+    // Release all wrinklers, returning their stored cookies to the player.
     if (this.game.wrinklerManager) {
-      this.game.wrinklerManager.onStageChange(0);
+      this.game.wrinklerManager.releaseAll();
     }
 
     clearTimeout(this._pledgeTimer);
-    this._pledgeTimer = setTimeout(() => this.expirePledge(), GRANDMAPOCALYPSE.pledgeDurationMs);
+    this._pledgeTimer = setTimeout(() => this.expirePledge(), pledgeDuration);
     this._renderResearchPanel();
     this.game.saveGame();
     return true;
@@ -230,7 +234,7 @@ export class GrandmapocalypseManager {
     this.elderPledgeActive = false;
 
     if (this.game.wrinklerManager) {
-      this.game.wrinklerManager.onStageChange(0);
+      this.game.wrinklerManager.releaseAll();
     }
 
     this._renderResearchPanel();
