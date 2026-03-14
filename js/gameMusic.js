@@ -86,13 +86,13 @@ export class GameMusic {
 
   _schedule() {
     if (!this._active) return;
-    // Gap AFTER a composition finishes before the next one starts.
-    // Compositions are now 30-120s, so the gap is just breathing room.
+    // Compositions schedule all their notes at call time (relative to ctx.currentTime),
+    // so the actual audio plays out over _lastDuration seconds. We wait that long
+    // plus a small breathing gap before starting the next piece.
     const stage = this._apocalypseMode || 0;
-    const minGap = stage >= 3 ? 3000 : stage >= 2 ? 4000 : stage >= 1 ? 5000 : 6000;
-    const maxExtra = stage >= 3 ? 5000 : stage >= 2 ? 8000 : stage >= 1 ? 10000 : 14000;
-    // Add the last composition's estimated duration so we don't overlap
-    const compositionDuration = (this._lastDuration || 40) * 1000;
+    const minGap = stage >= 3 ? 2000 : stage >= 2 ? 3000 : stage >= 1 ? 3000 : 4000;
+    const maxExtra = stage >= 3 ? 3000 : stage >= 2 ? 4000 : stage >= 1 ? 5000 : 6000;
+    const compositionDuration = (this._lastDuration || 30) * 1000;
     const delay = compositionDuration + minGap + Math.random() * maxExtra;
     this._timer = setTimeout(() => {
       if (!this._active) return;
@@ -168,24 +168,24 @@ export class GameMusic {
     }
     const name = list[Math.floor(Math.random() * list.length)];
     this._currentName = GameMusic._DISPLAY_NAMES[name] || name;
-    this[name]();
-    this._lastDuration = GameMusic._DURATIONS[name] || 45;
+    const duration = this[name]();
+    // If composition returns its duration, use it; otherwise fall back to estimate
+    this._lastDuration = (typeof duration === 'number' && duration > 0)
+      ? duration
+      : (GameMusic._DURATIONS[name] || 30);
   }
 
-  // Estimated durations (seconds) for scheduling gaps.
-  // Updated as compositions are extended to feature-length.
+  // Fallback duration estimates (seconds). Actual durations come from return t;
+  // at runtime — these are only used if a composition doesn't return a value.
   static _DURATIONS = {
-    // Feature-length compositions (passacaglia structure, 50-100s)
-    gentleArc: 70, callAndResponse: 75, lullaby: 80, musicBox: 55,
-    starlight: 95, hymn: 65, distantRain: 85, frozenLake: 100,
-    // Extended but not yet full passacaglia (30-50s)
-    fallingLeaves: 45, spreadArpeggio: 40, freeWander: 50,
-    ripple: 40, cascade: 40, echoReflection: 45, meadowWalk: 45,
-    // Dark compositions (shorter, more intense, 25-50s)
-    darkDrone: 40, tensePulse: 35, hauntedArpeggio: 45, doomRiff: 40,
-    witchBells: 35, voidEcho: 55, grindMotor: 35, eldrChant: 50,
-    bloodMoon: 40, chaosCluster: 35, grandmaWhisper: 45, abyssalRumble: 35,
-    sirenicCall: 35, cryptOrgan: 30,
+    gentleArc: 55, callAndResponse: 60, lullaby: 65, musicBox: 45,
+    starlight: 80, hymn: 55, distantRain: 70, frozenLake: 80,
+    fallingLeaves: 50, spreadArpeggio: 45, freeWander: 55,
+    ripple: 45, cascade: 40, echoReflection: 50, meadowWalk: 45,
+    darkDrone: 30, tensePulse: 20, hauntedArpeggio: 25, doomRiff: 25,
+    witchBells: 20, voidEcho: 40, grindMotor: 20, eldrChant: 40,
+    bloodMoon: 25, chaosCluster: 15, grandmaWhisper: 35, abyssalRumble: 20,
+    sirenicCall: 15, cryptOrgan: 25,
   };
 
   // ─── helper: clamp index into pool ──────────────────────────
@@ -269,6 +269,7 @@ export class GameMusic {
     // Coda — just root and fifth, hanging in the air
     this._note(P[this._ci(root)], vol * 0.30, t);
     this._note(P[this._ci(root + 4)], vol * 0.18, t + 0.05);
+      return t;
   }
 
   // ── 2. Call & Response — passacaglia: fixed call, transposed responses, fading echoes ──
@@ -344,6 +345,7 @@ export class GameMusic {
     this._note(P[this._ci(root + call[0])], vol * 0.25, t);
     t += callRhythm[0];
     this._note(P[this._ci(root + call[1])], vol * 0.15, t);
+      return t;
   }
 
   // ── 3. Falling Leaves — passacaglia: descending motif repeated with fading volume ──
@@ -408,6 +410,7 @@ export class GameMusic {
     // Final — the last leaf, the first note of the motif, barely audible
     t += 1.5;
     this._note(P[this._ci(root + motif[0] - 5)], vol * 0.10, t);
+      return t;
   }
 
   // ── 4. Spread Arpeggio — passacaglia: chord fan motif, ascending then descending ──
@@ -478,6 +481,7 @@ export class GameMusic {
     this._note(P[this._ci(root)], vol * 0.25, t);
     this._note(P[this._ci(root + 2)], vol * 0.18, t + 0.04);
     this._note(P[this._ci(root + 4)], vol * 0.12, t + 0.08);
+      return t;
   }
 
   // ── 5. Lullaby — passacaglia: rocking motif in 3-feel with bass warmth ──
@@ -550,6 +554,7 @@ export class GameMusic {
     // Final note — the baby is asleep, just the root, barely there
     t += 1.0;
     this._note(P[this._ci(root)], vol * 0.12, t);
+      return t;
   }
 
   // ── 6. Free Wander — passacaglia: a walking motif that ventures out and returns ──
@@ -614,6 +619,7 @@ export class GameMusic {
     // Arrival — root and fifth, home but different
     this._note(P[this._ci(root)], vol * 0.28, t);
     this._note(P[this._ci(root + 4)], vol * 0.16, t + 0.05);
+      return t;
   }
 
   // ── 7. Ripple — passacaglia: symmetric expand/contract motif, like concentric circles ──
@@ -677,6 +683,7 @@ export class GameMusic {
 
     // Final center note — the pond is still again
     this._note(P[this._ci(root)], vol * 0.18, t);
+      return t;
   }
 
   // ── 8. Music Box — passacaglia: mechanical pattern that winds up, plays, and winds down ──
@@ -748,6 +755,7 @@ export class GameMusic {
     // Final click — the box stops
     t += 0.5;
     this._note(P[this._ci(root + motifA[0])], vol * 0.12, t);
+      return t;
   }
 
   // ── 9. Cascade — passacaglia: descending run motif with landing chords ──
@@ -811,6 +819,7 @@ export class GameMusic {
 
     // Final: one last drop, the first note of the motif, echoing
     this._note(P[this._ci(root + motif[0])], vol * 0.15, t);
+      return t;
   }
 
   // ── 10. Echo Reflection — passacaglia: call motif with tiered echoes at fixed intervals ──
@@ -885,6 +894,7 @@ export class GameMusic {
     this._note(P[this._ci(root)], vol * 0.38, t + 0.02);
     this._note(P[this._ci(root + 2)], vol * 0.25, t + 0.05);
     this._note(P[this._ci(root + 4)], vol * 0.16, t + 0.08);
+      return t;
   }
 
   // ── 11. Starlight — passacaglia: sparse high motif over deep void pedals ──
@@ -961,6 +971,7 @@ export class GameMusic {
 
     // Final single note — the last star before dawn
     this._note(P[this._ci(root + motif[0])], vol * 0.15, t);
+      return t;
   }
 
   // ── 12. Hymn — passacaglia: A-A-B-A with fixed chorale motif and Amen cadence ──
@@ -1036,6 +1047,7 @@ export class GameMusic {
     this._note(P[this._ci(root)], vol * 0.58, t + 0.02);
     this._note(P[this._ci(root + 2)], vol * 0.38, t + 0.05);
     this._note(P[this._ci(root + 4)], vol * 0.25, t + 0.08);
+      return t;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1174,432 +1186,379 @@ export class GameMusic {
     }
   }
 
-  // ── 1. Dark Drone — layered minor cluster with pitch wobble, sub layers, and high feedback ──
+  // ── 1. Dark Drone — passacaglia: fixed cluster that builds and wobbles ──
+  //    Identity: root → minor3rd → 5th → flat7 — always the same dread chord, always recognized.
   darkDrone() {
     const P = GameMusic.DARK_POOL;
     const vol = 0.010 + Math.random() * 0.004;
-    const rootIdx = Math.floor(Math.random() * 5);
-    const root = P[rootIdx];
+    const root = P[Math.floor(Math.random() * 5)];
+    // FIXED CHORD — Dark Drone's identity (semitone intervals from root)
+    const chord = [0, 3, 7, 10, 13]; // root, min3, 5th, flat7, min9
+    // Drift pattern — fixed detuning amounts
+    const drifts = [1.003, 0.997, 1.005, 0.994];
+    let t = 0;
 
-    // Sub-octave foundation — deep, physical
-    this._darkNote(root * 0.5, vol * 0.48, 0);
-    // Sub-sub bass pulse
-    this._darkNote(root * 0.25, vol * 0.22, 0.3 + Math.random() * 0.3);
+    // 3 passes: emergence → full dread → decay
+    for (let pass = 0; pass < 3; pass++) {
+      const passVol = [0.55, 1.0, 0.40][pass] * vol;
+      const chordNotes = pass === 0 ? 3 : pass === 1 ? chord.length : 2;
 
-    // Root — with micro-drift to simulate feedback wobble
-    this._darkNote(root, vol, 0.1);
-    this._darkNote(root * 1.003, vol * 0.45, 0.9 + Math.random() * 0.4);
-    this._darkNote(root * 0.997, vol * 0.35, 1.8 + Math.random() * 0.5);
-    // Second drift wave — evolving texture
-    this._darkNote(root * 1.005, vol * 0.28, 3.2 + Math.random() * 0.6);
-    this._darkNote(root * 0.994, vol * 0.20, 4.0 + Math.random() * 0.7);
+      // Sub foundation
+      this._darkNote(root * 0.5, passVol * 0.42, t);
 
-    // Minor third — menacing warmth
-    this._darkNote(root * 1.189, vol * 0.62, 0.4 + Math.random() * 0.4);
+      for (let c = 0; c < chordNotes; c++) {
+        const hz = root * Math.pow(2, chord[c] / 12);
+        this._darkNote(hz, passVol * (0.65 - c * 0.08), t + 0.1 + c * 0.5);
 
-    // Fifth — stability that somehow still unsettles
-    this._darkNote(root * 1.498, vol * 0.42, 1.0 + Math.random() * 0.6);
+        // Fixed drift on full pass — always the same wobble
+        if (pass === 1 && c < drifts.length) {
+          this._darkNote(hz * drifts[c], passVol * 0.30, t + 1.5 + c * 0.6);
+        }
+      }
 
-    // Flat seventh — adds dread
-    this._darkNote(root * 1.782, vol * 0.32, 1.6 + Math.random() * 0.8);
+      // High feedback on full pass
+      if (pass === 1) {
+        this._darkNote(root * 4, passVol * 0.07, t + 1.2);
+        this._darkNote(root * 4.03, passVol * 0.04, t + 2.0);
+      }
 
-    // Minor ninth — extreme tension at the top
-    this._darkNote(root * 2.059, vol * 0.18, 2.0 + Math.random() * 0.8);
-
-    // Dissonant cluster that slowly drifts in
-    if (Math.random() < 0.75) {
-      const dis = root * (1 + Math.random() * 0.07);
-      this._darkNote(dis, vol * 0.25, 2.4 + Math.random() * 1.2);
-      this._darkNote(dis * 1.012, vol * 0.15, 3.0 + Math.random() * 1.2);
-      this._darkNote(dis * 0.988, vol * 0.10, 3.8 + Math.random() * 1.2);
+      t += 8.0 + Math.random() * 4.0;
     }
-
-    // High feedback whine
-    if (Math.random() < 0.60) {
-      this._darkNote(root * 4, vol * 0.08, 1.2 + Math.random() * 0.8);
-    }
-    // Second feedback voice — detuned, creating beats
-    if (Math.random() < 0.40) {
-      this._darkNote(root * 4.03, vol * 0.05, 2.0 + Math.random() * 1.0);
-    }
-
-    // Late low rumble — the drone settling into permanent unease
-    this._darkNote(root * 0.5, vol * 0.30, 4.5 + Math.random() * 1.5);
+      return t;
   }
 
-  // ── 2. Tense Pulse — five phases with accents, ghost notes, and escalating tension ──
+  // ── 2. Tense Pulse — passacaglia: fixed rhythm pattern with pitch cycle ──
+  //    Identity: the pulse pattern [1,0,0,1,0,1] — always the same heartbeat of dread.
   tensePulse() {
     const P = GameMusic.DARK_POOL;
     const vol = 0.011 + Math.random() * 0.004;
-    const rootIdx = 3 + Math.floor(Math.random() * 6);
-    const root = P[rootIdx];
-    const fifth     = root * 1.498;
-    const minor3rd  = root * 1.189;
-    const tritone   = root * Math.pow(2, 6 / 12);
-
-    const phases = [
-      { pat: [1,0,0,1,0,1,0,0],                         volMult: 0.48 }, // sparse intro
-      { pat: [1,0,1,1,0,1,0,1,1,0,0,1,1,1,0,1],         volMult: 0.75 }, // building
-      { pat: [1,0,1,1,1,1,0,1,1,1,0,1,1,1,1,1],         volMult: 0.90 }, // full intensity
-      { pat: [1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0],         volMult: 0.42 }, // breakdown
-      { pat: [1,1,0,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1], volMult: 1.00 }, // dense climax
-    ];
-
-    const interval = 0.15 + Math.random() * 0.05;
+    const root = P[3 + Math.floor(Math.random() * 6)];
+    // FIXED PITCH CYCLE — the notes that rotate through the rhythm
+    const pitchCycle = [1.0, 1.0, 1.498, 1.0, 1.189, 1.0]; // root, root, 5th, root, min3, root
+    // FIXED RHYTHM — the pulse identity
+    const rhythmPat = [1,0,0,1,0,1,0,0,1,0,1,1];
+    const interval = 0.16;
     let t = 0;
 
-    // Sub bass underpinning the whole piece
     this._darkNote(root * 0.5, vol * 0.25, 0);
 
-    for (let pi = 0; pi < phases.length; pi++) {
-      const phase = phases[pi];
-      for (let i = 0; i < phase.pat.length; i++) {
-        if (phase.pat[i]) {
-          const accent = i % 4 === 0;
-          let hz = (i % 5 === 0) ? fifth : (i % 7 === 0) ? minor3rd : root;
-          // Tritone intrusion in later phases — increasing dread
-          if (pi >= 2 && i % 9 === 0) hz = tritone;
-          this._darkNote(hz, vol * phase.volMult * (accent ? 0.85 : 0.45 + Math.random() * 0.30), t);
+    // 4 passes: sparse → building → full → breakdown → crash
+    for (let pass = 0; pass < 4; pass++) {
+      const passVol = [0.45, 0.72, 1.0, 0.50][pass] * vol;
+      // Later passes play the pattern 2x
+      const reps = pass <= 1 ? 1 : 2;
 
-          // Ghost note — very quiet echo between beats
-          if (Math.random() < 0.18 && pi >= 1) {
-            this._darkNote(hz * 1.003, vol * phase.volMult * 0.12, t + interval * 0.5);
+      for (let rep = 0; rep < reps; rep++) {
+        let pitchIdx = 0;
+        for (let i = 0; i < rhythmPat.length; i++) {
+          if (rhythmPat[i]) {
+            const accent = i % 4 === 0;
+            const hz = root * pitchCycle[pitchIdx % pitchCycle.length];
+            // Tritone intrusion on pass 2+
+            const finalHz = (pass >= 2 && pitchIdx === 4) ? root * Math.pow(2, 6/12) : hz;
+            this._darkNote(finalHz, passVol * (accent ? 0.85 : 0.48), t);
+            pitchIdx++;
           }
+          t += interval;
         }
-        t += interval;
       }
-      // Sub bass restatement between phases
-      if (pi < phases.length - 1) {
-        this._darkNote(root * 0.5, vol * 0.20, t);
-      }
-      t += 0.35 + Math.random() * 0.45;
+
+      this._darkNote(root * 0.5, passVol * 0.20, t);
+      t += 0.8 + Math.random() * 0.5;
     }
 
-    // Final crash — layered impact
-    this._darkNote(root * 0.25, vol * 0.50, t + 0.08);
-    this._darkNote(root * 0.5, vol * 0.90, t + 0.10);
-    this._darkNote(root, vol * 0.65, t + 0.13);
-    this._darkNote(fifth, vol * 0.35, t + 0.16);
+    // Crash
+    this._darkNote(root * 0.25, vol * 0.50, t);
+    this._darkNote(root * 0.5, vol * 0.90, t + 0.03);
+    this._darkNote(root, vol * 0.65, t + 0.06);
+      return t;
   }
 
-  // ── 3. Haunted Arpeggio — escalating wrong notes, chromatic slides, and disintegrating echo ──
+  // ── 3. Haunted Arpeggio — passacaglia: fixed arpeggio that decays more each pass ──
+  //    Identity: the arpeggio shape [0,3,5,7,10,12] — always the same dark chord, increasingly wrong.
   hauntedArpeggio() {
     const P = GameMusic.DARK_POOL;
     const vol = 0.009 + Math.random() * 0.004;
-    const rootIdx = 6 + Math.floor(Math.random() * 6);
+    const root = P[6 + Math.floor(Math.random() * 6)];
+    // FIXED ARPEGGIO — the haunted chord (semitones)
+    const arp = [0, 3, 5, 7, 10, 12];
+    // Chromatic slide — always the same 3-note descent between passes
+    const slide = [12, 11, 10];
     let t = 0;
-    const intervals = [0, 3, 5, 7, 10, 12];
-    const passes = 4 + Math.floor(Math.random() * 3); // 4–6
 
-    // Opening low drone beneath the arpeggio
-    this._darkNote(P[rootIdx] * 0.5, vol * 0.28, 0);
+    this._darkNote(root * 0.5, vol * 0.28, 0);
 
-    for (let p = 0; p < passes; p++) {
-      const order = p % 2 === 0 ? intervals : [...intervals].reverse();
-      // Each pass gets slightly faster — tension building
-      const baseSpeed = 0.30 - p * 0.02;
+    // 5 passes: clean → slight wrong → more wrong → very wrong → disintegrated
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.50, 0.65, 0.80, 1.0, 0.45][pass] * vol;
+      const order = pass % 2 === 0 ? arp : [...arp].reverse();
+      const wrongChance = pass * 0.10; // 0%, 10%, 20%, 30%, 40%
+      const speed = 0.32 - pass * 0.025;
 
-      for (let ni = 0; ni < order.length; ni++) {
-        const semi = order[ni];
-        let hz = P[rootIdx] * Math.pow(2, semi / 12);
-        // Wrong note probability escalates exponentially
-        const wrongChance = 0.08 + p * 0.08;
-        if (Math.random() < wrongChance) {
-          const wrongSemi = Math.random() < 0.5 ? 1 : -1;
-          hz *= Math.pow(2, wrongSemi / 12);
+      for (const semi of order) {
+        let hz = root * Math.pow(2, semi / 12);
+        // Fixed wrong-note rule: if wrong, always shift by +1 semitone (deterministic)
+        if (Math.random() < wrongChance) hz *= Math.pow(2, 1 / 12);
+        this._darkNote(hz, passVol * (0.40 + Math.random() * 0.40), t);
+
+        // Ghost echo on passes 2+
+        if (pass >= 2 && Math.random() < 0.30) {
+          this._darkNote(hz * 1.003, passVol * 0.15, t + 0.20);
         }
-        const noteVol = vol * (0.35 + Math.random() * 0.45);
-        this._darkNote(hz, noteVol, t);
-
-        // Echo ghost on later passes — the arpeggio remembering itself wrong
-        if (p >= 2 && Math.random() < 0.30) {
-          this._darkNote(hz * (1 + (Math.random() - 0.5) * 0.02), noteVol * 0.18, t + 0.20);
-        }
-
-        t += Math.max(0.15, baseSpeed + Math.random() * 0.18);
+        t += Math.max(0.15, speed + Math.random() * 0.15);
       }
 
-      // Chromatic descent between passes — 4 notes sliding down
-      if (p < passes - 1) {
-        const topHz = P[rootIdx] * Math.pow(2, 12 / 12);
-        const slideLen = 3 + Math.floor(Math.random() * 2);
-        for (let s = 0; s < slideLen; s++) {
-          this._darkNote(topHz * Math.pow(2, -s / 12), vol * 0.25, t);
-          t += 0.14 + Math.random() * 0.08;
+      // Fixed chromatic slide between passes
+      if (pass < 4) {
+        for (const semi of slide) {
+          this._darkNote(root * Math.pow(2, semi / 12), vol * 0.22, t);
+          t += 0.14;
         }
       }
 
-      // Drone re-anchor between passes
-      if (p % 2 === 0 && p < passes - 1) {
-        this._darkNote(P[rootIdx] * 0.5, vol * 0.18, t);
-      }
-
-      t += 0.8 + Math.random() * 1.2;
+      if (pass % 2 === 0) this._darkNote(root * 0.5, passVol * 0.18, t);
+      t += 1.2 + Math.random() * 1.0;
     }
 
-    // Final — root and minor third held together, unresolved
-    t += 0.3;
-    this._darkNote(P[rootIdx] * 0.5, vol * 0.35, t);
-    this._darkNote(P[rootIdx], vol * 0.72, t + 0.05);
-    this._darkNote(P[rootIdx] * 1.189, vol * 0.42, t + 0.15);
-    // Tritone ghost — the last thing you hear
-    this._darkNote(P[rootIdx] * Math.pow(2, 6 / 12), vol * 0.15, t + 0.8);
+    // Unresolved ending — root + min3 + tritone ghost
+    this._darkNote(root, vol * 0.70, t);
+    this._darkNote(root * 1.189, vol * 0.42, t + 0.12);
+    this._darkNote(root * Math.pow(2, 6 / 12), vol * 0.15, t + 0.8);
+      return t;
   }
 
-  // ── 4. Doom Riff — 3–4 reps with bass walks, power chords, and breakdown section ──
+  // ── 4. Doom Riff — passacaglia: fixed E-G-A-E power chord progression ──
+  //    Identity: the riff [E,G,A,E] — always the same doom, building heavier each pass.
   doomRiff() {
     const P = GameMusic.DARK_POOL;
-    const vol = 0.012 + Math.random() * 0.004;
-    // E–G–A–Bb–E doom progression (added flat 5th approach)
-    const roots = [P[0], P[2], P[3], P[3] * Math.pow(2, 1 / 12), P[0]];
-    const repeats = 3 + Math.floor(Math.random() * 2);
+    const vol = 0.012 + Math.random() * 0.003;
+    const E = P[Math.floor(Math.random() * 3)]; // random low root
+    // FIXED RIFF — the doom progression (semitone intervals from root)
+    const riff = [0, 3, 5, 0]; // root, min3rd, 4th, root
+    // FIXED walk notes between chords
+    const walks = [1, 2, -2, 0]; // semitone passing tones
+    const timing = 0.60;
     let t = 0;
 
-    // Opening sub-bass hit
-    this._darkNote(P[0] * 0.5, vol * 0.55, 0);
+    this._darkNote(E * 0.5, vol * 0.50, 0);
 
-    for (let rep = 0; rep < repeats; rep++) {
-      const repVol = vol * (0.75 + rep * 0.08);
-      const timing = rep === 0 ? 0.75 + Math.random() * 0.25 : 0.50 + Math.random() * 0.16;
+    // 4 passes: bare → power chords → +walks+breakdown → heavy(climax)
+    for (let pass = 0; pass < 4; pass++) {
+      const passVol = [0.60, 0.78, 0.85, 1.0][pass] * vol;
+      const hasFifth = pass >= 1;
+      const hasOctave = pass >= 3;
+      const hasWalk = pass >= 2;
 
-      for (let i = 0; i < roots.length; i++) {
-        const root = roots[i];
-        // Power chord: root + fifth + octave
-        this._darkNote(root, repVol, t);
-        this._darkNote(root * 1.498, repVol * 0.55, t + 0.020);
-        if (rep >= 2) {
-          this._darkNote(root * 2, repVol * 0.30, t + 0.035); // octave doubles on later reps
+      for (let i = 0; i < riff.length; i++) {
+        const hz = E * Math.pow(2, riff[i] / 12);
+        this._darkNote(hz, passVol, t);
+        if (hasFifth) this._darkNote(hz * 1.498, passVol * 0.52, t + 0.02);
+        if (hasOctave) this._darkNote(hz * 2, passVol * 0.28, t + 0.035);
+
+        // Fixed walk between chords
+        if (hasWalk && i < riff.length - 1) {
+          const walkHz = hz * Math.pow(2, walks[i] / 12);
+          this._darkNote(walkHz, passVol * 0.28, t + timing * 0.62);
         }
 
-        // Bass walk between chords
-        if (i < roots.length - 1 && Math.random() < 0.55) {
-          const walkSemi = Math.random() < 0.5 ? 1 : 2;
-          const walk = root * Math.pow(2, walkSemi / 12);
-          this._darkNote(walk, repVol * 0.30, t + timing * 0.60);
-        }
-
-        t += timing;
+        t += timing * (0.90 + Math.random() * 0.20);
       }
 
-      // Riff-ending sustain with feedback
-      this._darkNote(P[0], repVol * 0.78, t);
-      this._darkNote(P[0] * 1.498, repVol * 0.50, t + 0.03);
-      this._darkNote(P[0] * 2, repVol * 0.25, t + 0.06);
-      t += 1.2 + Math.random() * 0.6;
+      // Riff sustain
+      this._darkNote(E, passVol * 0.75, t);
+      this._darkNote(E * 1.498, passVol * 0.48, t + 0.03);
+      t += 1.5 + Math.random() * 0.8;
 
-      // Breakdown after second rep — sparse, menacing
-      if (rep === 1) {
-        t += 0.3;
+      // Breakdown on pass 2
+      if (pass === 2) {
         for (let b = 0; b < 4; b++) {
-          this._darkNote(P[0], vol * 0.55, t);
-          t += 0.55 + Math.random() * 0.35;
-          // Muted ghost between hits
-          if (Math.random() < 0.5) {
-            this._darkNote(P[0] * 1.003, vol * 0.12, t - 0.15);
-          }
+          this._darkNote(E, vol * 0.52, t);
+          t += 0.55 + Math.random() * 0.25;
         }
         t += 0.5;
       }
     }
 
-    // Final massive hit — layered
-    this._darkNote(P[0] * 0.25, vol * 0.40, t);
-    this._darkNote(P[0] * 0.5, vol * 0.75, t + 0.03);
-    this._darkNote(P[0], vol * 0.90, t + 0.06);
-    this._darkNote(P[0] * 1.498, vol * 0.50, t + 0.09);
+    // Final layered crash
+    this._darkNote(E * 0.25, vol * 0.40, t);
+    this._darkNote(E * 0.5, vol * 0.78, t + 0.03);
+    this._darkNote(E, vol * 0.90, t + 0.06);
+      return t;
   }
 
-  // ── 5. Witch Bells — four groups with mod sweep, sympathetic resonance, and decay trails ──
+  // ── 5. Witch Bells — passacaglia: fixed bell frequencies in call-and-answer pattern ──
+  //    Identity: the 3 bell pitches [200, 680, 420] — always the same bells, different resonance.
   witchBells() {
     const ctx = this._ctx;
     const vol = 0.007 + Math.random() * 0.003;
-
-    const groups = [
-      { freqBase: 160, freqRange: 100, count: 3, modRatio: 1.414 },  // low tolling
-      { freqBase: 650, freqRange: 400, count: 4, modRatio: 2.756 },  // high answer
-      { freqBase: 400, freqRange: 220, count: 5, modRatio: 1.618 },  // cluster (golden ratio)
-      { freqBase: 250, freqRange: 180, count: 3, modRatio: 3.141 },  // deep resonance (pi ratio)
+    // FIXED BELL FREQUENCIES — always the same bells (transposed slightly by random offset)
+    const offset = 0.9 + Math.random() * 0.2; // ±10% pitch shift
+    const bells = [
+      { freq: 200 * offset, modRatio: 1.414, dur: 2.2 }, // low toll
+      { freq: 680 * offset, modRatio: 2.756, dur: 1.8 }, // high answer
+      { freq: 420 * offset, modRatio: 1.618, dur: 2.5 }, // middle (golden ratio)
     ];
-
+    // FIXED SEQUENCE — always toll in this order
+    const sequence = [0, 1, 2, 0, 2, 1, 0, 1, 2, 2, 0, 1, 0];
+    // Fixed rhythm
+    const rhythm = [1.5, 0.8, 1.2, 1.8, 0.9, 1.0, 2.0, 0.7, 1.1, 0.6, 1.5, 0.8, 2.2];
     let t = 0;
-    for (let gi = 0; gi < groups.length; gi++) {
-      const grp = groups[gi];
-      for (let i = 0; i < grp.count; i++) {
-        const freq = grp.freqBase + Math.random() * grp.freqRange;
-        const dur = 1.8 + Math.random() * 2.8;
-        const ct = ctx.currentTime + t;
 
-        const mod = ctx.createOscillator();
-        mod.frequency.setValueAtTime(freq * grp.modRatio, ct);
-        mod.frequency.linearRampToValueAtTime(
-          freq * grp.modRatio * (0.70 + Math.random() * 0.55), ct + dur);
+    for (let i = 0; i < sequence.length; i++) {
+      const bell = bells[sequence[i]];
+      const dur = bell.dur + Math.random() * 0.5;
+      const ct = ctx.currentTime + t;
+      // Volume arc across the sequence
+      const arc = Math.sin(Math.PI * i / sequence.length);
+      const bellVol = vol * (0.50 + arc * 0.50);
 
-        const modG = ctx.createGain();
-        modG.gain.setValueAtTime(freq * 3.5, ct);
-        modG.gain.exponentialRampToValueAtTime(1, ct + dur);
-        mod.connect(modG);
+      const mod = ctx.createOscillator();
+      mod.frequency.setValueAtTime(bell.freq * bell.modRatio, ct);
+      mod.frequency.linearRampToValueAtTime(bell.freq * bell.modRatio * 0.82, ct + dur);
+      const modG = ctx.createGain();
+      modG.gain.setValueAtTime(bell.freq * 3.5, ct);
+      modG.gain.exponentialRampToValueAtTime(1, ct + dur);
+      mod.connect(modG);
+      const car = ctx.createOscillator();
+      car.type = 'sine';
+      car.frequency.setValueAtTime(bell.freq, ct);
+      modG.connect(car.frequency);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.001, ct);
+      g.gain.linearRampToValueAtTime(bellVol, ct + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+      car.connect(g).connect(this._out);
+      mod.start(ct); car.start(ct);
+      mod.stop(ct + dur + 0.1); car.stop(ct + dur + 0.1);
 
-        const car = ctx.createOscillator();
-        car.type = 'sine';
-        car.frequency.setValueAtTime(freq, ct);
-        modG.connect(car.frequency);
-
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.001, ct);
-        g.gain.linearRampToValueAtTime(vol, ct + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-        car.connect(g).connect(this._out);
-        mod.start(ct); car.start(ct);
-        mod.stop(ct + dur + 0.1); car.stop(ct + dur + 0.1);
-
-        // Sympathetic resonance — a second bell ringing in response
-        if (Math.random() < 0.35) {
-          const sympFreq = freq * (1.498 + Math.random() * 0.1);
-          const sympDur = dur * 0.6;
-          const sympT = ct + 0.15 + Math.random() * 0.25;
-          const sympMod = ctx.createOscillator();
-          sympMod.frequency.setValueAtTime(sympFreq * grp.modRatio * 0.9, sympT);
-          const sympModG = ctx.createGain();
-          sympModG.gain.setValueAtTime(sympFreq * 1.5, sympT);
-          sympModG.gain.exponentialRampToValueAtTime(1, sympT + sympDur);
-          sympMod.connect(sympModG);
-          const sympCar = ctx.createOscillator();
-          sympCar.type = 'sine';
-          sympCar.frequency.setValueAtTime(sympFreq, sympT);
-          sympModG.connect(sympCar.frequency);
-          const sympG = ctx.createGain();
-          sympG.gain.setValueAtTime(0.001, sympT);
-          sympG.gain.linearRampToValueAtTime(vol * 0.25, sympT + 0.008);
-          sympG.gain.exponentialRampToValueAtTime(0.001, sympT + sympDur);
-          sympCar.connect(sympG).connect(this._out);
-          sympMod.start(sympT); sympCar.start(sympT);
-          sympMod.stop(sympT + sympDur + 0.1); sympCar.stop(sympT + sympDur + 0.1);
-        }
-
-        t += 0.45 + Math.random() * 1.3;
+      // Sympathetic resonance on every other toll
+      if (i % 2 === 0 && Math.random() < 0.45) {
+        const sympFreq = bell.freq * 1.498;
+        const sympDur = dur * 0.5;
+        const sympT = ct + 0.18;
+        const sympCar = ctx.createOscillator();
+        sympCar.type = 'sine';
+        sympCar.frequency.setValueAtTime(sympFreq, sympT);
+        const sympG = ctx.createGain();
+        sympG.gain.setValueAtTime(0.001, sympT);
+        sympG.gain.linearRampToValueAtTime(bellVol * 0.20, sympT + 0.008);
+        sympG.gain.exponentialRampToValueAtTime(0.001, sympT + sympDur);
+        sympCar.connect(sympG).connect(this._out);
+        sympCar.start(sympT); sympCar.stop(sympT + sympDur + 0.1);
       }
-      t += 0.80 + Math.random() * 1.3;
+
+      t += rhythm[i] * (0.85 + Math.random() * 0.30);
     }
+      return t;
   }
 
-  // ── 6. Void Echo — 4-tier echoes, deep drone, wrong-pitch ghosts, and void whispers ──
+  // ── 6. Void Echo — passacaglia: fixed source notes with tiered detuned echoes ──
+  //    Identity: the echo shape — source, then 3 fixed detuned reflections — always the same void.
   voidEcho() {
     const P = GameMusic.DARK_POOL;
-    const vol = 0.008 + Math.random() * 0.004;
-    const count = 6 + Math.floor(Math.random() * 5); // 6–10
+    const vol = 0.008 + Math.random() * 0.003;
+    const root = P[8 + Math.floor(Math.random() * 4)];
+    // FIXED MOTIF — the source notes (semitones from root)
+    const motif = [0, 5, -3, 7, 2, -5, 3, 0];
+    // Fixed echo detunings
+    const echoes = [
+      { detune: 1.001, vol: 0.28, delay: 0.38 },
+      { detune: 0.999, vol: 0.13, delay: 0.82 },
+      { detune: 1.002, vol: 0.06, delay: 1.35 },
+    ];
+    // Slow rhythm — vast cave
+    const rhythm = [3.5, 2.8, 3.8, 2.5, 3.2, 4.0, 2.8, 4.5];
     let t = 0;
 
-    // Persistent low drone beneath everything
-    this._darkNote(P[1 + Math.floor(Math.random() * 3)], vol * 0.18, 0);
-    // Second drone voice — detuned for beating
-    this._darkNote(P[1 + Math.floor(Math.random() * 3)] * 1.004, vol * 0.10, 0.5);
+    // Drone foundation
+    this._darkNote(root * 0.25, vol * 0.18, 0);
 
-    for (let i = 0; i < count; i++) {
-      const idx = Math.max(0, Math.min(P.length - 1, 8 + Math.floor(Math.random() * 8)));
-      const hz = P[idx];
-      const noteVol = vol * (0.7 + Math.random() * 0.3);
+    // 4 passes: whisper → echoes → full void → fading
+    for (let pass = 0; pass < 4; pass++) {
+      const passVol = [0.40, 0.65, 1.0, 0.35][pass] * vol;
+      const echoCount = [1, 2, 3, 1][pass];
+      const notesToPlay = pass === 3 ? 5 : motif.length;
 
-      this._darkNote(hz, noteVol, t);
-      // Four increasingly detuned echoes
-      this._darkNote(hz * 1.001, noteVol * 0.30, t + 0.38 + Math.random() * 0.12);
-      this._darkNote(hz * 0.999, noteVol * 0.15, t + 0.82 + Math.random() * 0.14);
-      this._darkNote(hz * 1.002, noteVol * 0.07, t + 1.35 + Math.random() * 0.18);
-      this._darkNote(hz * 0.998, noteVol * 0.03, t + 1.95 + Math.random() * 0.22);
+      for (let n = 0; n < notesToPlay; n++) {
+        const hz = root * Math.pow(2, motif[n] / 12);
+        this._darkNote(hz, passVol * (0.60 + Math.random() * 0.40), t);
 
-      // Tritone ghost echo
-      if (Math.random() < 0.35) {
-        this._darkNote(hz * Math.pow(2, 6 / 12), noteVol * 0.12, t + 0.55 + Math.random() * 0.18);
+        for (let e = 0; e < echoCount; e++) {
+          this._darkNote(hz * echoes[e].detune, passVol * echoes[e].vol,
+            t + echoes[e].delay * (0.90 + Math.random() * 0.20));
+        }
+
+        // Tritone ghost on full pass
+        if (pass === 2 && (n === 2 || n === 5) && Math.random() < 0.40) {
+          this._darkNote(hz * Math.pow(2, 6 / 12), passVol * 0.10, t + 0.55);
+        }
+
+        t += rhythm[n % rhythm.length] * (0.82 + Math.random() * 0.36);
       }
 
-      // Minor second ghost — creeping dissonance
-      if (Math.random() < 0.22) {
-        this._darkNote(hz * Math.pow(2, 1 / 12), noteVol * 0.08, t + 1.0 + Math.random() * 0.20);
-      }
-
-      // Void whisper — very high, barely perceptible harmonic
-      if (Math.random() < 0.25) {
-        this._darkNote(hz * 4.01, noteVol * 0.04, t + 0.65);
-      }
-
-      // Drone re-anchor every 3rd note
-      if (i % 3 === 0) {
-        this._darkNote(P[Math.floor(Math.random() * 3)], vol * 0.12, t + 0.20);
-      }
-
-      t += 3.2 + Math.random() * 3.5;
+      this._darkNote(root * 0.25, passVol * 0.12, t);
+      t += 3.0 + Math.random() * 2.0;
     }
 
-    // Final void — just the drone, everything else gone
-    this._darkNote(P[1], vol * 0.15, t);
+    this._darkNote(root * 0.25, vol * 0.12, t);
+      return t;
   }
 
-  // ── 7. Grind Motor — full grind, half-time, breakdown, gear-change rebuild, and overload ──
+  // ── 7. Grind Motor — passacaglia: fixed 4-note grind cycle with phases ──
+  //    Identity: the grind cycle [root, min3, 5th, flat7] — always the same machine.
   grindMotor() {
     const P = GameMusic.DARK_POOL;
     const vol = 0.010 + Math.random() * 0.003;
-    const rootIdx = Math.floor(Math.random() * 4);
-    const root = P[rootIdx];
-    const fifth    = root * 1.498;
-    const minor3rd = root * 1.189;
-    const flat7    = root * 1.782;
-    const tritone  = root * Math.pow(2, 6 / 12);
-    const tempo = 0.13 + Math.random() * 0.04;
+    const root = P[Math.floor(Math.random() * 4)];
+    // FIXED GRIND CYCLE — the machine's rhythm (ratio from root)
+    const cycle = [1.0, 1.189, 1.498, 1.782]; // root, min3, 5th, flat7
+    const tempo = 0.14;
     let t = 0;
 
-    // Phase 1: full grind — cycling root/fifth/3rd/7th
-    const beatsFull = 18 + Math.floor(Math.random() * 8);
-    for (let i = 0; i < beatsFull; i++) {
-      const accent = i % 4 === 0;
-      const hz = [root, minor3rd, fifth, flat7][i % 4];
-      this._darkNote(hz, vol * (accent ? 0.90 : 0.42), t);
-      // Ghost double on accents
-      if (accent && Math.random() < 0.4) {
-        this._darkNote(hz * 1.003, vol * 0.15, t + tempo * 0.35);
+    // 4 phases: grind → half-time → breakdown → accelerate → crash
+    // Phase 1: grind (3 reps of the cycle)
+    for (let rep = 0; rep < 3; rep++) {
+      for (let c = 0; c < cycle.length; c++) {
+        const accent = c === 0;
+        this._darkNote(root * cycle[c], vol * (accent ? 0.85 : 0.42), t);
+        t += tempo;
       }
-      t += tempo;
     }
-
-    // Phase 2: half-time section — heavy, spaced out
-    t += 0.20;
-    for (let i = 0; i < 8; i++) {
-      const accent = i % 2 === 0;
-      const hz = accent ? root : fifth;
-      this._darkNote(hz, vol * (accent ? 0.85 : 0.50), t);
-      if (accent) this._darkNote(hz * 0.5, vol * 0.30, t + 0.02); // sub weight
+    // Phase 2: half-time (cycle at 2x tempo)
+    t += 0.2;
+    for (let c = 0; c < cycle.length * 2; c++) {
+      const hz = root * cycle[c % cycle.length];
+      const accent = c % 2 === 0;
+      this._darkNote(hz, vol * (accent ? 0.80 : 0.45), t);
+      if (accent) this._darkNote(hz * 0.5, vol * 0.28, t + 0.02);
       t += tempo * 2.2;
     }
-
-    // Phase 3: breakdown — sudden sparse hits
-    t += 0.30 + Math.random() * 0.35;
-    for (let i = 0; i < 5; i++) {
-      this._darkNote(root, vol * 0.48, t);
-      // Tritone stab on last breakdown hit
-      if (i === 4) this._darkNote(tritone, vol * 0.30, t + 0.03);
-      t += 0.55 + Math.random() * 0.45;
+    // Phase 3: breakdown (just root, sparse)
+    t += 0.3;
+    for (let i = 0; i < 4; i++) {
+      this._darkNote(root, vol * 0.50, t);
+      t += 0.55;
     }
-
-    // Phase 4: gear change — accelerating back
-    t += 0.15;
-    let gearTempo = tempo * 1.8;
-    const gearBeats = 14 + Math.floor(Math.random() * 8);
-    for (let i = 0; i < gearBeats; i++) {
-      const accent = i % 4 === 0;
-      const hz = accent ? root : (i % 3 === 0 ? minor3rd : fifth);
-      this._darkNote(hz, vol * (accent ? 0.92 : 0.48), t);
-      t += gearTempo;
-      gearTempo = Math.max(tempo * 0.75, gearTempo * 0.93);
+    this._darkNote(root * Math.pow(2, 6/12), vol * 0.30, t); // tritone stab
+    t += 0.5;
+    // Phase 4: accelerate (cycle getting faster)
+    let accelTempo = tempo * 1.6;
+    for (let rep = 0; rep < 3; rep++) {
+      for (let c = 0; c < cycle.length; c++) {
+        this._darkNote(root * cycle[c], vol * (c === 0 ? 0.90 : 0.48), t);
+        t += accelTempo;
+      }
+      accelTempo = Math.max(tempo * 0.8, accelTempo * 0.85);
     }
-
-    // Phase 5: overload — everything at once, then silence
-    t += 0.05;
+    // Crash
     this._darkNote(root * 0.25, vol * 0.35, t);
     this._darkNote(root * 0.5, vol * 0.75, t + 0.02);
     this._darkNote(root, vol * 0.55, t + 0.04);
-    this._darkNote(fifth, vol * 0.40, t + 0.06);
-    this._darkNote(minor3rd, vol * 0.30, t + 0.08);
+      return t;
   }
 
-  // ── 8. Elder Chant — expanded choral voices with vowel morphing, harmonics, and unresolved finale ──
+  // ── 8. Elder Chant — passacaglia: fixed syllable sequence with formant synthesis ──
+  //    Identity: the chant sequence [ah,oh,oo,ay,ah,oh,oo] — always the same prayer.
   eldrChant() {
     const ctx = this._ctx;
     const vol = 0.010 + Math.random() * 0.004;
@@ -1608,19 +1567,19 @@ export class GameMusic {
       { f1: 430,  f2: 980,  f3: 2500 },  // "oh"
       { f1: 330,  f2: 1260, f3: 2500 },  // "oo"
       { f1: 660,  f2: 1700, f3: 2500 },  // "ay"
-      { f1: 280,  f2: 2230, f3: 2800 },  // "ee" — new, piercing
     ];
-    const fundamentals = [52, 58, 65, 73, 82, 87];
+    // FIXED CHANT SEQUENCE — vowel indices and relative fundamentals
+    const chantVowels = [0, 1, 2, 3, 0, 1, 2, 0]; // ah, oh, oo, ay, ah, oh, oo, ah
+    const chantPitches = [0, 0, -2, 3, 0, 2, -2, 5]; // semitones from base
+    const baseFund = 58 + Math.floor(Math.random() * 3) * 7; // 58, 65, or 72
     let t = 0;
-    const syllableCount = 7 + Math.floor(Math.random() * 5);
 
-    // Low drone voice throughout — the elder's constant murmur
-    const droneFreq = fundamentals[0];
-    const droneDur = syllableCount * 3.5;
+    // Drone
+    const droneDur = chantVowels.length * 4.0;
     const droneCt = ctx.currentTime;
     const droneSrc = ctx.createOscillator();
     droneSrc.type = 'sawtooth';
-    droneSrc.frequency.setValueAtTime(droneFreq, droneCt);
+    droneSrc.frequency.setValueAtTime(baseFund * 0.5, droneCt);
     const droneBp = ctx.createBiquadFilter();
     droneBp.type = 'bandpass'; droneBp.frequency.value = 330; droneBp.Q.value = 6;
     const droneG = ctx.createGain();
@@ -1631,428 +1590,327 @@ export class GameMusic {
     droneSrc.connect(droneBp).connect(droneG).connect(this._out);
     droneSrc.start(droneCt); droneSrc.stop(droneCt + droneDur + 0.1);
 
-    for (let i = 0; i < syllableCount; i++) {
-      const fund = fundamentals[Math.floor(Math.random() * fundamentals.length)];
-      const vIdx = Math.floor(Math.random() * vowels.length);
-      const vowel = vowels[vIdx];
-      const nextVowel = vowels[(vIdx + 1) % vowels.length];
-      const dur = 2.0 + Math.random() * 3.0;
-      const ct = ctx.currentTime + t;
+    // Two passes: quiet chant → full chant with choir
+    for (let pass = 0; pass < 2; pass++) {
+      const passVol = pass === 0 ? vol * 0.55 : vol;
+      const hasChoir = pass === 1;
 
-      // Primary voice — glottal sawtooth with slow vibrato
-      const src = ctx.createOscillator();
-      src.type = 'sawtooth';
-      src.frequency.setValueAtTime(fund, ct);
-      const vib = ctx.createOscillator();
-      vib.frequency.value = 4.0 + Math.random() * 2.5;
-      const vibG = ctx.createGain();
-      vibG.gain.setValueAtTime(0, ct);
-      vibG.gain.linearRampToValueAtTime(fund * 0.022, ct + dur * 0.3);
-      vib.connect(vibG).connect(src.frequency);
-      vib.start(ct); vib.stop(ct + dur + 0.1);
+      for (let i = 0; i < chantVowels.length; i++) {
+        const fund = baseFund * Math.pow(2, chantPitches[i] / 12);
+        const vIdx = chantVowels[i];
+        const vowel = vowels[vIdx];
+        const nextVowel = vowels[(vIdx + 1) % vowels.length];
+        const dur = 2.2 + Math.random() * 1.5;
+        const ct = ctx.currentTime + t;
 
-      // Second choir voice — staggered, detuned
-      if (Math.random() < 0.70) {
-        const src2 = ctx.createOscillator();
-        src2.type = 'sawtooth';
-        src2.frequency.setValueAtTime(fund * (1 + (Math.random() - 0.5) * 0.05), ct + 0.09);
-        for (const fFreq of [vowel.f1, vowel.f2]) {
-          const bp = ctx.createBiquadFilter();
-          bp.type = 'bandpass'; bp.frequency.value = fFreq; bp.Q.value = 10;
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0.001, ct + 0.09);
-          g.gain.linearRampToValueAtTime(vol * 0.22, ct + 0.30);
-          g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-          src2.connect(bp).connect(g).connect(this._out);
+        const src = ctx.createOscillator();
+        src.type = 'sawtooth';
+        src.frequency.setValueAtTime(fund, ct);
+        const vib = ctx.createOscillator();
+        vib.frequency.value = 4.5;
+        const vibG = ctx.createGain();
+        vibG.gain.value = fund * 0.018;
+        vib.connect(vibG).connect(src.frequency);
+        vib.start(ct); vib.stop(ct + dur + 0.1);
+
+        // Choir voice on second pass
+        if (hasChoir && Math.random() < 0.65) {
+          const src2 = ctx.createOscillator();
+          src2.type = 'sawtooth';
+          src2.frequency.setValueAtTime(fund * 1.003, ct + 0.09);
+          const bp2 = ctx.createBiquadFilter();
+          bp2.type = 'bandpass'; bp2.frequency.value = vowel.f1; bp2.Q.value = 10;
+          const g2 = ctx.createGain();
+          g2.gain.setValueAtTime(0.001, ct + 0.09);
+          g2.gain.linearRampToValueAtTime(passVol * 0.20, ct + 0.30);
+          g2.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+          src2.connect(bp2).connect(g2).connect(this._out);
+          src2.start(ct + 0.09); src2.stop(ct + dur + 0.1);
         }
-        src2.start(ct + 0.09); src2.stop(ct + dur + 0.1);
-      }
 
-      // Third choir voice — fifth above, adds harmonic depth
-      if (Math.random() < 0.40) {
-        const src3 = ctx.createOscillator();
-        src3.type = 'sawtooth';
-        src3.frequency.setValueAtTime(fund * 1.498, ct + 0.15);
-        const bp3 = ctx.createBiquadFilter();
-        bp3.type = 'bandpass'; bp3.frequency.value = vowel.f1 * 1.3; bp3.Q.value = 8;
-        const g3 = ctx.createGain();
-        g3.gain.setValueAtTime(0.001, ct + 0.15);
-        g3.gain.linearRampToValueAtTime(vol * 0.14, ct + 0.40);
-        g3.gain.exponentialRampToValueAtTime(0.001, ct + dur * 0.8);
-        src3.connect(bp3).connect(g3).connect(this._out);
-        src3.start(ct + 0.15); src3.stop(ct + dur + 0.1);
-      }
+        // Formant filters
+        for (const [fStart, fEnd] of [[vowel.f1, nextVowel.f1], [vowel.f2, nextVowel.f2]]) {
+          const bp = ctx.createBiquadFilter();
+          bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(fStart, ct);
+          bp.frequency.linearRampToValueAtTime(fEnd, ct + dur * 0.8);
+          bp.Q.value = 12;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.001, ct);
+          g.gain.linearRampToValueAtTime(passVol * 0.45, ct + 0.20);
+          g.gain.setValueAtTime(passVol * 0.45, ct + dur * 0.60);
+          g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+          src.connect(bp).connect(g).connect(this._out);
+        }
+        src.start(ct); src.stop(ct + dur + 0.1);
 
-      // Formant filters with vowel morph
-      const formantPairs = [
-        [vowel.f1, nextVowel.f1],
-        [vowel.f2, nextVowel.f2],
-        [vowel.f3, nextVowel.f3],
-      ];
-      for (let fi = 0; fi < formantPairs.length; fi++) {
-        const [fStart, fEnd] = formantPairs[fi];
-        const bp = ctx.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.setValueAtTime(fStart, ct);
-        bp.frequency.linearRampToValueAtTime(fEnd, ct + dur * 0.8);
-        bp.Q.value = 12;
-        const fVol = fi === 0 ? 0.50 : fi === 1 ? 0.35 : 0.18;
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.001, ct);
-        g.gain.linearRampToValueAtTime(vol * fVol, ct + 0.20);
-        g.gain.setValueAtTime(vol * fVol, ct + dur * 0.60);
-        g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-        src.connect(bp).connect(g).connect(this._out);
+        t += dur + 0.5 + Math.random() * 1.0;
       }
-      src.start(ct); src.stop(ct + dur + 0.1);
-
-      t += dur + 0.4 + Math.random() * 1.5;
+      t += 2.0 + Math.random() * 1.5;
     }
 
-    // Final syllable — rises without resolving, ominous
-    if (Math.random() < 0.78) {
-      const fund = fundamentals[fundamentals.length - 1];
-      const ct = ctx.currentTime + t;
-      const dur = 2.8;
-      const src = ctx.createOscillator();
-      src.type = 'sawtooth';
-      src.frequency.setValueAtTime(fund, ct);
-      src.frequency.linearRampToValueAtTime(fund * 1.18, ct + dur);
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass'; bp.frequency.value = 830; bp.Q.value = 8;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.001, ct);
-      g.gain.linearRampToValueAtTime(vol * 0.45, ct + 0.25);
-      g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-      src.connect(bp).connect(g).connect(this._out);
-      src.start(ct); src.stop(ct + dur + 0.1);
-    }
+    // Final rising syllable — unresolved
+    const ct = ctx.currentTime + t;
+    const dur = 2.5;
+    const src = ctx.createOscillator();
+    src.type = 'sawtooth';
+    src.frequency.setValueAtTime(baseFund, ct);
+    src.frequency.linearRampToValueAtTime(baseFund * 1.15, ct + dur);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 830; bp.Q.value = 8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.001, ct);
+    g.gain.linearRampToValueAtTime(vol * 0.42, ct + 0.22);
+    g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+    src.connect(bp).connect(g).connect(this._out);
+    src.start(ct); src.stop(ct + dur + 0.1);
+      return t;
   }
 
-  // ── 9. Blood Moon — tritone melody with bass drone, ascending dread, and ritual ending ──
+  // ── 9. Blood Moon — passacaglia: fixed tritone-root alternation ──
+  //    Identity: root→tritone→minor2nd — always the devil's interval, always recognized.
   bloodMoon() {
     const P = GameMusic.DARK_POOL;
     const vol = 0.010 + Math.random() * 0.004;
-    const rootIdx = 6 + Math.floor(Math.random() * 6);
-    const root = P[rootIdx];
+    const root = P[6 + Math.floor(Math.random() * 6)];
+    // FIXED MOTIF — the ritual (semitones from root)
+    const motif = [0, 6, 1, 0, 6, 1, 0, 6]; // root, tritone, min2nd — repeating
+    // Fixed rhythm — ritualistic
+    const rhythm = [0.35, 0.45, 0.28, 0.40, 0.42, 0.30, 0.38, 0.50];
     let t = 0;
-    const count = 7 + Math.floor(Math.random() * 5);
 
-    // Ominous bass drone throughout
     this._darkNote(root * 0.5, vol * 0.25, 0);
 
-    for (let i = 0; i < count; i++) {
-      const progress = i / count;
-      const tritone = root * Math.pow(2, 6 / 12);
-      const minor2nd = root * Math.pow(2, 1 / 12);
-      // Volume builds with each iteration
-      const iterVol = vol * (0.75 + progress * 0.25);
+    // 4 passes: whisper ritual → building → full dread → ritual ending
+    for (let pass = 0; pass < 4; pass++) {
+      const passVol = [0.48, 0.70, 1.0, 0.60][pass] * vol;
 
-      this._darkNote(root, iterVol, t);
-      t += 0.30 + Math.random() * 0.20;
+      for (let n = 0; n < motif.length; n++) {
+        const hz = root * Math.pow(2, motif[n] / 12);
+        this._darkNote(hz, passVol * (0.55 + Math.random() * 0.45), t);
 
-      this._darkNote(tritone, iterVol * 0.85, t);
-      t += 0.40 + Math.random() * 0.25;
-
-      // Chromatic semitone crunch
-      if (Math.random() < 0.65) {
-        this._darkNote(minor2nd, iterVol * 0.48, t);
-        t += 0.24 + Math.random() * 0.14;
-      }
-
-      // Higher tritone echo
-      if (Math.random() < 0.45) {
-        this._darkNote(tritone * 2, iterVol * 0.28, t + 0.06);
-      }
-
-      // Ascending chromatic figure in later iterations — rising dread
-      if (progress > 0.5 && Math.random() < 0.40) {
-        for (let s = 0; s < 3; s++) {
-          this._darkNote(root * Math.pow(2, (s + 1) / 12), iterVol * 0.22, t + 0.15 * s);
+        // Octave echo on full pass
+        if (pass === 2 && motif[n] === 6) {
+          this._darkNote(hz * 2, passVol * 0.25, t + 0.06);
         }
+        // Ascending chromatic on later passes
+        if (pass >= 2 && n === 6 && Math.random() < 0.45) {
+          for (let s = 1; s <= 3; s++) {
+            this._darkNote(root * Math.pow(2, s / 12), passVol * 0.20, t + 0.15 * s);
+          }
+        }
+
+        t += rhythm[n] * (0.85 + Math.random() * 0.30);
       }
 
-      // Sub-bass pulse on every other phrase
-      if (i % 2 === 0) {
-        this._darkNote(root * 0.25, iterVol * 0.20, t + 0.08);
-      }
-
-      t += 1.1 + Math.random() * 1.4;
+      if (pass % 2 === 0) this._darkNote(root * 0.25, passVol * 0.20, t);
+      t += 1.5 + Math.random() * 1.2;
     }
 
-    // Ritual ending — root and tritone stacked, then silence
-    t += 0.2;
+    // Ritual ending — stacked root + tritone
     this._darkNote(root * 0.5, vol * 0.45, t);
     this._darkNote(root, vol * 0.70, t + 0.03);
     this._darkNote(root * Math.pow(2, 6 / 12), vol * 0.55, t + 0.06);
-    this._darkNote(root * 2, vol * 0.30, t + 0.09);
+      return t;
   }
 
-  // ── 10. Chaos Cluster — dissonant bursts with escalating density and aftershock ──
+  // ── 10. Chaos Cluster — passacaglia: fixed burst centers with escalating density ──
+  //    Identity: the 4 burst centers [8,12,10,14] — always the same explosions.
   chaosCluster() {
     const P = GameMusic.DARK_POOL;
     const vol = 0.008 + Math.random() * 0.003;
-    const bursts = 4 + Math.floor(Math.random() * 3);
+    // FIXED BURST CENTERS — always explode at the same pitches
+    const centers = [8, 12, 10, 14];
+    // Fixed offsets within each burst — the shrapnel pattern
+    const shrapnel = [-2, 1, -3, 2, -1, 3, 0];
     let t = 0;
 
-    for (let b = 0; b < bursts; b++) {
-      const centerIdx = 8 + Math.floor(Math.random() * 8);
-      // Each burst gets denser
-      const notesInBurst = 4 + b + Math.floor(Math.random() * 5);
-      const burstVol = vol * (0.70 + b * 0.08);
+    for (let b = 0; b < centers.length; b++) {
+      const centerIdx = Math.min(P.length - 1, centers[b]);
+      const burstVol = vol * (0.65 + b * 0.10);
+      // Each burst plays more of the shrapnel pattern
+      const notesInBurst = 3 + b * 1;
 
       for (let i = 0; i < notesInBurst; i++) {
-        const offset = Math.floor(Math.random() * 7) - 3;
-        const idx = Math.max(0, Math.min(P.length - 1, centerIdx + offset));
-        const detune = (Math.random() - 0.5) * 0.05;
-        this._darkNote(P[idx] * (1 + detune), burstVol * (0.30 + Math.random() * 0.50), t);
-        // Occasional double-hit within burst
-        if (Math.random() < 0.20) {
-          this._darkNote(P[idx] * (1 - detune), burstVol * 0.18, t + 0.02);
-        }
-        t += 0.06 + Math.random() * 0.06;
+        const idx = Math.max(0, Math.min(P.length - 1, centerIdx + shrapnel[i % shrapnel.length]));
+        this._darkNote(P[idx], burstVol * (0.35 + Math.random() * 0.45), t);
+        t += 0.06 + Math.random() * 0.05;
       }
 
-      // Resolving thud with sub weight
-      t += 0.25 + Math.random() * 0.30;
-      const thudIdx = Math.max(0, centerIdx - 4);
-      this._darkNote(P[thudIdx], burstVol * 0.62, t);
-      this._darkNote(P[Math.max(0, thudIdx - 3)], burstVol * 0.28, t + 0.03);
-
-      // Aftershock — faint, scattered echoes of the burst
-      if (Math.random() < 0.50) {
-        for (let a = 0; a < 2 + Math.floor(Math.random() * 2); a++) {
-          const aIdx = Math.max(0, Math.min(P.length - 1, centerIdx + Math.floor(Math.random() * 5) - 2));
-          this._darkNote(P[aIdx], burstVol * 0.10, t + 0.4 + a * 0.25 + Math.random() * 0.15);
-        }
-      }
-
-      t += 1.5 + Math.random() * 2.0;
+      // Fixed thud — always 4 below center
+      t += 0.25;
+      this._darkNote(P[Math.max(0, centerIdx - 4)], burstVol * 0.60, t);
+      t += 1.8 + Math.random() * 1.5;
     }
 
-    // Final mega-cluster — all notes at once
+    // Final mega-cluster at all centers simultaneously
     t += 0.3;
-    for (let i = 0; i < 6; i++) {
-      const idx = Math.max(0, Math.min(P.length - 1, 6 + Math.floor(Math.random() * 10)));
-      this._darkNote(P[idx], vol * 0.35, t + i * 0.03);
+    for (let b = 0; b < centers.length; b++) {
+      this._darkNote(P[Math.min(P.length - 1, centers[b])], vol * 0.35, t + b * 0.03);
     }
+      return t;
   }
 
-  // ── 11. Grandma's Whisper — layered sub-bass with tremolo, breath overtones, and creaking ──
+  // ── 11. Grandma's Whisper — passacaglia: fixed sub-bass sequence with breath overtones ──
+  //    Identity: the whisper frequencies [27.5, 36.7, 32.7, 41.2] — always the same old voice.
   grandmaWhisper() {
     const ctx = this._ctx;
-    const vol = 0.013 + Math.random() * 0.005;
-    const fundamentals = [27.5, 32.7, 36.7, 41.2];
-    const count = 4 + Math.floor(Math.random() * 3);
+    const vol = 0.013 + Math.random() * 0.004;
+    // FIXED WHISPER SEQUENCE — always the same fundamentals in the same order
+    const whispers = [27.5, 36.7, 32.7, 41.2, 27.5, 32.7];
+    // Fixed overtone ratios for breath sounds
+    const breathRatios = [3.0, 5.0, 3.5, 4.5, 3.2, 5.5];
     let t = 0;
 
-    for (let i = 0; i < count; i++) {
-      const fund = fundamentals[Math.floor(Math.random() * fundamentals.length)];
-      const dur = 3.0 + Math.random() * 3.5;
-      const ct = ctx.currentTime + t;
+    // 2 passes: barely there → present with breath
+    for (let pass = 0; pass < 2; pass++) {
+      const passVol = pass === 0 ? vol * 0.55 : vol;
 
-      // Sub-bass body with LFO tremolo
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(fund, ct);
+      for (let i = 0; i < whispers.length; i++) {
+        const fund = whispers[i];
+        const dur = 3.2 + Math.random() * 1.5;
+        const ct = ctx.currentTime + t;
 
-      const lfo = ctx.createOscillator();
-      lfo.frequency.value = 2.5 + Math.random() * 2.5;
-      const lfoG = ctx.createGain();
-      lfoG.gain.value = vol * 0.35;
-      lfo.connect(lfoG);
+        // Sub-bass with tremolo
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(fund, ct);
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = 3.0;
+        const lfoG = ctx.createGain();
+        lfoG.gain.value = passVol * 0.32;
+        lfo.connect(lfoG);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, ct);
+        g.gain.linearRampToValueAtTime(passVol, ct + 0.6);
+        g.gain.setValueAtTime(passVol, ct + dur - 0.8);
+        g.gain.linearRampToValueAtTime(0, ct + dur);
+        lfoG.connect(g.gain);
+        osc.connect(g).connect(this._out);
+        lfo.start(ct); lfo.stop(ct + dur + 0.1);
+        osc.start(ct); osc.stop(ct + dur + 0.1);
 
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, ct);
-      g.gain.linearRampToValueAtTime(vol, ct + 0.6);
-      g.gain.setValueAtTime(vol, ct + dur - 0.8);
-      g.gain.linearRampToValueAtTime(0, ct + dur);
-      lfoG.connect(g.gain);
+        // Detuned beating layer
+        const osc2 = ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(fund * 1.008, ct);
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(0, ct);
+        g2.gain.linearRampToValueAtTime(passVol * 0.38, ct + 0.8);
+        g2.gain.linearRampToValueAtTime(0, ct + dur);
+        osc2.connect(g2).connect(this._out);
+        osc2.start(ct); osc2.stop(ct + dur + 0.1);
 
-      osc.connect(g).connect(this._out);
-      lfo.start(ct); lfo.stop(ct + dur + 0.1);
-      osc.start(ct); osc.stop(ct + dur + 0.1);
+        // Fixed breath overtone — always the same harmonic for each whisper
+        if (pass === 1) {
+          const osc3 = ctx.createOscillator();
+          osc3.type = 'sine';
+          osc3.frequency.setValueAtTime(fund * breathRatios[i], ct);
+          const g3 = ctx.createGain();
+          g3.gain.setValueAtTime(0, ct);
+          g3.gain.linearRampToValueAtTime(passVol * 0.15, ct + 0.7);
+          g3.gain.exponentialRampToValueAtTime(0.001, ct + dur * 0.75);
+          osc3.connect(g3).connect(this._out);
+          osc3.start(ct); osc3.stop(ct + dur);
+        }
 
-      // Detuned sub-bass layer — beating creates unease
-      const osc1b = ctx.createOscillator();
-      osc1b.type = 'sine';
-      osc1b.frequency.setValueAtTime(fund * 1.008, ct);
-      const g1b = ctx.createGain();
-      g1b.gain.setValueAtTime(0, ct);
-      g1b.gain.linearRampToValueAtTime(vol * 0.40, ct + 0.8);
-      g1b.gain.setValueAtTime(vol * 0.40, ct + dur - 1.0);
-      g1b.gain.linearRampToValueAtTime(0, ct + dur);
-      osc1b.connect(g1b).connect(this._out);
-      osc1b.start(ct); osc1b.stop(ct + dur + 0.1);
-
-      // High "breath" overtone — ghostly
-      const osc2 = ctx.createOscillator();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(fund * 3 + Math.random() * 25, ct);
-      const g2 = ctx.createGain();
-      g2.gain.setValueAtTime(0, ct);
-      g2.gain.linearRampToValueAtTime(vol * 0.18, ct + 0.7);
-      g2.gain.exponentialRampToValueAtTime(0.001, ct + dur * 0.75);
-      osc2.connect(g2).connect(this._out);
-      osc2.start(ct); osc2.stop(ct + dur);
-
-      // Second breath — higher, more sibilant
-      if (Math.random() < 0.55) {
-        const osc3 = ctx.createOscillator();
-        osc3.type = 'sine';
-        osc3.frequency.setValueAtTime(fund * 5 + Math.random() * 40, ct + dur * 0.2);
-        const g3 = ctx.createGain();
-        g3.gain.setValueAtTime(0, ct + dur * 0.2);
-        g3.gain.linearRampToValueAtTime(vol * 0.08, ct + dur * 0.35);
-        g3.gain.exponentialRampToValueAtTime(0.001, ct + dur * 0.65);
-        osc3.connect(g3).connect(this._out);
-        osc3.start(ct + dur * 0.2); osc3.stop(ct + dur);
+        t += dur + 0.5 + Math.random() * 0.8;
       }
-
-      // Creak — filtered noise burst between some whispers
-      if (Math.random() < 0.35 && i > 0) {
-        const creakDur = 0.12 + Math.random() * 0.08;
-        const creakT = ct - 0.15;
-        const nBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * creakDur), ctx.sampleRate);
-        const nd = nBuf.getChannelData(0);
-        for (let j = 0; j < nd.length; j++) nd[j] = Math.random() * 2 - 1;
-        const nSrc = ctx.createBufferSource();
-        nSrc.buffer = nBuf;
-        const nFilt = ctx.createBiquadFilter();
-        nFilt.type = 'bandpass'; nFilt.frequency.value = 300 + Math.random() * 200; nFilt.Q.value = 12;
-        const nG = ctx.createGain();
-        nG.gain.setValueAtTime(vol * 0.15, creakT);
-        nG.gain.exponentialRampToValueAtTime(0.001, creakT + creakDur);
-        nSrc.connect(nFilt).connect(nG).connect(this._out);
-        nSrc.start(creakT); nSrc.stop(creakT + creakDur + 0.01);
-      }
-
-      t += dur + 0.4 + Math.random() * 1.2;
+      t += 2.0 + Math.random() * 1.5;
     }
+      return t;
   }
 
-  // ── 12. Abyssal Rumble — two waves of accelerating pulses with overtone build and massive crash ──
+  // ── 12. Abyssal Rumble — passacaglia: fixed 2-wave accelerating pulse pattern ──
+  //    Identity: the accent pattern [1,0,0,1] and the fixed base frequency — always the same quake.
   abyssalRumble() {
     const ctx = this._ctx;
-    const vol = 0.011 + Math.random() * 0.004;
-    const baseFreq = 40 + Math.random() * 30;
+    const vol = 0.011 + Math.random() * 0.003;
+    const baseFreq = 40 + Math.floor(Math.random() * 3) * 10; // 40, 50, or 60
+    // FIXED PITCH CYCLE — the rumble's harmonic content
+    const pitchCycle = [1.0, 1.498, 1.0, 1.189]; // root, 5th, root, min3
     let t = 0;
 
-    // Wave 1: slower, building
-    const beats1 = 10 + Math.floor(Math.random() * 6);
-    let tempo = 0.45;
-    const accel = 0.94;
+    // 2 waves, each with fixed beat count and acceleration
+    const waves = [
+      { beats: 12, startTempo: 0.42, accel: 0.94, vol: 0.70 },
+      { beats: 16, startTempo: 0.30, accel: 0.92, vol: 1.00 },
+    ];
 
-    for (let i = 0; i < beats1; i++) {
-      const accent = i % 4 === 0;
-      const freq = accent ? baseFreq : baseFreq * (1 + (i % 2) * 0.498);
-      const ct = ctx.currentTime + t;
-      const dur = 0.28 + Math.random() * 0.15;
+    for (let w = 0; w < waves.length; w++) {
+      const wave = waves[w];
+      let tempo = wave.startTempo;
 
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, ct);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.42, ct + dur);
+      for (let i = 0; i < wave.beats; i++) {
+        const freq = baseFreq * pitchCycle[i % pitchCycle.length];
+        const accent = i % 4 === 0;
+        const ct = ctx.currentTime + t;
+        const dur = 0.25;
 
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.001, ct);
-      g.gain.linearRampToValueAtTime(vol * (accent ? 0.90 : 0.45), ct + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ct);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.42, ct + dur);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.001, ct);
+        g.gain.linearRampToValueAtTime(vol * wave.vol * (accent ? 0.90 : 0.48), ct + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+        osc.connect(g).connect(this._out);
+        osc.start(ct); osc.stop(ct + dur + 0.1);
 
-      osc.connect(g).connect(this._out);
-      osc.start(ct); osc.stop(ct + dur + 0.1);
+        // Sub weight on accents in wave 2
+        if (w === 1 && accent) {
+          const sub = ctx.createOscillator();
+          sub.type = 'sine';
+          sub.frequency.setValueAtTime(freq * 0.5, ct);
+          const sg = ctx.createGain();
+          sg.gain.setValueAtTime(vol * 0.28, ct);
+          sg.gain.exponentialRampToValueAtTime(0.001, ct + dur * 1.5);
+          sub.connect(sg).connect(this._out);
+          sub.start(ct); sub.stop(ct + dur * 1.5 + 0.1);
+        }
 
-      // Overtone layer builds in later beats
-      if (i > beats1 * 0.5) {
-        const ot = ctx.createOscillator();
-        ot.type = 'sine';
-        ot.frequency.setValueAtTime(freq * 3, ct);
-        ot.frequency.exponentialRampToValueAtTime(freq * 2, ct + dur * 0.5);
-        const og = ctx.createGain();
-        og.gain.setValueAtTime(vol * 0.12, ct);
-        og.gain.exponentialRampToValueAtTime(0.001, ct + dur * 0.6);
-        ot.connect(og).connect(this._out);
-        ot.start(ct); ot.stop(ct + dur + 0.1);
+        t += tempo;
+        tempo = Math.max(0.08, tempo * wave.accel);
       }
 
-      t += tempo;
-      tempo = Math.max(0.12, tempo * accel);
-    }
-
-    // Pause — the abyss exhales
-    t += 0.6 + Math.random() * 0.5;
-    this._darkNote(baseFreq * 0.5, vol * 0.35, t);
-    t += 1.2 + Math.random() * 0.8;
-
-    // Wave 2: faster, more intense, with sub-bass
-    const beats2 = 14 + Math.floor(Math.random() * 8);
-    tempo = 0.30;
-    const accel2 = 0.92;
-
-    for (let i = 0; i < beats2; i++) {
-      const accent = i % 3 === 0;
-      const freq = accent ? baseFreq : baseFreq * (1 + (i % 2) * 0.498);
-      const ct = ctx.currentTime + t;
-      const dur = 0.22 + Math.random() * 0.12;
-
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, ct);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.38, ct + dur);
-
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.001, ct);
-      g.gain.linearRampToValueAtTime(vol * (accent ? 1.0 : 0.55), ct + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-
-      osc.connect(g).connect(this._out);
-      osc.start(ct); osc.stop(ct + dur + 0.1);
-
-      // Sub-bass weight on accents
-      if (accent) {
-        const sub = ctx.createOscillator();
-        sub.type = 'sine';
-        sub.frequency.setValueAtTime(freq * 0.5, ct);
-        const sg = ctx.createGain();
-        sg.gain.setValueAtTime(vol * 0.30, ct);
-        sg.gain.exponentialRampToValueAtTime(0.001, ct + dur * 1.5);
-        sub.connect(sg).connect(this._out);
-        sub.start(ct); sub.stop(ct + dur * 1.5 + 0.1);
+      // Pause between waves
+      if (w === 0) {
+        this._darkNote(baseFreq * 0.5, vol * 0.35, t);
+        t += 1.5 + Math.random() * 0.8;
       }
-
-      t += tempo;
-      tempo = Math.max(0.08, tempo * accel2);
     }
 
-    // Massive final crash — layered
-    this._darkNote(baseFreq * 0.25, vol * 0.50, t + 0.05);
-    this._darkNote(baseFreq * 0.5, vol * 0.95, t + 0.08);
-    this._darkNote(baseFreq, vol * 0.60, t + 0.12);
+    // Crash
+    this._darkNote(baseFreq * 0.25, vol * 0.48, t);
+    this._darkNote(baseFreq * 0.5, vol * 0.90, t + 0.05);
+    this._darkNote(baseFreq, vol * 0.55, t + 0.10);
+      return t;
   }
 
-  // ── 13. Sirenic Call — bright beginning warping into darkness with echo trails and bass pull ──
+  // ── 13. Sirenic Call — passacaglia: fixed descending frequency sequence with FM warping ──
+  //    Identity: the siren's descent [650, 580, 500, 400, 300, 220, 160] — always the same lure.
   sirenicCall() {
     const ctx = this._ctx;
     const vol = 0.009 + Math.random() * 0.003;
-    const count = 7 + Math.floor(Math.random() * 4);
+    const offset = 0.9 + Math.random() * 0.2;
+    // FIXED SIREN FREQUENCIES — the descent into darkness
+    const freqs = [650, 580, 500, 400, 300, 220, 160].map(f => f * offset);
     let t = 0;
 
-    for (let i = 0; i < count; i++) {
-      const progress = i / count;
-      const freq = 650 - progress * 480 + Math.random() * 80;
-      const dur = 1.0 + Math.random() * 1.5;
+    for (let i = 0; i < freqs.length; i++) {
+      const progress = i / freqs.length;
+      const freq = freqs[i];
+      const dur = 1.2 + Math.random() * 1.0;
       const ct = ctx.currentTime + t;
 
-      // Modulation ratio grows more inharmonic
-      const modRatio = 1.414 + progress * 6;
+      const modRatio = 1.414 + progress * 5;
       const mod = ctx.createOscillator();
       mod.frequency.setValueAtTime(freq * modRatio, ct);
-      // Modulator sweep — more complex FM spectrum
-      mod.frequency.linearRampToValueAtTime(freq * modRatio * (0.8 + progress * 0.4), ct + dur);
-
+      mod.frequency.linearRampToValueAtTime(freq * modRatio * 0.85, ct + dur);
       const modG = ctx.createGain();
       modG.gain.setValueAtTime(freq * 0.5, ct);
-      modG.gain.linearRampToValueAtTime(freq * (1 + progress * 10), ct + dur * 0.35);
+      modG.gain.linearRampToValueAtTime(freq * (1 + progress * 8), ct + dur * 0.35);
       modG.gain.exponentialRampToValueAtTime(1, ct + dur);
       mod.connect(modG);
 
@@ -2063,162 +1921,106 @@ export class GameMusic {
 
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.001, ct);
-      g.gain.linearRampToValueAtTime(vol * (1 - progress * 0.20), ct + 0.012);
+      g.gain.linearRampToValueAtTime(vol * (1 - progress * 0.18), ct + 0.012);
       g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-
       car.connect(g).connect(this._out);
       mod.start(ct); car.start(ct);
       mod.stop(ct + dur + 0.1); car.stop(ct + dur + 0.1);
 
-      // Echo trail — the siren's call reflecting
-      if (Math.random() < 0.45) {
-        const echoDur = dur * 0.5;
-        const echoT = ct + 0.25 + Math.random() * 0.15;
-        const echoMod = ctx.createOscillator();
-        echoMod.frequency.setValueAtTime(freq * modRatio * 0.9, echoT);
-        const echoModG = ctx.createGain();
-        echoModG.gain.setValueAtTime(freq * 0.3, echoT);
-        echoModG.gain.exponentialRampToValueAtTime(1, echoT + echoDur);
-        echoMod.connect(echoModG);
-        const echoCar = ctx.createOscillator();
-        echoCar.type = 'sine';
-        echoCar.frequency.setValueAtTime(freq * 1.002, echoT);
-        echoModG.connect(echoCar.frequency);
-        const echoG = ctx.createGain();
-        echoG.gain.setValueAtTime(0.001, echoT);
-        echoG.gain.linearRampToValueAtTime(vol * 0.18, echoT + 0.01);
-        echoG.gain.exponentialRampToValueAtTime(0.001, echoT + echoDur);
-        echoCar.connect(echoG).connect(this._out);
-        echoMod.start(echoT); echoCar.start(echoT);
-        echoMod.stop(echoT + echoDur + 0.1); echoCar.stop(echoT + echoDur + 0.1);
-      }
-
-      // Bass pull — the siren dragging you down
-      if (progress > 0.4 && Math.random() < 0.50) {
+      // Bass pull on later notes
+      if (progress > 0.4) {
         this._darkNote(freq * 0.25, vol * 0.18, t + 0.10);
       }
 
-      t += 0.7 + Math.random() * 1.0;
+      t += 0.8 + Math.random() * 0.8;
     }
 
-    // Final dark note — the siren consumed
-    this._darkNote(80 + Math.random() * 30, vol * 0.40, t + 0.2);
+    this._darkNote(80 * offset, vol * 0.38, t + 0.2);
+      return t;
   }
 
-  // ── 14. Crypt Organ — slow doom-chord progression with pedal bass, tremulant, and dust ──
+  // ── 14. Crypt Organ — passacaglia: fixed chord progression played twice (quiet then full) ──
+  //    Identity: the progression i–bVII–bVI–v — always the same doom chords.
   cryptOrgan() {
     const ctx = this._ctx;
     const vol = 0.008 + Math.random() * 0.003;
     const roots = [65.4, 73.4, 87.3, 98.0];
     const root = roots[Math.floor(Math.random() * roots.length)];
-
-    // Chord shapes: i – bVII – bVI – v – iv
+    // FIXED PROGRESSION — always the same doom sequence
     const chords = [
       [0, 3, 7],    // i
       [-2, 1, 5],   // bVII
       [-4, -1, 3],  // bVI
       [-5, -2, 2],  // v
-      [-5, 0, 3],   // iv
     ];
-    const progression = Math.random() < 0.35
-      ? [0, 1, 2, 3, 4, 0]
-      : Math.random() < 0.5
-        ? [0, 2, 1, 3, 0]
-        : [0, 4, 2, 3, 1, 0];
-
+    const progression = [0, 1, 2, 3, 0]; // always i-bVII-bVI-v-i
     let t = 0;
 
-    // Pedal bass drone throughout — the organ's lowest pipe
-    const pedalDur = progression.length * 2.5;
-    const pedalCt = ctx.currentTime;
-    const pedalOsc = ctx.createOscillator();
-    pedalOsc.type = 'square';
-    pedalOsc.frequency.setValueAtTime(root * 0.5, pedalCt);
-    const pedalLp = ctx.createBiquadFilter();
-    pedalLp.type = 'lowpass'; pedalLp.frequency.value = root; pedalLp.Q.value = 0.5;
-    const pedalG = ctx.createGain();
-    pedalG.gain.setValueAtTime(0.001, pedalCt);
-    pedalG.gain.linearRampToValueAtTime(vol * 0.15, pedalCt + 0.5);
-    pedalG.gain.setValueAtTime(vol * 0.15, pedalCt + pedalDur - 0.5);
-    pedalG.gain.exponentialRampToValueAtTime(0.001, pedalCt + pedalDur);
-    pedalOsc.connect(pedalLp).connect(pedalG).connect(this._out);
-    pedalOsc.start(pedalCt); pedalOsc.stop(pedalCt + pedalDur + 0.1);
+    // 2 passes: quiet organ → full organ with pedal bass and tremulant
+    for (let pass = 0; pass < 2; pass++) {
+      const passVol = pass === 0 ? vol * 0.55 : vol;
+      const hasPedal = pass === 1;
 
-    for (let ci = 0; ci < progression.length; ci++) {
-      const chordIdx = progression[ci];
-      const chord = chords[chordIdx];
-      const dur = 1.8 + Math.random() * 1.2;
-      const ct = ctx.currentTime + t;
-      // Volume arc — swell mid-progression
-      const chordArc = Math.sin(Math.PI * ci / progression.length);
-      const chordVol = vol * (0.80 + chordArc * 0.20);
-
-      for (const semi of chord) {
-        const freq = root * Math.pow(2, semi / 12);
-
-        // Main organ voice
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(freq, ct);
-        osc.detune.setValueAtTime((Math.random() - 0.5) * 12, ct);
-
-        // Tremulant — slow amplitude modulation like a real pipe organ
-        const trem = ctx.createOscillator();
-        trem.frequency.value = 5.5 + Math.random() * 1.5;
-        const tremG = ctx.createGain();
-        tremG.gain.value = chordVol * 0.06;
-        trem.connect(tremG);
-
-        const lp = ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = freq * 3.5;
-
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.001, ct);
-        g.gain.linearRampToValueAtTime(chordVol * 0.35, ct + 0.08);
-        g.gain.setValueAtTime(chordVol * 0.35, ct + dur - 0.30);
-        g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-        tremG.connect(g.gain);
-
-        osc.connect(lp).connect(g).connect(this._out);
-        trem.start(ct); trem.stop(ct + dur + 0.1);
-        osc.start(ct); osc.stop(ct + dur + 0.1);
-
-        // Second rank — detuned octave above for fullness
-        if (Math.random() < 0.45) {
-          const osc2 = ctx.createOscillator();
-          osc2.type = 'square';
-          osc2.frequency.setValueAtTime(freq * 2.003, ct);
-          const lp2 = ctx.createBiquadFilter();
-          lp2.type = 'lowpass'; lp2.frequency.value = freq * 4;
-          const g2 = ctx.createGain();
-          g2.gain.setValueAtTime(0.001, ct);
-          g2.gain.linearRampToValueAtTime(chordVol * 0.12, ct + 0.10);
-          g2.gain.setValueAtTime(chordVol * 0.12, ct + dur - 0.35);
-          g2.gain.exponentialRampToValueAtTime(0.001, ct + dur);
-          osc2.connect(lp2).connect(g2).connect(this._out);
-          osc2.start(ct); osc2.stop(ct + dur + 0.1);
-        }
+      // Pedal bass on full pass
+      if (hasPedal) {
+        const pedalDur = progression.length * 2.5;
+        const pedalCt = ctx.currentTime + t;
+        const pedalOsc = ctx.createOscillator();
+        pedalOsc.type = 'square';
+        pedalOsc.frequency.setValueAtTime(root * 0.5, pedalCt);
+        const pedalLp = ctx.createBiquadFilter();
+        pedalLp.type = 'lowpass'; pedalLp.frequency.value = root; pedalLp.Q.value = 0.5;
+        const pedalG = ctx.createGain();
+        pedalG.gain.setValueAtTime(0.001, pedalCt);
+        pedalG.gain.linearRampToValueAtTime(passVol * 0.15, pedalCt + 0.5);
+        pedalG.gain.setValueAtTime(passVol * 0.15, pedalCt + pedalDur - 0.5);
+        pedalG.gain.exponentialRampToValueAtTime(0.001, pedalCt + pedalDur);
+        pedalOsc.connect(pedalLp).connect(pedalG).connect(this._out);
+        pedalOsc.start(pedalCt); pedalOsc.stop(pedalCt + pedalDur + 0.1);
       }
 
-      t += dur + 0.15 + Math.random() * 0.35;
-    }
+      for (let ci = 0; ci < progression.length; ci++) {
+        const chord = chords[progression[ci]];
+        const dur = 2.0 + Math.random() * 0.8;
+        const ct = ctx.currentTime + t;
+        const chordArc = Math.sin(Math.PI * ci / progression.length);
+        const chordVol = passVol * (0.80 + chordArc * 0.20);
 
-    // Dust settling — faint noise after the last chord
-    const dustDur = 0.3 + Math.random() * 0.2;
-    const dustT = ctx.currentTime + t;
-    const dustBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dustDur), ctx.sampleRate);
-    const dd = dustBuf.getChannelData(0);
-    for (let i = 0; i < dd.length; i++) dd[i] = Math.random() * 2 - 1;
-    const dustSrc = ctx.createBufferSource();
-    dustSrc.buffer = dustBuf;
-    const dustFilt = ctx.createBiquadFilter();
-    dustFilt.type = 'lowpass'; dustFilt.frequency.value = 400;
-    const dustG = ctx.createGain();
-    dustG.gain.setValueAtTime(vol * 0.08, dustT);
-    dustG.gain.exponentialRampToValueAtTime(0.001, dustT + dustDur);
-    dustSrc.connect(dustFilt).connect(dustG).connect(this._out);
-    dustSrc.start(dustT); dustSrc.stop(dustT + dustDur + 0.01);
+        for (const semi of chord) {
+          const freq = root * Math.pow(2, semi / 12);
+          const osc = ctx.createOscillator();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, ct);
+          osc.detune.setValueAtTime((Math.random() - 0.5) * 8, ct);
+
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass'; lp.frequency.value = freq * 3.5;
+
+          // Tremulant on full pass
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.001, ct);
+          g.gain.linearRampToValueAtTime(chordVol * 0.35, ct + 0.08);
+          g.gain.setValueAtTime(chordVol * 0.35, ct + dur - 0.30);
+          g.gain.exponentialRampToValueAtTime(0.001, ct + dur);
+
+          if (hasPedal) {
+            const trem = ctx.createOscillator();
+            trem.frequency.value = 5.5;
+            const tremG = ctx.createGain();
+            tremG.gain.value = chordVol * 0.06;
+            trem.connect(tremG).connect(g.gain);
+            trem.start(ct); trem.stop(ct + dur + 0.1);
+          }
+
+          osc.connect(lp).connect(g).connect(this._out);
+          osc.start(ct); osc.stop(ct + dur + 0.1);
+        }
+
+        t += dur + 0.2 + Math.random() * 0.3;
+      }
+      t += 2.0 + Math.random() * 1.5;
+    }
+      return t;
   }
 
   // ── 13. Distant Rain — passacaglia: a rain pattern that builds, pours, and passes ──
@@ -2294,6 +2096,7 @@ export class GameMusic {
     // After-rain silence... then one final drop
     t += 4.0 + Math.random() * 3.0;
     this._note(P[this._ci(root + motif[0])], vol * 0.10, t);
+      return t;
   }
 
   // ── 14. Meadow Walk — passacaglia: wide-leap pastoral motif with birdsong ──
@@ -2360,6 +2163,7 @@ export class GameMusic {
     this._note(P[this._ci(root)], vol * 0.30, t + 0.03);
     this._note(P[this._ci(root + 2)], vol * 0.22, t + 0.06);
     this._note(P[this._ci(root + 4)], vol * 0.15, t + 0.09);
+      return t;
   }
 
   // ── 15. Frozen Lake — passacaglia: crystalline descending motif over deep ice drone ──
@@ -2435,6 +2239,7 @@ export class GameMusic {
 
     // Final: the very first note, alone, an octave lower — the lake remembers
     this._note(P[this._ci(root + motif[0] - 5)], vol * 0.15, t);
+      return t;
   }
 
   // ═══════════════════════════════════════════════════════════
