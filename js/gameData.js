@@ -402,7 +402,7 @@ export const grandmaResearchChain = [
     desc: "The grandmas begin sharing thoughts. It started with recipes. It didn't stay that way.",
     flavor: "Each grandma is no longer entirely herself.",
     requires: [{ type: "grandmapocalypseStage", min: 1 }, { type: "building", name: "Grandma", min: 25 }],
-    grandmaBoost: 3,
+    grandmaBoost: 2,
   },
   {
     id: "communalBrainsweep",
@@ -411,7 +411,7 @@ export const grandmaResearchChain = [
     desc: "The merger deepens. Individual grandmas blur at the edges.",
     flavor: "Do you hear humming? They hear you.",
     requires: [{ type: "grandmapocalypseStage", min: 1 }, { type: "building", name: "Grandma", min: 40 }],
-    grandmaBoost: 5,
+    grandmaBoost: 3,
   },
   {
     id: "elderPact",
@@ -420,7 +420,7 @@ export const grandmaResearchChain = [
     desc: "The compact is sealed. The grandmas open the door, and something ancient comes through.",
     flavor: "You made this deal, not us.",
     requires: [{ type: "grandmapocalypseStage", min: 2 }, { type: "building", name: "Grandma", min: 60 }],
-    grandmaBoost: 10,
+    grandmaBoost: 5,
   },
   {
     id: "festiveBaking",
@@ -429,7 +429,7 @@ export const grandmaResearchChain = [
     desc: "The elders celebrate. You are not sure what they are celebrating.",
     flavor: "The cookies taste like... victory? Regret? Both.",
     requires: [{ type: "grandmapocalypseStage", min: 3 }, { type: "building", name: "Grandma", min: 75 }],
-    grandmaBoost: 5,
+    grandmaBoost: 3,
   },
   {
     id: "unholyBakery",
@@ -438,7 +438,7 @@ export const grandmaResearchChain = [
     desc: "The bakery transcends its origins. Everything here bakes itself now.",
     flavor: "You are no longer necessary. They keep you around anyway.",
     requires: [{ type: "grandmapocalypseStage", min: 3 }, { type: "building", name: "Grandma", min: 100 }],
-    grandmaBoost: 8,
+    grandmaBoost: 5,
   },
 ];
 

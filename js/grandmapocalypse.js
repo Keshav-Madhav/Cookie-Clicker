@@ -3,6 +3,31 @@ import { GRANDMAPOCALYPSE } from "./config.js";
 import { grandmaResearchChain } from "./gameData.js";
 import { formatNumberInWords } from "./utils.js";
 
+function showGameConfirm(message, onConfirm, onCancel) {
+  const overlay = document.createElement('div');
+  overlay.className = 'gp-confirm-overlay';
+  overlay.innerHTML = `
+    <div class="gp-confirm-dialog">
+      <div class="gp-confirm-message">${message}</div>
+      <div class="gp-confirm-buttons">
+        <button class="gp-confirm-btn gp-confirm-yes">Confirm</button>
+        <button class="gp-confirm-btn gp-confirm-no">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('gp-confirm-visible'));
+
+  const close = () => {
+    overlay.classList.remove('gp-confirm-visible');
+    setTimeout(() => overlay.remove(), 200);
+  };
+
+  overlay.querySelector('.gp-confirm-yes').addEventListener('click', () => { close(); onConfirm(); });
+  overlay.querySelector('.gp-confirm-no').addEventListener('click', () => { close(); if (onCancel) onCancel(); });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { close(); if (onCancel) onCancel(); } });
+}
+
 export class GrandmapocalypseManager {
   constructor(game) {
     this.game = game;
@@ -52,6 +77,7 @@ export class GrandmapocalypseManager {
 
   getResearchCost(id) {
     const idx = grandmaResearchChain.findIndex(r => r.id === id);
+    if (idx === -1) return CookieNum.from(Infinity);
     return CookieNum.from(GRANDMAPOCALYPSE.researchCosts[idx] || 0);
   }
 
@@ -173,7 +199,7 @@ export class GrandmapocalypseManager {
     this.pledgeCount++;
     // Each pledge is shorter than the last
     const decayMult = Math.pow(GRANDMAPOCALYPSE.pledgeDurationDecayPerUse || 1, this.pledgeCount - 1);
-    const pledgeDuration = Math.max(3 * 60 * 1000, GRANDMAPOCALYPSE.pledgeDurationMs * decayMult); // min 3 minutes
+    const pledgeDuration = Math.max(GRANDMAPOCALYPSE.pledgeDurationMinMs || 60000, GRANDMAPOCALYPSE.pledgeDurationMs * decayMult);
     this.pledgeEndTime = Date.now() + pledgeDuration;
 
     this.applyStageTheme(0);
@@ -415,9 +441,10 @@ export class GrandmapocalypseManager {
       covenantBtn.classList.toggle("hidden", !show);
       if (show) {
         covenantBtn.onclick = () => {
-          if (confirm(`Sign the Elder Covenant? -${GRANDMAPOCALYPSE.covenantCpsPenalty * 100}% CPS permanently (revokable), but grandmas calm down.`)) {
-            this.elderCovenant();
-          }
+          showGameConfirm(
+            `Sign the Elder Covenant? <strong>-${GRANDMAPOCALYPSE.covenantCpsPenalty * 100}% CPS</strong> permanently (revokable), but grandmas calm down.`,
+            () => this.elderCovenant()
+          );
         };
       }
     }
@@ -426,9 +453,10 @@ export class GrandmapocalypseManager {
       revokeBtn.classList.toggle("hidden", !this.covenantActive);
       if (this.covenantActive) {
         revokeBtn.onclick = () => {
-          if (confirm("Revoke the Elder Covenant? The grandmas will remember.")) {
-            this.revokeCovenant();
-          }
+          showGameConfirm(
+            "Revoke the Elder Covenant? <strong>The grandmas will remember.</strong>",
+            () => this.revokeCovenant()
+          );
         };
       }
     }
@@ -506,8 +534,12 @@ export class GrandmapocalypseManager {
       const remaining = this.pledgeEndTime - Date.now();
       this._pledgeTimer = setTimeout(() => this.expirePledge(), remaining);
     } else if (this.elderPledgeActive) {
-      // Pledge expired while offline
+      // Pledge expired while offline — restore apocalypse state
       this.elderPledgeActive = false;
+      this._apocalypseStartTime = Date.now();
+      if (this.game.wrinklerManager) {
+        this.game.wrinklerManager.onStageChange(this._previousStage);
+      }
     }
 
     // Re-apply covenant penalty if it was saved as applied
@@ -519,6 +551,10 @@ export class GrandmapocalypseManager {
       const effectiveStage = (this.elderPledgeActive || this.covenantActive) ? 0 : this.stage;
       this.applyStageTheme(effectiveStage);
       this._renderResearchPanel();
+      // Update news pool with stage-specific headlines
+      if (this.stage >= 1 && this.game.visualEffects && this.game.visualEffects.updateNewsPool) {
+        this.game.visualEffects.updateNewsPool();
+      }
     });
   }
 }

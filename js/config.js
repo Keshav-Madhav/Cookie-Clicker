@@ -317,7 +317,7 @@ export const MINI_GAME_SETTINGS = {
     /** Enemy spawn interval during battle (ms) */
     enemySpawnIntervalMs: 1200,
     /** Total enemies to spawn */
-    totalEnemies: 18,
+    totalEnemies: 22,
     /** Enemy base speed (cells per second) */
     enemyBaseSpeed: 1.0,
     /** Tower types - distinct roles */
@@ -328,11 +328,11 @@ export const MINI_GAME_SETTINGS = {
     ],
     /** Enemy types - buffed health and speed */
     enemies: [
-      { emoji: "🐜", name: "Ant", health: 4, speed: 1.2 },
-      { emoji: "🐛", name: "Caterpillar", health: 8, speed: 0.7 },
-      { emoji: "🐁", name: "Mouse", health: 6, speed: 1.5 },
-      { emoji: "🦗", name: "Cricket", health: 3, speed: 2.0 },
-      { emoji: "🪲", name: "Beetle", health: 10, speed: 0.9 },
+      { emoji: "🐜", name: "Ant", health: 5, speed: 1.2 },
+      { emoji: "🐛", name: "Caterpillar", health: 10, speed: 0.7 },
+      { emoji: "🐁", name: "Mouse", health: 7, speed: 1.5 },
+      { emoji: "🦗", name: "Cricket", health: 4, speed: 2.0 },
+      { emoji: "🪲", name: "Beetle", health: 14, speed: 0.9 },
     ],
     /** Towers allowed - always 3 (one of each type) */
     towersAllowed: 3,
@@ -800,7 +800,7 @@ export const GRANDMAPOCALYPSE = {
   wrinklerSpawnIntervalBase: 22,         // seconds between spawn attempts at stage 1
   wrinklerSpawnChancePerAttempt: 0.35,
   wrinklerCpsDrainFraction: 0.06,        // each normal wrinkler eats 6% of CPS
-  elderWrinklerDrainFraction: 0.10,      // elder wrinklers eat 10% — greedy
+  elderWrinklerDrainFraction: 0.08,      // elder wrinklers eat 8% — greedy
   wrinklerReturnMultiplier: 1.1,         // returns 110%
   elderWrinklerReturnMultiplier: 1.5,    // elder wrinklers return 150% — worth the pain
   shinyReturnMultiplier: 3.5,            // shiny returns 350%
@@ -871,8 +871,8 @@ export const GRANDMAPOCALYPSE = {
   },
   elderFrenzy: {
     stage1: { multiplier: 666, durationSec: 6 },
-    stage2: { multiplier: 1111, durationSec: 9 },
-    stage3: { multiplier: 7777, durationSec: 7 },     // can earn hours of production in seconds
+    stage2: { multiplier: 2222, durationSec: 8 },
+    stage3: { multiplier: 4444, durationSec: 7 },     // can earn hours of production in seconds
   },
   cookieStorm: {
     stage1: { cpsMultiplier: 3600, minCookies: 5000 },
@@ -893,6 +893,7 @@ export const GRANDMAPOCALYPSE = {
   pledgeCostMultiplier: 3,               // triples each use
   pledgeDurationMs: 15 * 60 * 1000,     // only 15 minutes
   pledgeDurationDecayPerUse: 0.85,       // each pledge is 15% shorter than the last
+  pledgeDurationMinMs: 1 * 60 * 1000,   // minimum 1 minute
 
   // ── Elder Covenant — devastating sacrifice ──
   covenantCpsPenalty: 0.15,              // -15% CPS

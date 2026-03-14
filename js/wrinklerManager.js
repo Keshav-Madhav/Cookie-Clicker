@@ -56,8 +56,8 @@ export class WrinklerManager {
   onStageChange(stage) {
     if (stage === 0) {
       this._stopSpawning();
-      // Detach all wrinklers when calmed
-      this.wrinklers = [];
+      // Release all wrinklers when calmed, returning stored cookies
+      this.releaseAll();
     } else {
       this._spawnInterval = (GRANDMAPOCALYPSE.wrinklerSpawnIntervalBase * 1000) / stage;
       this._startSpawning();
@@ -198,6 +198,7 @@ export class WrinklerManager {
 
     let totalCookies = CookieNum.ZERO;
     const count = this.wrinklers.length;
+    const shinyCount = this.wrinklers.filter(w => w.shiny).length;
 
     for (const w of this.wrinklers) {
       const returnMult = w.shiny  ? GRANDMAPOCALYPSE.shinyReturnMultiplier
@@ -214,6 +215,11 @@ export class WrinklerManager {
       this.game.cookies = this.game.cookies.add(totalCookies);
       this.game.stats.totalCookiesBaked = this.game.stats.totalCookiesBaked.add(totalCookies);
       this.game.stats.wrinklersPopped = (this.game.stats.wrinklersPopped || 0) + count;
+
+      // Track shiny wrinkler pops for achievements
+      if (shinyCount > 0) {
+        this.game.stats.shinyWrinklersPopped = (this.game.stats.shinyWrinklersPopped || 0) + shinyCount;
+      }
 
       if (this.game.soundManager && this.game.soundManager.wrinklerPop) {
         this.game.soundManager.wrinklerPop();
@@ -281,6 +287,7 @@ export class WrinklerManager {
   // ── Render Loop ──
 
   _startRenderLoop() {
+    this._stopRenderLoop();
     let last = 0;
     const loop = (ts) => {
       this._animFrame = requestAnimationFrame(loop);
@@ -288,7 +295,14 @@ export class WrinklerManager {
       last = ts;
       this._renderFrame();
     };
-    requestAnimationFrame(loop);
+    this._animFrame = requestAnimationFrame(loop);
+  }
+
+  _stopRenderLoop() {
+    if (this._animFrame) {
+      cancelAnimationFrame(this._animFrame);
+      this._animFrame = null;
+    }
   }
 
   _renderFrame() {
@@ -378,7 +392,6 @@ export class WrinklerManager {
       ctx.fillStyle = w.shiny ? '#fff8a0' : w.elder ? '#ff0000' : '#ff3300';
       ctx.shadowColor = w.shiny ? 'rgba(255,230,0,0.6)' : w.elder ? 'rgba(255,0,0,0.8)' : 'rgba(200,40,0,0.5)';
       ctx.shadowBlur = w.elder ? 8 : 4; // elder eyes glow more intensely
-      ctx.shadowBlur = 4;
       ctx.beginPath();
       ctx.arc(-w.size * 0.13, eyeY, w.size * 0.07, 0, Math.PI * 2);
       ctx.arc(w.size * 0.13, eyeY, w.size * 0.065, 0, Math.PI * 2);

@@ -124,6 +124,7 @@ export class Game {
       this.grandmapocalypse.stage = 1;
       this.grandmapocalypse._previousStage = 1;
       this.grandmapocalypse._applyResearchBoosts();
+      this.grandmapocalypse._onStageChange(1);
     }
 
     // Render grandmapocalypse research panel
@@ -152,6 +153,11 @@ export class Game {
         // Check if "music" was typed — open music player
         if (this._typedKeys.endsWith('music')) {
           this._openMusicPlayer();
+          this._typedKeys = '';
+        }
+        // Check if "minigames" was typed — open minigame selector
+        if (this._typedKeys.endsWith('minigames')) {
+          this._openMinigameSelector();
           this._typedKeys = '';
         }
       }
@@ -190,24 +196,10 @@ export class Game {
           if (gc && !gc.classList.contains('hidden')) gc.click();
           break;
         }
-        case 'm':
-        case 'M': {
-          const menu = document.getElementById('menu-overlay');
-          if (menu) {
-            if (menu.classList.contains('hidden')) {
-              this.updateMenu();
-              this._syncToggles();
-              menu.classList.remove('hidden');
-            } else {
-              menu.classList.add('hidden');
-            }
-          }
-          break;
-        }
         case 'Escape': {
           // Close topmost overlay
           let closed = false;
-          const overlays = ['building-info-panel', 'music-overlay', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
+          const overlays = ['building-info-panel', 'minigame-overlay', 'music-overlay', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
           for (const id of overlays) {
             const ol = document.getElementById(id);
             if (ol && !ol.classList.contains('hidden')) {
@@ -340,7 +332,7 @@ export class Game {
     this.updateLeftPanel();
   }
 
-  getEffectiveCPS() {
+  getEffectiveCPS({ excludeWrinklerDrain = false } = {}) {
     // Phase 1: In-run CPS — buildings, upgrades, global multipliers, achievements
     // This is the CPS the player earned during THIS run through normal gameplay.
     let inRunCps = this.cookiesPerSecond.mul(this.globalCpsMultiplier);
@@ -394,7 +386,7 @@ export class Game {
 
     // Wrinkler visual drain — reduces displayed CPS to show wrinklers intercepting production
     // Note: wrinklers accumulate cookies independently and return them at 1.1x on pop
-    if (this.wrinklerManager && this.grandmapocalypse && this.grandmapocalypse.stage >= 1 &&
+    if (!excludeWrinklerDrain && this.wrinklerManager && this.grandmapocalypse && this.grandmapocalypse.stage >= 1 &&
         !this.grandmapocalypse.elderPledgeActive && !this.grandmapocalypse.covenantActive) {
       const wrinklers = this.wrinklerManager.wrinklers;
       if (wrinklers.length > 0) {
@@ -403,6 +395,15 @@ export class Game {
           drainFraction += w.elder ? GRANDMAPOCALYPSE.elderWrinklerDrainFraction : GRANDMAPOCALYPSE.wrinklerCpsDrainFraction;
         }
         cps = cps.mul(Math.max(0, 1 - drainFraction));
+        // Warn player when wrinklers have fully drained CPS
+        if (drainFraction >= 1 && !this._wrinklerDrainWarningShown) {
+          this._wrinklerDrainWarningShown = true;
+          if (this.visualEffects && this.visualEffects.showStageTransitionText) {
+            this.visualEffects.showStageTransitionText("Your CPS has been fully drained! Pop a wrinkler to recover.");
+          }
+        } else if (drainFraction < 1) {
+          this._wrinklerDrainWarningShown = false;
+        }
       }
     }
 
@@ -1620,6 +1621,71 @@ export class Game {
     }
   }
 
+  _openMinigameSelector() {
+    const overlay = document.getElementById("minigame-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    this.soundManager.panelOpen();
+
+    const games = [
+      { id: "slots",      emoji: "🎰", name: "Cookie Slots",      desc: "Spin the reels for cookies" },
+      { id: "speed",      emoji: "⚡", name: "Speed Click",        desc: "Click as fast as you can" },
+      { id: "catch",      emoji: "🍪", name: "Cookie Catch",       desc: "Catch falling cookies" },
+      { id: "trivia",     emoji: "🧠", name: "Cookie Trivia",      desc: "Test your cookie knowledge" },
+      { id: "memory",     emoji: "🃏", name: "Emoji Memory",       desc: "Match emoji pairs" },
+      { id: "cutter",     emoji: "✂️", name: "Cookie Cutter",      desc: "Trace shapes precisely" },
+      { id: "defense",    emoji: "🛡️", name: "Cookie Defense",     desc: "Tower defense mini-game" },
+      { id: "kitchen",    emoji: "👵", name: "Grandma's Kitchen",  desc: "Bake cookies at the right time" },
+      { id: "math",       emoji: "🔢", name: "Math Baker",         desc: "Solve math for cookies" },
+    ];
+
+    const body = document.getElementById("minigame-select-body");
+    if (!body) return;
+    body.innerHTML = games.map(g =>
+      `<button class="minigame-select-btn" data-game="${g.id}">
+        <span class="minigame-select-emoji">${g.emoji}</span>
+        <div class="minigame-select-info">
+          <span class="minigame-select-name">${g.name}</span>
+          <span class="minigame-select-desc">${g.desc}</span>
+        </div>
+      </button>`
+    ).join('');
+
+    const mg = this.visualEffects.miniGames;
+    const launchMap = {
+      slots:   () => mg._slotMachine(),
+      speed:   () => mg._speedClick(),
+      catch:   () => mg._cookieCatch(),
+      trivia:  () => mg._trivia(),
+      memory:  () => mg._emojiMemory(),
+      cutter:  () => mg._cookieCutter(),
+      defense: () => mg._cookieDefense(),
+      kitchen: () => mg._grandmasKitchen(),
+      math:    () => mg._mathBaker(),
+    };
+
+    body.querySelectorAll('.minigame-select-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gameId = btn.dataset.game;
+        if (mg._active) return;
+        overlay.classList.add("hidden");
+        this.soundManager.uiClick();
+        if (launchMap[gameId]) launchMap[gameId]();
+      });
+    });
+
+    if (!this._minigameSelectorBound) {
+      this._minigameSelectorBound = true;
+      const close = () => {
+        overlay.classList.add("hidden");
+        this.soundManager.panelClose();
+      };
+      document.getElementById("minigame-close").addEventListener("click", close);
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    }
+  }
+
   _fmtTime(s) {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
@@ -1875,6 +1941,8 @@ export class Game {
       this.grandmapocalypse.covenantActive = false;
       this.grandmapocalypse._covenantPenaltyApplied = false;
       this.grandmapocalypse._previousStage = keepStage ? 1 : 0;
+      this.grandmapocalypse._apocalypseStartTime = 0;
+      this.grandmapocalypse._pledgeTimer = null;
       this._grandmapocalypseGrandmaBoost = 1;
       this.grandmapocalypse._applyResearchBoosts();
       this.grandmapocalypse.applyStageTheme(keepStage ? 1 : 0);
@@ -1887,7 +1955,9 @@ export class Game {
     if (this.wrinklerManager) {
       this.wrinklerManager.wrinklers = [];
       this.wrinklerManager._stopSpawning();
+      this.wrinklerManager._stopRenderLoop();
       if (this.grandmapocalypse && this.grandmapocalypse.stage >= 1) {
+        this.wrinklerManager._startRenderLoop();
         this.wrinklerManager.onStageChange(this.grandmapocalypse.stage);
       }
     }
@@ -2815,7 +2885,8 @@ export class Game {
           }
         });
 
-        const baseCps = this.getEffectiveCPS();
+        // Exclude wrinkler drain — wrinklers don't feed while offline
+        const baseCps = this.getEffectiveCPS({ excludeWrinklerDrain: true });
         const offlineEarnings = baseCps.mul(elapsedTime * offlineMultiplier);
         this.cookies = this.cookies.add(offlineEarnings);
         this.stats.totalCookiesBaked = this.stats.totalCookiesBaked.add(offlineEarnings);

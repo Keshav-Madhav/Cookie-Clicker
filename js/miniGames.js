@@ -185,16 +185,26 @@ export class MiniGames {
         let won = false;
         if (results[0] === results[1] && results[1] === results[2]) {
           this.game.soundManager.slotJackpot();
-          const r = this._giveReward("jackpot", "slots");
+          const r = this._giveReward("legendary", "slots");
           totalReward += r;
-          resultEl.textContent = `✨ JACKPOT! Three ${results[0]}! +${formatNumberInWords(r)} cookies!`;
-          resultEl.classList.add("mini-win");
+          resultEl.innerHTML = `<span class="jackpot-text">🎉 JACKPOT! 🎉</span><br>Three ${results[0]}! +${formatNumberInWords(r)} cookies!`;
+          resultEl.classList.add("mini-win", "jackpot-win");
           won = true;
+
+          // Massive visual celebration
+          if (this.game.visualEffects) {
+            this.game.visualEffects.triggerCookieBurst(80, 3);
+            this.game.visualEffects.showStageTransitionText(`🎰 JACKPOT! +${formatNumberInWords(r)} 🎰`);
+          }
+          // Screen shake effect
+          const card = overlay.querySelector('.mini-game-card');
+          if (card) card.classList.add('jackpot-shake');
+
           // Track jackpots for achievement
           this.game.stats.slotsJackpots = (this.game.stats.slotsJackpots || 0) + 1;
           this.game.achievementManager.check();
-          // Jackpot always ends
-          setTimeout(() => this._close(), 2500);
+          // Jackpot always ends (longer display for celebration)
+          setTimeout(() => this._close(), 4000);
           return;
         } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
           this.game.soundManager.slotPairWin();
@@ -282,8 +292,8 @@ export class MiniGames {
           this.game.soundManager.speedEnd();
           if (countEl) countEl.classList.add("mini-win");
           let msg, tier = null;
-          if (clicks >= cfg.greatThreshold) { msg = `${clicks} clicks! Inhuman speed!`; tier = "great"; }
-          else if (clicks >= cfg.normalThreshold) { msg = `${clicks} clicks! Impressive!`; tier = "normal"; }
+          if (clicks >= cfg.greatThreshold) { msg = `${clicks} clicks! Inhuman speed!`; tier = "epic"; }
+          else if (clicks >= cfg.normalThreshold) { msg = `${clicks} clicks! Impressive!`; tier = "great"; }
           else if (clicks >= cfg.minThreshold) { msg = `${clicks} clicks! Not bad!`; tier = "normal"; }
           else { msg = `${clicks} clicks. Keep practicing!`; }
           if (subEl) subEl.textContent = msg;
@@ -445,7 +455,7 @@ export class MiniGames {
 
         if (idx === correctIdx) {
           this.game.soundManager.triviaCorrect();
-          const r = this._giveReward("normal", "trivia");
+          const r = this._giveReward("great", "trivia");
           if (resultEl) {
             resultEl.textContent = `✅ Correct! +${formatNumberInWords(r)} cookies!`;
             resultEl.classList.add("mini-win");
@@ -662,7 +672,7 @@ export class MiniGames {
       for (let i = 1; i < pathPoints.length; i++) {
         ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
       }
-      ctx.closePath();
+      if (!pathPoints._open) ctx.closePath();
       ctx.stroke();
       ctx.setLineDash([]); // Reset
       
@@ -878,31 +888,38 @@ export class MiniGames {
         }
         break;
         
-      case 'umbrella':
+      case 'umbrella': {
+        // Dome arc (top half semicircle, from left to right)
+        const domeY = cy - r * 0.15;
         for (let i = 0; i <= resolution * 0.5; i++) {
           const angle = Math.PI + (i / (resolution * 0.5)) * Math.PI;
           points.push({
             x: cx + Math.cos(angle) * r,
-            y: cy - r * 0.2 + Math.sin(angle) * r * 0.7
+            y: domeY + Math.sin(angle) * r * 0.7
           });
         }
-        const handleTop = cy - r * 0.2 + r * 0.7;
-        const handleBottom = cy + r * 0.8;
+        // Handle (straight line down from center of dome)
+        const umbHandleTop = domeY;
+        const umbHandleBottom = cy + r * 0.85;
         for (let i = 0; i <= resolution * 0.3; i++) {
           const t = i / (resolution * 0.3);
           points.push({
             x: cx,
-            y: handleTop + t * (handleBottom - handleTop)
+            y: umbHandleTop + t * (umbHandleBottom - umbHandleTop)
           });
         }
+        // Hook curve at bottom
         for (let i = 0; i <= resolution * 0.2; i++) {
           const angle = -Math.PI / 2 + (i / (resolution * 0.2)) * Math.PI;
           points.push({
             x: cx - r * 0.15 + Math.cos(angle) * r * 0.15,
-            y: handleBottom + Math.sin(angle) * r * 0.15
+            y: umbHandleBottom + Math.sin(angle) * r * 0.15
           });
         }
+        // Mark as open shape (no closePath)
+        points._open = true;
         break;
+      }
         
       case 'triangle':
         const triPoints = [
@@ -1140,7 +1157,7 @@ export class MiniGames {
           <span class="td-phase-text" id="td-phase">PLANNING PHASE</span>
         </div>
         <div class="td-instructions" id="td-instructions">
-          <strong>How to play:</strong> Select a tower type below, then click on a <span class="td-highlight">brown cell</span> (not the path) to place it.
+          <strong>How to play:</strong> Select a tower type below, then click on a <span class="td-highlight">brown cell</span> (not the path) to place it. Click a placed tower to remove it.
         </div>
         <div class="td-stats">
           <span class="td-stat">🍪 <span id="td-lives">${cfg.startingLives}</span></span>
@@ -1209,17 +1226,30 @@ export class MiniGames {
       });
     });
 
-    // Grid cell click - place tower
+    // Grid cell click - place or remove tower
     overlay.querySelectorAll('.td-cell').forEach(cell => {
       cell.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (phase !== 'planning' || !selectedTower || towersLeft <= 0) return;
-        
+        if (phase !== 'planning') return;
+
         const x = parseInt(cell.dataset.x);
         const y = parseInt(cell.dataset.y);
-        
-        if (cell.classList.contains('td-path') || cell.classList.contains('td-has-tower')) return;
-        
+
+        // Click on existing tower = remove it
+        if (cell.classList.contains('td-has-tower')) {
+          cell.classList.remove('td-has-tower');
+          cell.style.removeProperty('--tower-color');
+          cell.innerHTML = '';
+          placedTowers = placedTowers.filter(t => t.x !== x || t.y !== y);
+          towersLeft++;
+          updateStats();
+          this.game.soundManager.uiClick();
+          return;
+        }
+
+        if (!selectedTower || towersLeft <= 0) return;
+        if (cell.classList.contains('td-path')) return;
+
         const towerType = cfg.towers.find(t => t.id === selectedTower);
         if (!towerType) return;
 
@@ -1231,7 +1261,7 @@ export class MiniGames {
           <div class="td-tower-range" style="--range: ${towerType.range}"></div>
         `;
         placedTowers.push({ x, y, type: towerType, element: cell, lastFired: 0 });
-        
+
         towersLeft--;
         updateStats();
 
@@ -1274,28 +1304,15 @@ export class MiniGames {
       if (selectEl) selectEl.style.visibility = 'hidden';
       if (controlsEl) controlsEl.style.visibility = 'hidden';
 
+      // Hide timer bar — battle ends when all enemies are dealt with
       const timerBar = document.getElementById('td-timer');
-      if (timerBar) {
-        timerBar.style.transition = 'none';
-        timerBar.style.width = '100%';
-        timerBar.style.background = 'linear-gradient(90deg, #ef4444, #f97316)';
-        requestAnimationFrame(() => {
-          timerBar.style.transition = `width ${cfg.battlePhaseMs / 1000}s linear`;
-          timerBar.style.width = '0%';
-        });
-      }
+      if (timerBar) timerBar.style.display = 'none';
 
       spawnInterval = setInterval(spawnEnemy, cfg.enemySpawnIntervalMs);
       spawnEnemy();
-      
+
       lastTime = performance.now();
       battleLoop = requestAnimationFrame(updateBattle);
-
-      setTimeout(() => {
-        if (active && phase === 'battle') {
-          endBattle();
-        }
-      }, cfg.battlePhaseMs);
     };
 
     const spawnEnemy = () => {
@@ -1456,6 +1473,12 @@ export class MiniGames {
           }
         }
       });
+
+      // End when all enemies spawned and none remain on board
+      if (enemiesSpawned >= cfg.totalEnemies && enemies.length === 0) {
+        endBattle();
+        return;
+      }
 
       if (active) {
         battleLoop = requestAnimationFrame(updateBattle);
