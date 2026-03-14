@@ -19,6 +19,7 @@ export class GameMusic {
     this._timer = null;
     this._currentName = '';
     this._apocalypseMode = 0; // 0 = normal, 1-3 = grandmapocalypse stage
+    this._lastDuration = 40;  // estimated seconds of last composition
   }
 
   // ─── note pools ─────────────────────────────────────────────
@@ -40,9 +41,30 @@ export class GameMusic {
 
   // ─── lifecycle ──────────────────────────────────────────────
 
-  /** Set apocalypse mode: 0 = normal, 1-3 = stage. Changes note pool and composition list. */
+  /** Set apocalypse mode: 0 = normal, 1-3 = stage.
+   *  Fast crossfade (~300 ms) into a new composition from the new pool. */
   setApocalypseMode(stage) {
+    const prev = this._apocalypseMode;
     this._apocalypseMode = stage;
+    if (prev === stage || !this._active) return;
+
+    // Kill pending schedule
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+
+    // Fast fade-out of current audio (300 ms)
+    const ctx = this._ctx;
+    if (ctx && this._out) {
+      const t = ctx.currentTime;
+      this._out.gain.setValueAtTime(this._out.gain.value, t);
+      this._out.gain.linearRampToValueAtTime(0.001, t + 0.30);
+      // Restore gain after fade, then play new composition
+      setTimeout(() => {
+        if (!this._active) return;
+        this._out.gain.setValueAtTime(1.0, ctx.currentTime);
+        this._play();
+        this._schedule();
+      }, 350);
+    }
   }
 
   start() {
@@ -64,11 +86,14 @@ export class GameMusic {
 
   _schedule() {
     if (!this._active) return;
-    // Apocalypse: shorter gaps, more frequent, more urgent
+    // Gap AFTER a composition finishes before the next one starts.
+    // Compositions are now 30-120s, so the gap is just breathing room.
     const stage = this._apocalypseMode || 0;
-    const minDelay = stage >= 3 ? 2000 : stage >= 2 ? 3000 : stage >= 1 ? 4000 : 5000;
-    const maxExtra = stage >= 3 ? 5000 : stage >= 2 ? 7000 : stage >= 1 ? 9000 : 12000;
-    const delay = minDelay + Math.random() * maxExtra;
+    const minGap = stage >= 3 ? 3000 : stage >= 2 ? 4000 : stage >= 1 ? 5000 : 6000;
+    const maxExtra = stage >= 3 ? 5000 : stage >= 2 ? 8000 : stage >= 1 ? 10000 : 14000;
+    // Add the last composition's estimated duration so we don't overlap
+    const compositionDuration = (this._lastDuration || 40) * 1000;
+    const delay = compositionDuration + minGap + Math.random() * maxExtra;
     this._timer = setTimeout(() => {
       if (!this._active) return;
       this._play();
@@ -135,10 +160,8 @@ export class GameMusic {
     const stage = this._apocalypseMode || 0;
     let list;
     if (stage >= 2) {
-      // Stage 2-3: only dark compositions
       list = GameMusic._DARK_COMPOSITIONS;
     } else if (stage === 1) {
-      // Stage 1: mix of normal and dark (50/50)
       list = Math.random() < 0.5 ? GameMusic._DARK_COMPOSITIONS : GameMusic._COMPOSITIONS;
     } else {
       list = GameMusic._COMPOSITIONS;
@@ -146,7 +169,24 @@ export class GameMusic {
     const name = list[Math.floor(Math.random() * list.length)];
     this._currentName = GameMusic._DISPLAY_NAMES[name] || name;
     this[name]();
+    this._lastDuration = GameMusic._DURATIONS[name] || 45;
   }
+
+  // Estimated durations (seconds) for scheduling gaps.
+  // Updated as compositions are extended to feature-length.
+  static _DURATIONS = {
+    // Feature-length compositions (passacaglia structure, 50-100s)
+    gentleArc: 70, callAndResponse: 75, lullaby: 80, musicBox: 55,
+    starlight: 95, hymn: 65, distantRain: 85, frozenLake: 100,
+    // Extended but not yet full passacaglia (30-50s)
+    fallingLeaves: 45, spreadArpeggio: 40, freeWander: 50,
+    ripple: 40, cascade: 40, echoReflection: 45, meadowWalk: 45,
+    // Dark compositions (shorter, more intense, 25-50s)
+    darkDrone: 40, tensePulse: 35, hauntedArpeggio: 45, doomRiff: 40,
+    witchBells: 35, voidEcho: 55, grindMotor: 35, eldrChant: 50,
+    bloodMoon: 40, chaosCluster: 35, grandmaWhisper: 45, abyssalRumble: 35,
+    sirenicCall: 35, cryptOrgan: 30,
+  };
 
   // ─── helper: clamp index into pool ──────────────────────────
 
@@ -156,787 +196,846 @@ export class GameMusic {
   //  COMPOSITIONS
   // ═══════════════════════════════════════════════════════════
 
-  // ── 1. Gentle Arc — three mirrored arcs with dynamic swell, pedal tones, and harmony ──
+  // ── 1. Gentle Arc — passacaglia: rising-falling motif over unresolved bass cycle ──
+  //    Identity: the ascending 3rd→5th→6th shape, always recognizable.
 
   gentleArc() {
     const P = GameMusic.POOL;
-    const vol = 0.010 + Math.random() * 0.005;
-    const ascending = Math.random() > 0.4;
-    let idx = 3 + Math.floor(Math.random() * (P.length - 6));
-    const homeIdx = idx;
+    const vol = 0.010 + Math.random() * 0.004;
+    // Random root → different key each play, but same intervals → same soul
+    const root = 3 + Math.floor(Math.random() * 4);
+    // FIXED MOTIF — this IS Gentle Arc's identity (pool index offsets from root)
+    const motif = [0, 2, 4, 5, 4, 2, 1, 0];
+    // Bass cycle — vi → IV → II → V feel, avoids resolving to I
+    const bass = [-4, -2, -5, -3];
+    // Base rhythm — the shape of time (jittered ±20% each play)
+    const rhythm = [1.3, 0.9, 1.1, 1.5, 1.0, 1.2, 0.8, 1.8];
     let t = 0;
 
-    // Deep pedal tone anchors the whole piece — C418 signature
-    this._note(P[this._ci(homeIdx - 3)], vol * 0.22, t);
+    // 5 passes: bare → +bass → +harmony → full(climax) → strip-back
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.50, 0.65, 0.80, 1.0, 0.45][pass] * vol;
+      const bassOn = pass >= 1 && pass <= 3;
+      const harmonyOn = pass >= 2 && pass <= 3;
+      const sparkle = pass === 3;
+      const isStrip = pass === 4;
 
-    for (let arc = 0; arc < 3; arc++) {
-      const count = 8 + Math.floor(Math.random() * 8);
-      const dir = arc % 2 === 0 ? ascending : !ascending;
-
-      for (let i = 0; i < count; i++) {
-        const swell = Math.sin(Math.PI * i / count);
-        const noteVol = vol * (0.45 + swell * 0.55);
-
-        // Grace note — soft leading tone before some main notes
-        if (Math.random() < 0.15) {
-          const grace = this._ci(idx + (Math.random() < 0.5 ? -1 : 1));
-          this._note(P[grace], noteVol * 0.18, t - 0.08);
-        }
-
-        this._note(P[idx], noteVol, t);
-
-        // Harmony a third or fifth above
-        if (Math.random() < 0.28) {
-          const interval = Math.random() < 0.6 ? 2 : 4;
-          this._note(P[this._ci(idx + interval)], noteVol * 0.28, t + 0.03);
-        }
-
-        // Occasional pedal bass re-anchor
-        if (i % 5 === 0 && Math.random() < 0.4) {
-          this._note(P[this._ci(homeIdx - 3)], vol * 0.18, t + 0.06);
-        }
-
-        t += 0.65 + Math.random() * 1.4;
-        // Longer contemplative pauses every few notes
-        if (i > 0 && i % 4 === 0) t += 1.0 + Math.random() * 1.8;
-
-        const first = i < count / 2;
-        const up = dir ? first : !first;
-        if (up) idx = this._ci(idx + (Math.random() < 0.7 ? 1 : 2));
-        else     idx = this._ci(idx - (Math.random() < 0.7 ? 1 : 2));
+      // Bass pedal at start of each pass (when active)
+      if (bassOn) {
+        const bi = bass[pass % bass.length];
+        this._note(P[this._ci(root + bi)], passVol * 0.28, t);
       }
 
-      // Breath between arcs — longer, more contemplative
-      t += 2.5 + Math.random() * 3.0;
+      for (let n = 0; n < motif.length; n++) {
+        let noteIdx = this._ci(root + motif[n]);
 
-      // Re-anchor pedal between arcs
-      if (arc < 2) {
-        this._note(P[this._ci(homeIdx - 3)], vol * 0.16, t - 0.5);
+        // Per-pass variation — the "dream shift"
+        // Pass 2: octave up on the peak note (index 3)
+        if (pass === 2 && n === 3) noteIdx = this._ci(noteIdx + 5);
+        // Pass 3 (climax): slight ornament — grace note before beat 0
+        if (pass === 3 && n === 0) {
+          this._note(P[this._ci(noteIdx - 1)], passVol * 0.18, t - 0.07);
+        }
+        // Pass 4 (strip-back): one note changed — the memory is slightly different
+        if (isStrip && n === 5) noteIdx = this._ci(root + motif[n] + 1);
+
+        this._note(P[noteIdx], passVol * (0.65 + Math.random() * 0.35), t);
+
+        // Harmony third — only on harmony passes, on strong beats
+        if (harmonyOn && (n === 0 || n === 3 || n === 6) && Math.random() < 0.70) {
+          this._note(P[this._ci(noteIdx + 2)], passVol * 0.25, t + 0.04);
+        }
+
+        // High sparkle on climax pass
+        if (sparkle && n === 4 && Math.random() < 0.55) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.14, t + 0.20);
+        }
+
+        // Timing: fixed rhythm shape with ±20% jitter
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.80 + Math.random() * 0.40);
       }
+
+      // Bass resolution at end of pass
+      if (bassOn) {
+        const bi = bass[(pass + 1) % bass.length];
+        this._note(P[this._ci(root + bi)], passVol * 0.22, t);
+      }
+
+      // Breath between passes — longer for strip-back approach
+      t += pass === 3 ? 3.5 + Math.random() * 2.0 : 2.0 + Math.random() * 1.5;
     }
 
-    // Final resolution — gentle fifth chord
-    this._note(P[homeIdx], vol * 0.35, t);
-    this._note(P[this._ci(homeIdx + 4)], vol * 0.20, t + 0.04);
+    // Coda — just root and fifth, hanging in the air
+    this._note(P[this._ci(root)], vol * 0.30, t);
+    this._note(P[this._ci(root + 4)], vol * 0.18, t + 0.05);
   }
 
-  // ── 2. Call & Response — motif, three answers with increasing distance, coda with harmony ──
+  // ── 2. Call & Response — passacaglia: fixed call, transposed responses, fading echoes ──
+  //    Identity: the call phrase (0,1,3,2,4) — always the same question, different answers.
 
   callAndResponse() {
     const P = GameMusic.POOL;
-    const vol = 0.010 + Math.random() * 0.005;
-    const len = 4 + Math.floor(Math.random() * 3);
-    const start = 4 + Math.floor(Math.random() * (P.length - 8));
+    const vol = 0.010 + Math.random() * 0.004;
+    const root = 4 + Math.floor(Math.random() * 4);
+    // FIXED CALL — this IS Call & Response's identity
+    const call = [0, 1, 3, 2, 4];
+    // Response shifts — each answer transposes the call differently
+    const shifts = [2, -1, 4, -3];
+    // Bass — unresolved cycle
+    const bass = [-4, -3, -5, -2];
+    // Call rhythm — the question has a specific cadence
+    const callRhythm = [0.75, 0.60, 0.85, 0.55, 1.2];
     let t = 0;
 
-    // Low pedal tone sets the harmonic foundation
-    this._note(P[this._ci(start - 4)], vol * 0.20, t);
+    // 4 rounds: each round = call + response, getting further apart
+    for (let round = 0; round < 4; round++) {
+      const roundVol = [0.60, 0.80, 1.0, 0.55][round] * vol;
+      const hasBass = round >= 1 && round <= 2;
+      const hasHarmony = round === 2;
 
-    // Build and play the "call" motif
-    const motif = [];
-    let idx = start;
-    for (let i = 0; i < len; i++) {
-      motif.push(idx);
-      this._note(P[idx], vol * (0.7 + Math.random() * 0.3), t);
-      // Occasional dyad on the call — makes it more memorable
-      if (i === 0 || (i === len - 1 && Math.random() < 0.5)) {
-        this._note(P[this._ci(idx + 2)], vol * 0.25, t + 0.03);
+      // Bass pedal
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[round % bass.length])], roundVol * 0.25, t);
       }
-      t += 0.60 + Math.random() * 0.80;
-      idx = this._ci(idx + 1);
+
+      // ── THE CALL (always the same melody) ──
+      for (let n = 0; n < call.length; n++) {
+        const noteIdx = this._ci(root + call[n]);
+        this._note(P[noteIdx], roundVol * (0.65 + Math.random() * 0.35), t);
+
+        // Harmony on first and last note during peak
+        if (hasHarmony && (n === 0 || n === call.length - 1)) {
+          this._note(P[this._ci(noteIdx + 2)], roundVol * 0.22, t + 0.04);
+        }
+
+        t += callRhythm[n] * (0.85 + Math.random() * 0.30);
+      }
+
+      // Silence — waiting for the response
+      t += 2.0 + Math.random() * 1.5 + round * 0.8;
+
+      // ── THE RESPONSE (same shape, shifted pitch — a familiar answer in a new key) ──
+      const shift = shifts[round];
+      const responseVol = roundVol * (0.75 - round * 0.10);
+      // Later responses play fewer notes — fading memory
+      const responseLen = Math.max(3, call.length - round);
+
+      for (let n = 0; n < responseLen; n++) {
+        let noteIdx = this._ci(root + call[n] + shift);
+        // Round 2+: slight variation in the response — the answer evolves
+        if (round >= 2 && n === 2) noteIdx = this._ci(noteIdx + 1);
+
+        this._note(P[noteIdx], responseVol * (0.55 + Math.random() * 0.45), t);
+        t += callRhythm[n] * (0.90 + Math.random() * 0.25);
+      }
+
+      // Bass resolution
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[(round + 1) % bass.length])], roundVol * 0.18, t);
+      }
+
+      // Long breath between rounds
+      t += 3.0 + Math.random() * 2.5;
     }
 
-    // First response — shifted up or down, with breathing space
-    t += 2.0 + Math.random() * 2.5;
-    const shift = Math.random() > 0.5 ? 2 : -1;
-    for (let i = 0; i < len; i++) {
-      const ri = Math.random() > 0.3 ? motif[i] + shift : motif[len - 1 - i] + shift;
-      this._note(P[this._ci(ri)], vol * (0.6 + Math.random() * 0.4), t);
-      t += 0.55 + Math.random() * 0.75;
-    }
-
-    // Second response — further shift, softer, like across a valley
-    t += 2.2 + Math.random() * 2.5;
-    const shift2 = shift > 0 ? shift + 2 : shift - 2;
-    // Re-anchor bass
-    this._note(P[this._ci(start - 3)], vol * 0.16, t - 0.3);
-    for (let i = 0; i < len; i++) {
-      this._note(P[this._ci(motif[i] + shift2)], vol * (0.35 + Math.random() * 0.25), t);
-      t += 0.50 + Math.random() * 0.65;
-    }
-
-    // Third response — barely a whisper, very distant echo
-    t += 2.8 + Math.random() * 3.0;
-    const shift3 = shift2 + (shift > 0 ? 2 : -2);
-    const len3 = Math.max(2, len - 2);
-    for (let i = 0; i < len3; i++) {
-      this._note(P[this._ci(motif[i] + shift3)], vol * (0.15 + Math.random() * 0.12), t);
-      t += 0.45 + Math.random() * 0.55;
-    }
-
-    // Coda — gentle four-note resolution with harmony
-    t += 1.5 + Math.random() * 1.5;
-    const c = start + Math.floor(Math.random() * 3);
-    this._note(P[this._ci(c)], vol * 0.55, t);
-    t += 1.0 + Math.random() * 0.8;
-    this._note(P[this._ci(c + 2)], vol * 0.42, t);
-    this._note(P[this._ci(c + 4)], vol * 0.22, t + 0.04);
-    t += 0.85 + Math.random() * 0.7;
-    this._note(P[this._ci(c + 1)], vol * 0.32, t);
-    t += 0.75 + Math.random() * 0.6;
-    this._note(P[this._ci(c)], vol * 0.25, t);
+    // Coda — just the first two notes of the call, a final whisper of the question
+    t += 1.5;
+    this._note(P[this._ci(root + call[0])], vol * 0.25, t);
+    t += callRhythm[0];
+    this._note(P[this._ci(root + call[1])], vol * 0.15, t);
   }
 
-  // ── 3. Falling Leaves — long descent with catches, flutter pairs, updrafts, and fading volume ──
+  // ── 3. Falling Leaves — passacaglia: descending motif repeated with fading volume ──
+  //    Identity: the tumbling shape (0, -1, 1, -2, -1, -3, -2, -4) — always falling.
 
   fallingLeaves() {
     const P = GameMusic.POOL;
-    const count = 14 + Math.floor(Math.random() * 10);
-    const vol = 0.009 + Math.random() * 0.005;
-    let idx = this._ci(Math.floor(P.length * 0.70 + Math.random() * P.length * 0.25));
-    const startIdx = idx;
+    const vol = 0.009 + Math.random() * 0.004;
+    const root = 10 + Math.floor(Math.random() * 3); // start high
+    // FIXED MOTIF — the leaf's tumble pattern (down with catches)
+    const motif = [0, -1, 1, -2, -1, -3, -2, -4];
+    // Ground bass — the earth below
+    const bass = [-8, -7, -9, -6];
+    // Rhythm — irregular like a leaf drifting
+    const rhythm = [1.1, 0.7, 1.3, 0.6, 1.0, 1.5, 0.8, 1.8];
     let t = 0;
 
-    // Opening high shimmer — the wind that shakes the tree
-    this._note(P[this._ci(idx + 2)], vol * 0.18, t);
-    this._note(P[this._ci(idx + 3)], vol * 0.12, t + 0.15);
-    t += 1.2 + Math.random() * 1.0;
+    // Wind shimmer — the tree shaking
+    this._note(P[this._ci(root + 2)], vol * 0.18, t);
+    this._note(P[this._ci(root + 3)], vol * 0.12, t + 0.15);
+    t += 2.0 + Math.random() * 1.0;
 
-    for (let i = 0; i < count; i++) {
-      const progress = i / count;
-      // Volume fades gently as leaves settle, with slight swell at midpoint
-      const midSwell = 1.0 + 0.25 * Math.sin(Math.PI * progress);
-      const noteVol = vol * (0.50 + 0.50 * (1 - progress)) * midSwell * (0.6 + Math.random() * 0.4);
-      this._note(P[idx], noteVol, t);
+    // 5 passes: first leaf → more leaves → updraft → many leaves(peak) → settling
+    for (let pass = 0; pass < 5; pass++) {
+      // Volume fades across passes — leaves settling
+      const passVol = [0.55, 0.75, 0.65, 1.0, 0.35][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 3;
+      const isUpdraft = pass === 2;
+      const isPeak = pass === 3;
 
-      // Catch sparkle — third or fifth above
-      if (Math.random() < 0.22) {
-        const interval = Math.random() < 0.7 ? 2 : 4;
-        this._note(P[this._ci(idx + interval)], noteVol * 0.25, t + 0.20 + Math.random() * 0.15);
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.22, t);
       }
 
-      // Flutter pair — two notes in quick succession
-      if (Math.random() < 0.20) {
-        const flutter = this._ci(idx + (Math.random() < 0.5 ? 1 : -1));
-        this._note(P[flutter], noteVol * 0.35, t + 0.30 + Math.random() * 0.15);
+      // Each pass the motif starts slightly lower — the tree is emptying
+      const drift = -pass;
+
+      for (let n = 0; n < motif.length; n++) {
+        let noteIdx = this._ci(root + motif[n] + drift);
+
+        // Updraft pass: the "catch" notes (positive offsets) go higher
+        if (isUpdraft && motif[n] > 0) noteIdx = this._ci(noteIdx + 2);
+        // Peak: flutter pair on the catch notes
+        if (isPeak && motif[n] >= 0 && Math.random() < 0.50) {
+          this._note(P[this._ci(noteIdx + 1)], passVol * 0.25, t + 0.15);
+        }
+
+        this._note(P[noteIdx], passVol * (0.50 + Math.random() * 0.50), t);
+
+        // Sparkle catch on some notes
+        if ((n === 2 || n === 4) && Math.random() < 0.40) {
+          this._note(P[this._ci(noteIdx + 2)], passVol * 0.18, t + 0.20 + Math.random() * 0.10);
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.80 + Math.random() * 0.40);
       }
 
-      // Low bass anchor every 6 notes — ground beneath the leaves
-      if (i % 6 === 0 && idx > 4) {
-        this._note(P[this._ci(1 + Math.floor(Math.random() * 3))], vol * 0.15, t + 0.05);
-      }
-
-      // Updraft moment — brief rise before continuing to fall
-      if (i > count * 0.4 && i < count * 0.7 && Math.random() < 0.15) {
-        t += 0.3;
-        idx = this._ci(idx + 2);
-        this._note(P[idx], noteVol * 0.6, t);
-        t += 0.25;
-        idx = this._ci(idx + 1);
-        this._note(P[idx], noteVol * 0.4, t);
-      }
-
-      t += 0.70 + Math.random() * 1.2;
-      if (i % 3 === 2) t += 0.8 + Math.random() * 1.2;
-      // Occasional long contemplative pause
-      if (Math.random() < 0.08) t += 2.0 + Math.random() * 2.5;
-
-      const r = Math.random();
-      if (r < 0.68)       idx = this._ci(idx - 1);
-      else if (r < 0.83)  idx = this._ci(idx + 1);
-      // else: repeat (leaf hovering)
+      t += 2.5 + Math.random() * 2.0;
     }
 
-    // Final settling — two very quiet notes
-    t += 1.0;
-    this._note(P[idx], vol * 0.15, t);
-    t += 1.2 + Math.random() * 0.8;
-    this._note(P[this._ci(idx - 1)], vol * 0.08, t);
+    // Final — the last leaf, the first note of the motif, barely audible
+    t += 1.5;
+    this._note(P[this._ci(root + motif[0] - 5)], vol * 0.10, t);
   }
 
-  // ── 4. Spread Arpeggio — chord fans with counter-voice, bass pedal, and peak stab ──
+  // ── 4. Spread Arpeggio — passacaglia: chord fan motif, ascending then descending ──
+  //    Identity: the spread shape (0, 2, 4, 7, 4, 2) — a hand opening and closing.
 
   spreadArpeggio() {
     const P = GameMusic.POOL;
-    const vol = 0.009 + Math.random() * 0.004;
+    const vol = 0.009 + Math.random() * 0.003;
     const root = 2 + Math.floor(Math.random() * 4);
-    const tones = [root, root + 2, root + 4, root + 7];
-    if (Math.random() > 0.30) tones.push(root + 9);
-    if (Math.random() > 0.55) tones.push(root + 11); // extended to 6th
-
+    // FIXED MOTIF — the chord fan, always the same intervals
+    const motif = [0, 2, 4, 7, 4, 2, 0, -1];
+    // Bass — open fifths, unresolved
+    const bass = [-3, -5, -2, -4];
+    // Rhythm — accelerates up, decelerates down (the fan shape)
+    const rhythm = [1.0, 0.75, 0.60, 0.55, 0.60, 0.75, 1.0, 1.6];
     let t = 0;
-    const passes = 4 + Math.floor(Math.random() * 2); // 4–5 passes
 
-    // Bass pedal opens the piece
-    this._note(P[this._ci(root - 3)], vol * 0.22, t);
+    // 5 passes: bare → +bass → +counter(contrary motion) → full(climax) → fade
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.45, 0.60, 0.78, 1.0, 0.38][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 3;
+      const hasCounter = pass >= 2 && pass <= 3;
+      const isClimax = pass === 3;
+      const isFade = pass === 4;
 
-    for (let p = 0; p < passes; p++) {
-      const order = p % 2 === 0 ? [...tones] : [...tones].reverse();
-      // Volume arc across passes — swell to middle then recede
-      const passArc = Math.sin(Math.PI * p / passes);
-      const passVol = vol * (0.55 + passArc * 0.45);
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.25, t);
+      }
 
-      for (let n = 0; n < order.length; n++) {
-        const mainVol = passVol * (0.55 + Math.random() * 0.45);
-        this._note(P[this._ci(order[n])], mainVol, t);
+      const notesToPlay = isFade ? 5 : motif.length;
 
-        // Counter-voice on later passes
-        if (p >= passes - 2 && Math.random() < 0.38) {
-          const contra = this._ci(order[n] + (p % 2 === 0 ? -2 : 2));
-          this._note(P[contra], mainVol * 0.25, t + 0.06);
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Climax: the peak note (index 3) gets octave doubling
+        if (isClimax && n === 3) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.16, t + 0.04);
         }
+        // Counter-voice — moves opposite to the motif
+        if (hasCounter && (n === 1 || n === 5) && Math.random() < 0.55) {
+          const contra = this._ci(noteIdx + (motif[n] > 2 ? -2 : 2));
+          this._note(P[contra], passVol * 0.22, t + 0.05);
+        }
+        // Fade: notes drift lower — the hand relaxing
+        if (isFade) noteIdx = this._ci(noteIdx - 1);
 
-        t += 0.75 + Math.random() * 1.1;
+        this._note(P[noteIdx], passVol * (0.55 + Math.random() * 0.45), t);
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.82 + Math.random() * 0.36);
       }
 
-      // Chord stab at sweep peak
-      const peak = this._ci(Math.max(...order));
-      this._note(P[peak], passVol * 0.45, t);
-      this._note(P[this._ci(peak - 2)], passVol * 0.25, t + 0.03);
-
-      // Bass re-anchor between passes
-      if (p < passes - 1 && Math.random() < 0.6) {
-        this._note(P[this._ci(root - 3)], vol * 0.16, t + 0.10);
+      // Chord stab at peak of climax
+      if (isClimax) {
+        const peak = this._ci(root + 7);
+        this._note(P[peak], passVol * 0.40, t);
+        this._note(P[this._ci(peak - 2)], passVol * 0.22, t + 0.03);
       }
 
-      t += 1.5 + Math.random() * 2.2;
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[(pass + 1) % bass.length])], passVol * 0.18, t + 0.08);
+      }
+
+      t += 2.0 + Math.random() * 2.0;
     }
 
-    // Final soft open chord — root + third + fifth ringing out
-    this._note(P[this._ci(root)], vol * 0.30, t);
-    this._note(P[this._ci(root + 2)], vol * 0.20, t + 0.04);
-    this._note(P[this._ci(root + 4)], vol * 0.14, t + 0.08);
+    // Final open chord
+    this._note(P[this._ci(root)], vol * 0.25, t);
+    this._note(P[this._ci(root + 2)], vol * 0.18, t + 0.04);
+    this._note(P[this._ci(root + 4)], vol * 0.12, t + 0.08);
   }
 
-  // ── 5. Lullaby — rocking 3-feel with bass anchors, harmony, and starlight sparkles ──
+  // ── 5. Lullaby — passacaglia: rocking motif in 3-feel with bass warmth ──
+  //    Identity: the rocking shape (up, up, down, rest, up, down, down) — a cradle.
 
   lullaby() {
     const P = GameMusic.POOL;
-    const count = 14 + Math.floor(Math.random() * 8);
-    const vol = 0.007 + Math.random() * 0.004;
-    let idx = 5 + Math.floor(Math.random() * (P.length - 8));
-    const homeIdx = idx;
+    const vol = 0.008 + Math.random() * 0.003;
+    const root = 5 + Math.floor(Math.random() * 3);
+    // FIXED MOTIF — Lullaby's rocking cradle (gentle 3/4 feel)
+    const motif = [0, 2, 3, 1, 3, 2, 0, -1];
+    // Warm bass — low, simple, like a heartbeat
+    const bass = [-4, -3, -5, -4];
+    // 3/4 rocking rhythm: long-short-short-long-short-short-long-long
+    const rhythm = [1.4, 0.85, 0.90, 1.5, 0.80, 0.95, 1.3, 1.8];
     let t = 0;
 
-    // Opening bass warmth — sets the cradle rocking
-    this._note(P[this._ci(homeIdx - 4)], vol * 0.20, t);
-    t += 0.8 + Math.random() * 0.5;
+    // 6 passes: hum → cradle → +bass → +harmony(warmth) → +sparkle(peak) → sleep
+    for (let pass = 0; pass < 6; pass++) {
+      const passVol = [0.35, 0.50, 0.65, 0.85, 1.0, 0.28][pass] * vol;
+      const hasBass = pass >= 2 && pass <= 4;
+      const hasHarmony = pass >= 3 && pass <= 4;
+      const hasStar = pass === 4;
+      const isSleep = pass === 5;
 
-    for (let i = 0; i < count; i++) {
-      const swell = Math.sin(Math.PI * i / count + 0.3);
-      const noteVol = vol * (0.40 + swell * 0.60);
-
-      this._note(P[idx], noteVol, t);
-
-      // Rocking bass anchor every 3rd note
-      if (i % 3 === 0 && idx > 3) {
-        this._note(P[this._ci(idx - 3)], noteVol * 0.35, t + 0.05);
+      // Bass warmth at pass start
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.30, t);
       }
 
-      // Harmony on the rocking upbeat — soft third
-      if (i % 3 === 1 && Math.random() < 0.35) {
-        this._note(P[this._ci(idx + 2)], noteVol * 0.22, t + 0.03);
+      // Sleep pass: only first 5 notes, very soft, slowing
+      const notesToPlay = isSleep ? 5 : motif.length;
+      let sleepSlow = 0;
+
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Pass 3: the 4th note (the "rest" position) gets a harmony third
+        if (pass === 3 && n === 3) {
+          this._note(P[this._ci(noteIdx + 2)], passVol * 0.22, t + 0.04);
+        }
+        // Pass 4 (peak): octave sparkle on the high note
+        if (hasStar && n === 2) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.14, t + 0.30 + Math.random() * 0.15);
+        }
+        // Sleep pass: each note slightly lower than intended — drifting off
+        if (isSleep && n >= 3) noteIdx = this._ci(noteIdx - 1);
+
+        this._note(P[noteIdx], passVol * (0.55 + Math.random() * 0.45), t);
+
+        // Rocking bass on every 3rd note (the downbeat of each 3/4 measure)
+        if (hasBass && n % 3 === 0) {
+          this._note(P[this._ci(root + bass[(pass + n) % bass.length])], passVol * 0.22, t + 0.05);
+        }
+
+        // Harmony third on upbeats during warm passes
+        if (hasHarmony && n % 3 === 1 && Math.random() < 0.55) {
+          this._note(P[this._ci(noteIdx + 2)], passVol * 0.18, t + 0.03);
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        if (isSleep) sleepSlow += 0.12;
+        t += baseT * (0.85 + Math.random() * 0.30) + sleepSlow;
       }
 
-      // High sparkle on occasional downbeats
-      if (i % 4 === 0 && Math.random() < 0.45 && idx < P.length - 5) {
-        this._note(P[this._ci(idx + 5)], noteVol * 0.18, t + 0.35 + Math.random() * 0.20);
-      }
-
-      // Deep bass pedal restatement at the dynamic peak
-      if (i === Math.floor(count / 2)) {
-        this._note(P[this._ci(homeIdx - 5)], vol * 0.18, t + 0.08);
-      }
-
-      // Rocking feel: alternate long-short gaps (3/4 lilt) — wider spacing
-      t += (i % 2 === 0) ? 1.3 + Math.random() * 0.75 : 0.80 + Math.random() * 0.60;
-      // Occasional extra-long pause — the breath between lullaby phrases
-      if (i % 6 === 5) t += 1.2 + Math.random() * 1.5;
-
-      if (i % 2 === 0) idx = this._ci(idx + (Math.random() < 0.6 ? 1 : 2));
-      else              idx = this._ci(idx - 1);
+      // Breath between passes — the rocking pause
+      t += pass === 4 ? 3.0 + Math.random() * 2.0 : 2.0 + Math.random() * 1.5;
     }
 
-    // Gentle close — two notes fading into sleep
-    t += 1.0 + Math.random() * 0.8;
-    this._note(P[this._ci(idx)], vol * 0.30, t);
-    t += 1.5 + Math.random() * 1.0;
-    this._note(P[this._ci(homeIdx)], vol * 0.15, t);
+    // Final note — the baby is asleep, just the root, barely there
+    t += 1.0;
+    this._note(P[this._ci(root)], vol * 0.12, t);
   }
 
-  // ── 6. Free Wander — four-section journey with pedal tones and harmonic landmarks ──
+  // ── 6. Free Wander — passacaglia: a walking motif that ventures out and returns ──
+  //    Identity: the wanderer's step (0, 1, 3, 2, 4, 3, 1, 0) — always the same gait.
 
   freeWander() {
     const P = GameMusic.POOL;
-    const vol = 0.010 + Math.random() * 0.005;
-    let idx = 5 + Math.floor(Math.random() * (P.length - 10));
-    const home = idx;
+    const vol = 0.010 + Math.random() * 0.004;
+    const root = 5 + Math.floor(Math.random() * 3);
+    // FIXED MOTIF — the wanderer's path (out and back)
+    const motif = [0, 1, 3, 2, 4, 3, 1, 0];
+    // Each section transposes the motif further from home
+    const sectionShifts = [0, 2, 5, 3, 0]; // home → near → far → returning → home
+    // Bass — home anchor
+    const bass = [-4, -3, -5, -2];
+    // Walking rhythm — steady with slight limp
+    const rhythm = [1.2, 0.9, 1.1, 1.0, 1.3, 0.85, 1.0, 1.6];
     let t = 0;
 
-    // Opening home pedal — the place you start from
-    this._note(P[this._ci(home - 3)], vol * 0.18, t);
+    // 5 sections: home → wander near → far reaches → return → home again
+    for (let sec = 0; sec < 5; sec++) {
+      const shift = sectionShifts[sec];
+      const secVol = [0.50, 0.70, 1.0, 0.75, 0.40][sec] * vol;
+      const hasBass = sec >= 1 && sec <= 3;
+      const isFar = sec === 2;
+      const isHome = sec === 0 || sec === 4;
 
-    // 4 sections: neutral meander | wander away | far reaches | drift back
-    for (let sec = 0; sec < 4; sec++) {
-      const count = 6 + Math.floor(Math.random() * 8);
-
-      for (let i = 0; i < count; i++) {
-        const noteVol = vol * (0.55 + Math.random() * 0.45);
-        this._note(P[idx], noteVol, t);
-
-        // Harmonic color — dyads on some notes
-        if (Math.random() < 0.20) {
-          const interval = Math.random() < 0.6 ? 2 : 4;
-          this._note(P[this._ci(idx + interval)], noteVol * 0.22, t + 0.04);
-        }
-
-        // Pedal anchor at section boundaries
-        if (i === 0 && sec > 0) {
-          this._note(P[this._ci(home - 3)], vol * 0.14, t + 0.06);
-        }
-
-        t += 0.65 + Math.random() * 1.3;
-        if (Math.random() < 0.20) t += 1.2 + Math.random() * 2.0;
-        if (i > 0 && i % 4 === 0) t += 0.8 + Math.random() * 1.2;
-
-        const r = Math.random();
-        if (sec === 1) {
-          if (r < 0.55)      idx = this._ci(idx + 1);
-          else if (r < 0.80) idx = this._ci(idx - 1);
-          else                idx = this._ci(idx + 2);
-        } else if (sec === 2) {
-          // Far reaches — wider leaps, more adventurous
-          if (r < 0.40)      idx = this._ci(idx + 2);
-          else if (r < 0.65) idx = this._ci(idx - 1);
-          else if (r < 0.85) idx = this._ci(idx + 3);
-          else                idx = this._ci(idx - 2);
-        } else if (sec === 3) {
-          const towardHome = idx > home ? -1 : 1;
-          if (r < 0.55)      idx = this._ci(idx + towardHome);
-          else if (r < 0.80) idx = this._ci(idx - towardHome);
-          else                idx = this._ci(idx + towardHome * 2);
-        } else {
-          if (r < 0.40)      idx = this._ci(idx + 1);
-          else if (r < 0.72) idx = this._ci(idx - 1);
-          else if (r < 0.85) idx = this._ci(idx + 2 + Math.floor(Math.random() * 2));
-        }
-
-        if (idx < 2) idx = this._ci(idx + 1);
-        if (idx > P.length - 2) idx = this._ci(idx - 1);
+      // Home pedal at start of home sections
+      if (isHome) {
+        this._note(P[this._ci(root + bass[0])], secVol * 0.25, t);
+      }
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[sec % bass.length])], secVol * 0.22, t);
       }
 
-      t += 2.5 + Math.random() * 3.0;
+      for (let n = 0; n < motif.length; n++) {
+        let noteIdx = this._ci(root + motif[n] + shift);
+
+        // Far reaches: wider leap on note 4 — the adventure moment
+        if (isFar && n === 4) noteIdx = this._ci(noteIdx + 2);
+        // Return home: notes gravitate lower — weariness
+        if (sec === 3 && n >= 5) noteIdx = this._ci(noteIdx - 1);
+        // Final home: the path is slightly different — you've changed
+        if (sec === 4 && n === 3) noteIdx = this._ci(noteIdx + 1);
+
+        this._note(P[noteIdx], secVol * (0.55 + Math.random() * 0.45), t);
+
+        // Harmonic color on far reaches
+        if (isFar && (n === 2 || n === 4) && Math.random() < 0.50) {
+          this._note(P[this._ci(noteIdx + 2)], secVol * 0.20, t + 0.04);
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.80 + Math.random() * 0.40);
+        // Occasional long pause to take in the view
+        if (n === 4 && Math.random() < 0.30) t += 1.5 + Math.random() * 1.5;
+      }
+
+      t += 2.5 + Math.random() * 2.5;
     }
 
-    // Arrival home — root with fifth harmony
-    this._note(P[home], vol * 0.35, t);
-    this._note(P[this._ci(home + 4)], vol * 0.18, t + 0.05);
+    // Arrival — root and fifth, home but different
+    this._note(P[this._ci(root)], vol * 0.28, t);
+    this._note(P[this._ci(root + 4)], vol * 0.16, t + 0.05);
   }
 
-  // ── 7. Ripple — two stone drops, expanding/contracting with harmonic reflections ──
+  // ── 7. Ripple — passacaglia: symmetric expand/contract motif, like concentric circles ──
+  //    Identity: the ripple shape — center, ±1, ±2, ±3 — always symmetric.
 
   ripple() {
     const P = GameMusic.POOL;
-    const vol = 0.009 + Math.random() * 0.005;
-    const center = 5 + Math.floor(Math.random() * (P.length - 10));
-    const maxRings = 6 + Math.floor(Math.random() * 3); // 6–8
+    const vol = 0.009 + Math.random() * 0.004;
+    const root = 6 + Math.floor(Math.random() * 3);
+    // FIXED MOTIF — the ripple: center out to edge and back (symmetric pairs)
+    const motif = [0, 1, -1, 2, -2, 3, -3, 0]; // expand then return
+    // Deep bass — the depth of the pond
+    const bass = [-5, -4, -6, -3];
+    // Rhythm — pairs close together, gaps between rings
+    const rhythm = [1.0, 0.35, 0.45, 0.35, 0.50, 0.35, 0.55, 2.0];
     let t = 0;
 
-    // Drop the stone — center note with harmonic splash
-    this._note(P[center], vol, t);
-    this._note(P[this._ci(center + 2)], vol * 0.25, t + 0.05);
-    // Deep bass — the stone sinking
-    this._note(P[this._ci(center - 5)], vol * 0.18, t + 0.08);
-    t += 1.0 + Math.random() * 0.7;
+    // 5 passes: stone drop → first ripple → second ripple → wide rings(peak) → stillness
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.55, 0.65, 0.80, 1.0, 0.30][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 3;
+      const isPeak = pass === 3;
+      const isStill = pass === 4;
 
-    // Expanding phase — wider spacing for contemplation
-    for (let r = 1; r <= maxRings; r++) {
-      const lo = this._ci(center - r);
-      const hi = this._ci(center + r);
-      const softer = vol * (0.45 + 0.55 / (r + 1));
-
-      if (r % 2 === 0) {
-        this._note(P[hi], softer * (0.7 + Math.random() * 0.3), t);
-        t += 0.35 + Math.random() * 0.35;
-        this._note(P[lo], softer * (0.7 + Math.random() * 0.3), t);
-      } else {
-        this._note(P[lo], softer * (0.7 + Math.random() * 0.3), t);
-        t += 0.35 + Math.random() * 0.35;
-        this._note(P[hi], softer * (0.7 + Math.random() * 0.3), t);
+      // Stone drop: the center note, louder than the rest
+      if (pass === 0) {
+        this._note(P[this._ci(root)], passVol * 1.2, t);
+        this._note(P[this._ci(root - 5)], passVol * 0.25, t + 0.08); // depth splash
+        t += 1.5 + Math.random() * 0.8;
       }
-      // Reflection harmonic on every other ring
-      if (r % 2 === 0 && Math.random() < 0.4) {
-        this._note(P[this._ci(center)], softer * 0.15, t + 0.12);
+
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.22, t);
       }
-      t += 0.65 + Math.random() * 0.80;
+
+      // Each pass the ripple expands further — multiply the offsets
+      const spread = 1 + pass * 0.3;
+      const notesToPlay = isStill ? 4 : motif.length;
+
+      for (let n = 0; n < notesToPlay; n++) {
+        const offset = Math.round(motif[n] * spread);
+        let noteIdx = this._ci(root + offset);
+
+        // Peak: harmony on the widest ring notes
+        if (isPeak && Math.abs(motif[n]) >= 2 && Math.random() < 0.50) {
+          this._note(P[this._ci(noteIdx + 2)], passVol * 0.18, t + 0.06);
+        }
+        // Peak: center echo when returning to 0
+        if (isPeak && motif[n] === 0 && n > 0) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.10, t + 0.12);
+        }
+
+        this._note(P[noteIdx], passVol * (0.50 + Math.random() * 0.50), t);
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.80 + Math.random() * 0.40);
+      }
+
+      t += pass === 3 ? 3.5 + Math.random() * 2.0 : 2.0 + Math.random() * 1.5;
     }
 
-    // Silence — ripple travels across the pond
-    t += 1.5 + Math.random() * 2.0;
-
-    // Second stone — smaller, offset
-    const center2 = this._ci(center + (Math.random() < 0.5 ? 2 : -2));
-    this._note(P[center2], vol * 0.65, t);
-    t += 0.8 + Math.random() * 0.5;
-
-    // Second smaller expanding phase
-    const rings2 = Math.floor(maxRings * 0.6);
-    for (let r = 1; r <= rings2; r++) {
-      const lo = this._ci(center2 - r);
-      const hi = this._ci(center2 + r);
-      const softer = vol * (0.30 + 0.30 / (r + 1));
-      this._note(P[lo], softer, t);
-      t += 0.30 + Math.random() * 0.25;
-      this._note(P[hi], softer, t);
-      t += 0.55 + Math.random() * 0.65;
-    }
-
-    // Long contemplative silence
-    t += 2.0 + Math.random() * 2.5;
-
-    // Contracting phase — all ripples returning inward
-    for (let r = maxRings; r >= 1; r--) {
-      const lo = this._ci(center - r);
-      const hi = this._ci(center + r);
-      const faint = vol * (0.12 + 0.12 / r);
-
-      this._note(P[hi], faint * (0.6 + Math.random() * 0.4), t);
-      t += 0.28 + Math.random() * 0.25;
-      this._note(P[lo], faint * (0.6 + Math.random() * 0.4), t);
-      t += 0.45 + Math.random() * 0.55;
-    }
-
-    // Center returns — barely a whisper, with a harmonic ghost
-    t += 0.5 + Math.random() * 0.6;
-    this._note(P[center], vol * 0.30, t);
-    this._note(P[this._ci(center + 4)], vol * 0.10, t + 0.08);
+    // Final center note — the pond is still again
+    this._note(P[this._ci(root)], vol * 0.18, t);
   }
 
-  // ── 8. Music Box — A-B-A structure with bass, crescendo arc, and winding-down coda ──
+  // ── 8. Music Box — passacaglia: mechanical pattern that winds up, plays, and winds down ──
+  //    Identity: the stepwise ascending turn (0,1,2,3,2,1), like a cylinder's pins.
 
   musicBox() {
     const P = GameMusic.POOL;
-    const vol = 0.008 + Math.random() * 0.004;
-    const baseIdx = 7 + Math.floor(Math.random() * 5);
-    const patLen = 5 + Math.floor(Math.random() * 3);
-
-    // Build pattern A
-    const patternA = [];
-    let idx = baseIdx;
-    for (let i = 0; i < patLen; i++) {
-      patternA.push(idx);
-      const step = Math.random() < 0.6 ? 1 : (Math.random() < 0.5 ? 2 : -1);
-      idx = this._ci(idx + step);
-    }
-
-    // Pattern B — stepwise descent variation
-    const patternB = patternA.map(n => this._ci(n - 1 - Math.floor(Math.random() * 2)));
-
-    // Pattern C — inverted (mirror) of A
-    const patternC = patternA.map(n => this._ci(baseIdx + (baseIdx - n)));
-
+    const vol = 0.008 + Math.random() * 0.003;
+    const root = 7 + Math.floor(Math.random() * 4);
+    // FIXED MOTIF — Music Box's cylinder pattern (stepwise, mechanical)
+    const motifA = [0, 1, 3, 4, 3, 1];
+    // B section — the cylinder's other side (inversion)
+    const motifB = [0, -1, -2, -3, -2, 0];
+    // Bass — simple pendulum
+    const bass = [-4, -3, -5, -4];
+    // Mechanical rhythm — very regular, slight swing
+    const rhythm = [0.48, 0.42, 0.48, 0.55, 0.42, 0.52];
     let t = 0;
-    const totalReps = 5 + Math.floor(Math.random() * 3); // 5–7 repeats
 
-    for (let rep = 0; rep < totalReps; rep++) {
-      const mid = Math.floor(totalReps / 2);
-      const useB = rep === mid;
-      const useC = rep === mid + 1;
-      const pat = useB ? patternB : useC ? patternC : patternA;
+    // 7 passes: wind-up(slow) → A → A+bass → B → A+harmony(climax) → A(strip) → wind-down(slow)
+    for (let pass = 0; pass < 7; pass++) {
+      const isWindUp = pass === 0;
+      const isWindDown = pass === 6;
+      const isB = pass === 3;
+      const isClimax = pass === 4;
+      const isStrip = pass === 5;
+      const motif = isB ? motifB : motifA;
+      const passVol = [0.30, 0.55, 0.70, 0.65, 1.0, 0.45, 0.25][pass] * vol;
+      const hasBass = pass >= 2 && pass <= 4;
+      const hasHarmony = pass === 4;
 
-      // Volume arc: swell to midpoint, then gently decay
-      const progress = rep / totalReps;
-      const repVol = vol * (progress < 0.5
-        ? 0.50 + progress * 1.0
-        : 1.0 - (progress - 0.5) * 0.55);
-
-      // Bass pedal at start of each repeat
-      if (rep % 2 === 0) {
-        this._note(P[this._ci(baseIdx - 4)], repVol * 0.22, t - 0.04);
+      // Bass at pass start
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.25, t);
       }
 
-      for (let i = 0; i < pat.length; i++) {
-        let ni = pat[i];
-        if (rep > 0 && Math.random() < 0.14) ni = this._ci(ni + (Math.random() < 0.5 ? 1 : -1));
-        this._note(P[ni], repVol * (0.55 + Math.random() * 0.45), t);
+      // Wind-up/down: play fewer notes, slower
+      const notesToPlay = (isWindUp || isWindDown) ? 4 : motif.length;
+      const tempoMult = isWindUp ? 1.8 : isWindDown ? 2.2 : 1.0;
+      // Wind-down decelerates per note
+      let windSlowdown = 0;
 
-        // Occasional harmony on stressed notes
-        if (i === 0 && Math.random() < 0.3) {
-          this._note(P[this._ci(ni + 2)], repVol * 0.20, t + 0.03);
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n % motif.length]);
+
+        // Climax: octave doubling on the peak
+        if (isClimax && n === 3) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.18, t + 0.03);
+        }
+        // Strip-back: last note shifts up — the box almost remembers wrong
+        if (isStrip && n === motif.length - 1) noteIdx = this._ci(noteIdx + 1);
+
+        this._note(P[noteIdx], passVol * (0.60 + Math.random() * 0.40), t);
+
+        // Harmony on strong beats during climax
+        if (hasHarmony && (n === 0 || n === 3) && Math.random() < 0.65) {
+          this._note(P[this._ci(noteIdx + 2)], passVol * 0.22, t + 0.04);
         }
 
-        t += 0.35 + Math.random() * 0.30;
+        const baseT = rhythm[n % rhythm.length] * tempoMult;
+        if (isWindDown) windSlowdown += 0.08;
+        t += baseT * (0.88 + Math.random() * 0.24) + windSlowdown;
       }
-      t += 0.65 + Math.random() * 0.95;
+
+      // Short breath between mechanical cycles
+      t += (isWindUp || isWindDown) ? 1.5 + Math.random() * 1.0 : 0.8 + Math.random() * 0.6;
     }
 
-    // Winding-down coda — the music box slowing to a stop
-    t += 0.8 + Math.random() * 0.5;
-    let codaTempo = 0.40;
-    for (let i = 0; i < Math.min(4, patternA.length); i++) {
-      this._note(P[patternA[i]], vol * (0.35 - i * 0.06), t);
-      t += codaTempo;
-      codaTempo += 0.15 + Math.random() * 0.10; // slowing down
-    }
+    // Final click — the box stops
+    t += 0.5;
+    this._note(P[this._ci(root + motifA[0])], vol * 0.12, t);
   }
 
-  // ── 9. Cascade — alternating runs with harmonic landings, bass anchors, and a final waterfall ──
+  // ── 9. Cascade — passacaglia: descending run motif with landing chords ──
+  //    Identity: the waterfall shape — 7 rapid steps down, then a held landing.
 
   cascade() {
     const P = GameMusic.POOL;
-    const vol = 0.009 + Math.random() * 0.005;
-    const rounds = 4 + Math.floor(Math.random() * 3); // 4–6 cascades
+    const vol = 0.009 + Math.random() * 0.004;
+    const root = 12 + Math.floor(Math.random() * 3); // start high to fall
+    // FIXED MOTIF — the cascade: rapid descent then landing
+    const motif = [0, -1, -2, -3, -4, -5, -6, -7];
+    // Landing notes — where each cascade pools (different each pass)
+    const landings = [-7, -5, -8, -6, -9];
+    // Bass — deep pools
+    const bass = [-9, -8, -10, -7];
+    // Rhythm — accelerates down the fall, slow on landing
+    const rhythm = [0.22, 0.18, 0.15, 0.13, 0.12, 0.13, 0.15, 0.20];
     let t = 0;
 
-    // Opening bass foundation
-    this._note(P[this._ci(2)], vol * 0.18, t);
+    // 5 passes: trickle → stream → falls → torrent(peak) → calm pool
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.40, 0.60, 0.80, 1.0, 0.35][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 3;
+      const isTorrent = pass === 3;
+      const isCalm = pass === 4;
 
-    for (let r = 0; r < rounds; r++) {
-      const descending = (r % 2 === 0 || Math.random() < 0.65);
-      let idx = descending
-        ? this._ci(P.length - 2 - Math.floor(Math.random() * 5))
-        : this._ci(1 + Math.floor(Math.random() * 5));
-      const runLen = 6 + Math.floor(Math.random() * 6);
-
-      // Arc the speed — start slow, quicken, then slow for landing
-      for (let i = 0; i < runLen; i++) {
-        const arcPos = i / runLen;
-        const speed = arcPos < 0.3
-          ? 0.22 + Math.random() * 0.12
-          : arcPos > 0.7
-            ? 0.18 + Math.random() * 0.10
-            : 0.12 + Math.random() * 0.07;
-        const noteVol = vol * (0.30 + Math.random() * 0.30 + arcPos * 0.15);
-        this._note(P[idx], noteVol, t);
-        t += speed;
-        idx = this._ci(descending ? idx - 1 : idx + 1);
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.22, t);
       }
 
-      // Landing note — held and full with harmony
+      // Each pass starts from a slightly different height
+      const startShift = pass < 3 ? 0 : (pass === 3 ? 1 : -2);
+      const notesToPlay = isCalm ? 5 : motif.length;
+
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n] + startShift);
+
+        // Torrent: occasional splash note (random high sparkle)
+        if (isTorrent && n === 3 && Math.random() < 0.50) {
+          this._note(P[this._ci(noteIdx + 6)], passVol * 0.15, t + 0.05);
+        }
+
+        this._note(P[noteIdx], passVol * (0.45 + Math.random() * 0.55), t);
+
+        const baseT = rhythm[n % rhythm.length];
+        // Calm: everything slower
+        const tempoMult = isCalm ? 2.5 : isTorrent ? 0.80 : 1.0;
+        t += baseT * tempoMult * (0.85 + Math.random() * 0.30);
+      }
+
+      // Landing chord
+      const landIdx = this._ci(root + landings[pass]);
       t += 0.10;
-      this._note(P[idx], vol * (0.75 + Math.random() * 0.25), t);
-
-      // Landing harmony — third and sometimes fifth
-      if (Math.random() < 0.55) {
-        this._note(P[this._ci(idx + 2)], vol * 0.30, t + 0.04);
-      }
-      if (Math.random() < 0.25) {
-        this._note(P[this._ci(idx + 4)], vol * 0.18, t + 0.07);
+      this._note(P[landIdx], passVol * 0.80, t);
+      if (Math.random() < 0.60) {
+        this._note(P[this._ci(landIdx + 2)], passVol * 0.30, t + 0.04);
       }
 
-      // Bass re-anchor after landing
-      if (r % 2 === 0) {
-        this._note(P[this._ci(1 + Math.floor(Math.random() * 3))], vol * 0.15, t + 0.10);
-      }
-
-      t += 2.8 + Math.random() * 3.0;
+      t += 2.5 + Math.random() * 2.5;
     }
 
-    // Final long waterfall — one continuous descent
-    let finalIdx = this._ci(P.length - 2);
-    for (let i = 0; i < 8; i++) {
-      this._note(P[finalIdx], vol * (0.20 - i * 0.02), t);
-      t += 0.18 + i * 0.03;
-      finalIdx = this._ci(finalIdx - 1);
-    }
+    // Final: one last drop, the first note of the motif, echoing
+    this._note(P[this._ci(root + motif[0])], vol * 0.15, t);
   }
 
-  // ── 10. Echo Reflection — three echo tiers, bass shadows, and merging chord finale ──
+  // ── 10. Echo Reflection — passacaglia: call motif with tiered echoes at fixed intervals ──
+  //    Identity: the echo shape — note, then 5th-up echo, then octave echo — always 3 tiers.
 
   echoReflection() {
     const P = GameMusic.POOL;
-    const vol = 0.010 + Math.random() * 0.005;
-    const count = 9 + Math.floor(Math.random() * 6); // 9–14
-    let idx = 3 + Math.floor(Math.random() * (P.length - 8));
+    const vol = 0.010 + Math.random() * 0.004;
+    const root = 4 + Math.floor(Math.random() * 3);
+    // FIXED MOTIF — the source sounds that create echoes
+    const motif = [0, 2, 1, 3, 0, 4, 2, -1];
+    // Echo intervals — always the same reflections
+    const echoUp = [5, 10]; // 5th-up echo, octave echo
+    const echoDelay = [0.32, 0.70]; // delay times
+    const echoVol = [0.25, 0.09]; // volumes
+    // Bass — the cave walls
+    const bass = [-5, -4, -6, -3];
+    // Rhythm — slow, reverberant
+    const rhythm = [1.6, 1.3, 1.8, 1.2, 1.5, 1.4, 1.7, 2.2];
     let t = 0;
 
-    // Deep opening tone — the cave walls that create the echo
-    this._note(P[this._ci(idx - 4)], vol * 0.16, t);
-    t += 0.8;
+    // Cave opening tone
+    this._note(P[this._ci(root + bass[0])], vol * 0.18, t);
+    t += 1.5 + Math.random() * 1.0;
 
-    for (let i = 0; i < count; i++) {
-      const arc = Math.sin(Math.PI * i / count);
-      const mainVol = vol * (0.50 + arc * 0.50);
+    // 5 passes: whisper → clear → +bass → full echoes(peak) → fading
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.38, 0.55, 0.72, 1.0, 0.32][pass] * vol;
+      const echoTiers = [1, 1, 2, 2, 1][pass]; // how many echo tiers are active
+      const hasBass = pass >= 2 && pass <= 3;
+      const isPeak = pass === 3;
 
-      // Main note
-      this._note(P[idx], mainVol, t);
-
-      // First echo — octave up, softer
-      this._note(P[this._ci(idx + 5)], mainVol * 0.25, t + 0.32 + Math.random() * 0.20);
-
-      // Second echo — two octaves up, very faint
-      if (Math.random() < 0.65) {
-        this._note(P[this._ci(idx + 10)], mainVol * 0.09, t + 0.68 + Math.random() * 0.20);
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.22, t);
       }
 
-      // Third echo — three octaves (if in range), ghostly
-      if (Math.random() < 0.30 && idx + 15 < P.length) {
-        this._note(P[this._ci(idx + 15)], mainVol * 0.04, t + 1.10 + Math.random() * 0.25);
+      const notesToPlay = pass === 4 ? 5 : motif.length;
+
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Peak: one note gets an extra alternative echo at a 4th
+        if (isPeak && n === 3) {
+          this._note(P[this._ci(noteIdx + 3)], passVol * 0.14, t + 0.48);
+        }
+
+        this._note(P[noteIdx], passVol * (0.55 + Math.random() * 0.45), t);
+
+        // Fixed echo reflections — always the same intervals, always recognizable
+        for (let e = 0; e < echoTiers; e++) {
+          if (Math.random() < 0.75) { // slight randomness in whether echo appears
+            this._note(P[this._ci(noteIdx + echoUp[e])],
+              passVol * echoVol[e], t + echoDelay[e] * (0.85 + Math.random() * 0.30));
+          }
+        }
+
+        // Bass shadow every 3rd note
+        if (hasBass && n % 3 === 0) {
+          this._note(P[this._ci(noteIdx - 5)], passVol * 0.12, t + 0.15);
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.82 + Math.random() * 0.36);
       }
 
-      // Alternative interval echo — fourth or sixth
-      if (Math.random() < 0.28) {
-        const altEcho = this._ci(idx + (Math.random() < 0.5 ? 3 : 4));
-        this._note(P[altEcho], mainVol * 0.14, t + 0.48 + Math.random() * 0.15);
-      }
-
-      // Bass shadow — deep reflection of the main note
-      if (i % 3 === 0 && idx > 4) {
-        this._note(P[this._ci(idx - 5)], mainVol * 0.14, t + 0.15);
-      }
-
-      t += 1.4 + Math.random() * 1.2;
-      // Occasional long reverberant pause
-      if (Math.random() < 0.12) t += 2.0 + Math.random() * 2.0;
-
-      const r = Math.random();
-      if (r < 0.45)      idx = this._ci(idx + 1);
-      else if (r < 0.80) idx = this._ci(idx - 1);
-      else                idx = this._ci(idx + 2);
+      t += 2.5 + Math.random() * 2.0;
     }
 
-    // Final chord where all echoes merge — full triad with bass
-    t += 1.2 + Math.random() * 1.0;
-    this._note(P[this._ci(idx - 5)], vol * 0.20, t);
-    this._note(P[idx], vol * 0.45, t + 0.02);
-    this._note(P[this._ci(idx + 2)], vol * 0.28, t + 0.05);
-    this._note(P[this._ci(idx + 4)], vol * 0.18, t + 0.08);
+    // Final merging chord — all echoes converge
+    t += 1.0;
+    this._note(P[this._ci(root - 5)], vol * 0.18, t);
+    this._note(P[this._ci(root)], vol * 0.38, t + 0.02);
+    this._note(P[this._ci(root + 2)], vol * 0.25, t + 0.05);
+    this._note(P[this._ci(root + 4)], vol * 0.16, t + 0.08);
   }
 
-  // ── 11. Starlight — vast, sparse, with deep pedals, clusters, and constellations ──
+  // ── 11. Starlight — passacaglia: sparse high motif over deep void pedals ──
+  //    Identity: the wide-leap twinkle shape (up 5, down 2, up 3), like Orion.
 
   starlight() {
     const P = GameMusic.POOL;
-    const vol = 0.006 + Math.random() * 0.004;
-    const count = 14 + Math.floor(Math.random() * 10); // 14–23 twinkles
+    const vol = 0.007 + Math.random() * 0.003;
+    const root = 8 + Math.floor(Math.random() * 3); // high register
+    // FIXED MOTIF — Starlight's constellation pattern (wide leaps)
+    const motif = [0, 5, 3, 6, 2, 7, 4, 1];
+    // Deep bass cycle — the void
+    const bass = [-7, -6, -8, -5];
+    // Very slow rhythm — vast spaces between stars
+    const rhythm = [2.8, 2.2, 3.0, 1.8, 2.5, 3.2, 2.0, 3.8];
     let t = 0;
 
-    // Opening deep space tone — the vastness before stars appear
-    this._note(P[this._ci(1)], vol * 0.18, t);
-    t += 2.0 + Math.random() * 1.5;
+    // Opening void — deep pedal before any stars
+    this._note(P[this._ci(root + bass[0])], vol * 0.20, t);
+    t += 3.5 + Math.random() * 2.0;
 
-    for (let i = 0; i < count; i++) {
-      const arc = Math.sin(Math.PI * i / count);
-      const noteVol = vol * (0.30 + arc * 0.70);
+    // 6 passes: appearing → brightening → constellation → full sky → clouds → last star
+    for (let pass = 0; pass < 6; pass++) {
+      const passVol = [0.35, 0.50, 0.70, 1.0, 0.55, 0.25][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 4;
+      const hasTwinkle = pass >= 2 && pass <= 4;
+      const isFullSky = pass === 3;
+      const isLast = pass === 5;
 
-      const idx = this._ci(Math.floor(P.length * 0.45) + Math.floor(Math.random() * (P.length * 0.55)));
-      this._note(P[idx], noteVol * (0.5 + Math.random() * 0.5), t);
-
-      // Quick pair twinkle
-      if (Math.random() < 0.30) {
-        t += 0.22 + Math.random() * 0.22;
-        this._note(P[this._ci(idx + (Math.random() < 0.5 ? 1 : -1))], noteVol * 0.45, t);
+      // Void bass at pass start
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.30, t);
       }
 
-      // Constellation cluster — 3 nearby stars near the peak
-      if (i > count * 0.35 && i < count * 0.65 && Math.random() < 0.22) {
-        t += 0.18 + Math.random() * 0.15;
-        this._note(P[this._ci(idx + 2)], noteVol * 0.30, t);
-        t += 0.15 + Math.random() * 0.12;
-        this._note(P[this._ci(idx + 1)], noteVol * 0.22, t);
+      for (let n = 0; n < motif.length; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Pass 3 (full sky): peak note gets octave doubling
+        if (isFullSky && (n === 3 || n === 5)) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.12, t + 0.08);
+        }
+        // Pass 4: constellation shifts — notes 2,4 move up one (the sky rotating)
+        if (pass === 4 && (n === 2 || n === 4)) noteIdx = this._ci(noteIdx + 1);
+        // Last pass: only play half the motif — stars fading
+        if (isLast && n >= 5) break;
+
+        this._note(P[noteIdx], passVol * (0.5 + Math.random() * 0.5), t);
+
+        // Twinkle pair — quick neighbor note
+        if (hasTwinkle && (n === 1 || n === 5) && Math.random() < 0.60) {
+          const neighbor = this._ci(noteIdx + (Math.random() < 0.5 ? 1 : -1));
+          this._note(P[neighbor], passVol * 0.30, t + 0.22 + Math.random() * 0.15);
+        }
+
+        // Shooting star on climax pass — rare ascending run
+        if (isFullSky && n === 6 && Math.random() < 0.45) {
+          for (let s = 0; s < 3; s++) {
+            this._note(P[this._ci(noteIdx - 2 + s)], passVol * (0.18 - s * 0.04), t + 0.5 + s * 0.15);
+          }
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.80 + Math.random() * 0.40);
       }
 
-      // Harmony dyad — two stars shining together
-      if (Math.random() < 0.18) {
-        this._note(P[this._ci(idx + 4)], noteVol * 0.20, t + 0.04);
+      // Deep bass between passes
+      if (hasBass && pass < 5) {
+        this._note(P[this._ci(root + bass[(pass + 1) % bass.length])], passVol * 0.22, t);
       }
 
-      // Deep pedal tone — the void between stars
-      if (i % 4 === 0 && Math.random() < 0.55) {
-        this._note(P[this._ci(1 + Math.floor(Math.random() * 4))], vol * 0.22, t + 0.08);
-      }
-
-      // Shooting star — rare quick ascending pair
-      if (Math.random() < 0.08) {
-        const shootStart = this._ci(idx - 2);
-        this._note(P[shootStart], noteVol * 0.25, t + 0.5);
-        this._note(P[this._ci(shootStart + 3)], noteVol * 0.15, t + 0.65);
-      }
-
-      t += 1.8 + Math.random() * 3.2;
-      // Extra-long pause for spaciousness
-      if (Math.random() < 0.10) t += 2.5 + Math.random() * 3.0;
+      // Breath between passes — very long, the sky is patient
+      t += pass === 3 ? 4.5 + Math.random() * 2.5 : 3.0 + Math.random() * 2.0;
     }
 
-    // Final fading star
-    t += 1.0;
-    this._note(P[this._ci(P.length - 3 + Math.floor(Math.random() * 3))], vol * 0.12, t);
+    // Final single note — the last star before dawn
+    this._note(P[this._ci(root + motif[0])], vol * 0.15, t);
   }
 
-  // ── 12. Hymn — A-A-B-A-C structure with full harmony, bass, and "Amen" cadence ──
+  // ── 12. Hymn — passacaglia: A-A-B-A with fixed chorale motif and Amen cadence ──
+  //    Identity: the hymn melody (0,2,4,3,1,2,0) — a congregation's voice.
 
   hymn() {
     const P = GameMusic.POOL;
-    const vol = 0.011 + Math.random() * 0.004;
-    let idx = 4 + Math.floor(Math.random() * 4);
-    const homeIdx = idx;
+    const vol = 0.010 + Math.random() * 0.004;
+    const root = 4 + Math.floor(Math.random() * 3);
+    // FIXED MOTIF — Hymn's chorale melody
+    const motifA = [0, 2, 4, 3, 1, 2, 0];
+    // B section — a third higher, searching
+    const motifB = [2, 4, 6, 5, 3, 4, 2];
+    // Bass cycle — I-vi-IV-V (hymn-like)
+    const bass = [-5, -3, -2, -4];
+    // Stately rhythm — regular, dignified
+    const rhythm = [1.1, 0.9, 1.0, 1.2, 0.9, 1.0, 1.5];
     let t = 0;
 
-    // Opening bass pedal
-    this._note(P[this._ci(homeIdx - 4)], vol * 0.22, t);
+    // 5 sections: A → A+bass → B → A+harmony(climax) → A(quiet) → Amen
+    for (let sec = 0; sec < 5; sec++) {
+      const isB = sec === 2;
+      const isClimax = sec === 3;
+      const isQuiet = sec === 4;
+      const motif = isB ? motifB : motifA;
+      const secVol = [0.50, 0.65, 0.72, 1.0, 0.40][sec] * vol;
+      const hasBass = sec >= 1 && sec <= 3;
+      const hasHarmony = sec >= 3;
 
-    // 5 bars: A – A – B – A – C (coda variation)
-    for (let bar = 0; bar < 5; bar++) {
-      const isB = bar === 2;
-      const isC = bar === 4;
-      if (isB) idx = this._ci(homeIdx + 2);
-      if (isC) idx = this._ci(homeIdx - 1); // C drops down — reflective
-
-      const beats = isC ? 3 : 4; // C section is shorter — winding down
-
-      for (let beat = 0; beat < beats; beat++) {
-        const beatVol = vol * (0.55 + Math.random() * 0.45);
-        this._note(P[idx], beatVol, t);
-
-        // Harmony on strong beats — third or fifth
-        if (beat % 2 === 0 && Math.random() < 0.58) {
-          const interval = Math.random() < 0.65 ? 2 : 4;
-          this._note(P[this._ci(idx + interval)], beatVol * 0.32, t + 0.03);
-        }
-
-        // Bass note on beat 1 — grounding
-        if (beat === 0 && idx > 4) {
-          this._note(P[this._ci(idx - 4)], beatVol * 0.25, t + 0.05);
-        }
-
-        // Grace note approach — makes the melody sing
-        if (beat === 2 && Math.random() < 0.25) {
-          this._note(P[this._ci(idx - 1)], beatVol * 0.15, t - 0.06);
-        }
-
-        t += 1.0 + Math.random() * 0.75;
-
-        const r = Math.random();
-        if (isB) {
-          if (r < 0.50)      idx = this._ci(idx + 1);
-          else if (r < 0.75) idx = this._ci(idx - 1);
-          else                idx = this._ci(idx + 2);
-        } else if (isC) {
-          // C gravitates downward — settling
-          if (r < 0.55)      idx = this._ci(idx - 1);
-          else if (r < 0.80) idx = this._ci(idx + 1);
-          else                idx = this._ci(idx - 2);
-        } else {
-          if (r < 0.40)       idx = this._ci(idx + 1);
-          else if (r < 0.75)  idx = this._ci(idx - 1);
-          else if (r < 0.88)  idx = this._ci(idx + 2);
-        }
+      // Bass at section start
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[sec % bass.length])], secVol * 0.28, t);
       }
 
-      t += 1.0 + Math.random() * 1.4;
-      if (isB) idx = homeIdx;
+      for (let n = 0; n < motif.length; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Climax: octave doubling on the peak (note 2, which is the highest)
+        if (isClimax && n === 2) {
+          this._note(P[this._ci(noteIdx + 5)], secVol * 0.18, t + 0.04);
+        }
+        // Quiet: last note drifts down — the hymn settling
+        if (isQuiet && n === motif.length - 1) noteIdx = this._ci(noteIdx - 1);
+
+        this._note(P[noteIdx], secVol * (0.60 + Math.random() * 0.40), t);
+
+        // Harmony third on strong beats
+        if (hasHarmony && (n === 0 || n === 2 || n === 4) && Math.random() < 0.65) {
+          this._note(P[this._ci(noteIdx + 2)], secVol * 0.25, t + 0.03);
+        }
+
+        // Bass on beat 1 and midpoint
+        if (hasBass && (n === 0 || n === 3)) {
+          this._note(P[this._ci(root + bass[(sec + n) % bass.length])], secVol * 0.20, t + 0.05);
+        }
+
+        t += rhythm[n] * (0.85 + Math.random() * 0.30);
+      }
+
+      // Breath between sections
+      t += sec === 3 ? 3.0 + Math.random() * 2.0 : 2.0 + Math.random() * 1.5;
     }
 
-    // "Amen" cadence — IV → I with full voicing
-    t += 0.5;
-    this._note(P[this._ci(homeIdx - 4)], vol * 0.25, t);       // bass
-    this._note(P[this._ci(homeIdx + 3)], vol * 0.55, t + 0.02); // IV
-    this._note(P[this._ci(homeIdx + 5)], vol * 0.35, t + 0.05);
-    t += 1.5 + Math.random() * 0.8;
-    this._note(P[this._ci(homeIdx - 5)], vol * 0.22, t);       // bass
-    this._note(P[homeIdx], vol * 0.65, t + 0.02);               // I
-    this._note(P[this._ci(homeIdx + 2)], vol * 0.40, t + 0.05);
-    this._note(P[this._ci(homeIdx + 4)], vol * 0.28, t + 0.08);
+    // "Amen" cadence — IV → I, always the same resolution
+    t += 1.0;
+    // IV chord
+    this._note(P[this._ci(root - 4)], vol * 0.22, t);
+    this._note(P[this._ci(root + 3)], vol * 0.50, t + 0.02);
+    this._note(P[this._ci(root + 5)], vol * 0.32, t + 0.05);
+    t += 1.8 + Math.random() * 0.8;
+    // I chord
+    this._note(P[this._ci(root - 5)], vol * 0.20, t);
+    this._note(P[this._ci(root)], vol * 0.58, t + 0.02);
+    this._note(P[this._ci(root + 2)], vol * 0.38, t + 0.05);
+    this._note(P[this._ci(root + 4)], vol * 0.25, t + 0.08);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -2122,177 +2221,220 @@ export class GameMusic {
     dustSrc.start(dustT); dustSrc.stop(dustT + dustDur + 0.01);
   }
 
-  // ── 13. Distant Rain — sparse high drips over a low sustained hum ──
+  // ── 13. Distant Rain — passacaglia: a rain pattern that builds, pours, and passes ──
+  //    Identity: the drip-drip-drop shape (high, high, low) — always the same rain.
 
   distantRain() {
     const P = GameMusic.POOL;
-    const vol = 0.007 + Math.random() * 0.004;
+    const vol = 0.007 + Math.random() * 0.003;
+    const root = 10 + Math.floor(Math.random() * 3); // high register for drops
+    // FIXED MOTIF — Rain's drip pattern (high sparse drops with puddle responses)
+    const motif = [0, 2, -3, 1, 3, -2, 0, -4];
+    // Deep sky bass — the cloud layer
+    const bass = [-8, -7, -9, -6];
+    // Rain rhythm — irregular but recognizable (the specific pattern of THIS rain)
+    const rhythm = [1.8, 1.2, 2.5, 0.9, 1.5, 2.2, 1.6, 3.0];
     let t = 0;
 
-    // Low sustained hum — the sky before rain
-    const humIdx = this._ci(1 + Math.floor(Math.random() * 3));
-    this._note(P[humIdx], vol * 0.22, t);
+    // Sky before rain — low hum
+    this._note(P[this._ci(root + bass[0])], vol * 0.20, t);
+    t += 3.0 + Math.random() * 2.0;
 
-    t += 1.5 + Math.random() * 1.5;
+    // 6 passes: first drops → drizzle → rain → pour(climax) → easing → last drops
+    for (let pass = 0; pass < 6; pass++) {
+      const passVol = [0.28, 0.45, 0.65, 1.0, 0.50, 0.22][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 4;
+      const isPour = pass === 3;
+      const isLast = pass === 5;
 
-    // Rain drops — mostly high register, sparse, irregular timing
-    const drops = 16 + Math.floor(Math.random() * 12);
-    for (let i = 0; i < drops; i++) {
-      const progress = i / drops;
-      // Rain intensifies mid-piece then eases
-      const intensity = Math.sin(Math.PI * progress);
-      const dropIdx = this._ci(Math.floor(P.length * 0.55) + Math.floor(Math.random() * (P.length * 0.45)));
-      const dropVol = vol * (0.25 + intensity * 0.55) * (0.5 + Math.random() * 0.5);
-
-      this._note(P[dropIdx], dropVol, t);
-
-      // Occasional double drop — two drops landing close together
-      if (Math.random() < 0.22) {
-        const near = this._ci(dropIdx + (Math.random() < 0.5 ? 1 : -1));
-        this._note(P[near], dropVol * 0.55, t + 0.12 + Math.random() * 0.10);
+      // Cloud bass
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.25, t);
       }
 
-      // Puddle ripple — lower note responding to a drop
-      if (Math.random() < 0.15) {
-        this._note(P[this._ci(dropIdx - 4)], dropVol * 0.25, t + 0.25 + Math.random() * 0.15);
+      // Last drops: only play half the motif
+      const notesToPlay = isLast ? 4 : motif.length;
+      // Pour: faster rhythm
+      const tempoMult = isPour ? 0.65 : isLast ? 1.4 : 1.0;
+
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Pass 2: the "puddle" notes (negative offsets) get a ripple echo
+        if (pass === 2 && motif[n] < 0) {
+          this._note(P[this._ci(noteIdx - 1)], passVol * 0.18, t + 0.20 + Math.random() * 0.10);
+        }
+        // Pour: every drop gets a double-hit echo (heavy rain)
+        if (isPour && Math.random() < 0.55) {
+          const echo = this._ci(noteIdx + (Math.random() < 0.5 ? 1 : -1));
+          this._note(P[echo], passVol * 0.30, t + 0.10 + Math.random() * 0.08);
+        }
+        // Pour: higher notes shimmer (rain catching light)
+        if (isPour && motif[n] >= 2) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.10, t + 0.06);
+        }
+        // Last drops: notes drift slightly flat — the rain losing energy
+        if (isLast && n >= 2) noteIdx = this._ci(noteIdx - 1);
+
+        this._note(P[noteIdx], passVol * (0.45 + Math.random() * 0.55), t);
+
+        const baseT = rhythm[n % rhythm.length] * tempoMult;
+        t += baseT * (0.80 + Math.random() * 0.40);
       }
 
-      // Low hum re-anchor every 5 drops
-      if (i % 5 === 0 && i > 0) {
-        this._note(P[humIdx], vol * 0.16, t + 0.08);
+      // Cloud bass between passes
+      if (hasBass && pass < 5) {
+        this._note(P[this._ci(root + bass[(pass + 1) % bass.length])], passVol * 0.18, t);
       }
 
-      // Irregular spacing — key to the rain feel
-      const baseGap = intensity > 0.5 ? 0.8 : 1.6;
-      t += baseGap + Math.random() * (intensity > 0.5 ? 1.5 : 3.0);
-
-      // Occasional long pause — a break in the clouds
-      if (Math.random() < 0.08) t += 3.0 + Math.random() * 3.0;
+      // Gap between rain waves
+      t += isPour ? 2.0 + Math.random() * 1.5 : 3.0 + Math.random() * 2.5;
     }
 
-    // Final few drops, very quiet, rain passing
-    t += 1.5;
-    for (let i = 0; i < 3; i++) {
-      const idx = this._ci(Math.floor(P.length * 0.6) + Math.floor(Math.random() * 5));
-      this._note(P[idx], vol * (0.12 - i * 0.03), t);
-      t += 2.0 + Math.random() * 2.5;
-    }
+    // After-rain silence... then one final drop
+    t += 4.0 + Math.random() * 3.0;
+    this._note(P[this._ci(root + motif[0])], vol * 0.10, t);
   }
 
-  // ── 14. Meadow Walk — wide intervals, bright and pastoral with birdsong sparkles ──
+  // ── 14. Meadow Walk — passacaglia: wide-leap pastoral motif with birdsong ──
+  //    Identity: the open-stride shape (0, 3, 1, 5, 2, 4, 0) — big steps, open sky.
 
   meadowWalk() {
     const P = GameMusic.POOL;
-    const vol = 0.010 + Math.random() * 0.004;
-    let idx = 3 + Math.floor(Math.random() * 4);
+    const vol = 0.010 + Math.random() * 0.003;
+    const root = 3 + Math.floor(Math.random() * 3);
+    // FIXED MOTIF — wide pastoral leaps (open fourths and fifths)
+    const motif = [0, 3, 1, 5, 2, 4, 0, -1];
+    // Birdsong motif — fixed high sparkle pattern (always the same bird)
+    const bird = [14, 13, 15, 13];
+    // Bass — the ground, wide open
+    const bass = [-4, -3, -5, -2];
+    // Walking rhythm — steady, unhurried
+    const rhythm = [1.3, 1.0, 1.4, 0.9, 1.2, 1.1, 1.3, 1.8];
     let t = 0;
 
-    // Opening — wide interval leap upward, like stepping into sunlight
-    this._note(P[idx], vol * 0.45, t);
-    t += 0.8 + Math.random() * 0.5;
-    this._note(P[this._ci(idx + 5)], vol * 0.55, t);
-    t += 1.2 + Math.random() * 1.0;
+    // 5 passes: sunrise → walking → open field → hilltop(peak) → settling
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.42, 0.60, 0.78, 1.0, 0.38][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 3;
+      const hasBird = pass >= 2 && pass <= 3;
+      const isPeak = pass === 3;
 
-    // Walking melody — alternates between low grounded steps and high reaches
-    const steps = 12 + Math.floor(Math.random() * 8);
-    for (let i = 0; i < steps; i++) {
-      const arc = Math.sin(Math.PI * i / steps);
-      const noteVol = vol * (0.45 + arc * 0.55);
-
-      this._note(P[idx], noteVol, t);
-
-      // Wide interval harmony — fourths and fifths, open and pastoral
-      if (Math.random() < 0.30) {
-        const interval = Math.random() < 0.5 ? 3 : 4; // fourth or fifth
-        this._note(P[this._ci(idx + interval)], noteVol * 0.28, t + 0.04);
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.22, t);
       }
 
-      // Birdsong sparkle — very high, quick pair
-      if (Math.random() < 0.12 && i > 2) {
-        const birdIdx = this._ci(P.length - 3 + Math.floor(Math.random() * 3));
-        this._note(P[birdIdx], vol * 0.15, t + 0.5 + Math.random() * 0.3);
-        this._note(P[this._ci(birdIdx - 1)], vol * 0.10, t + 0.65 + Math.random() * 0.2);
+      const notesToPlay = pass === 4 ? 5 : motif.length;
+
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Peak: the high note (index 3, offset +5) gets open-fifth harmony
+        if (isPeak && n === 3) {
+          this._note(P[this._ci(noteIdx + 4)], passVol * 0.20, t + 0.04);
+        }
+        // Settling: notes pulled down by gravity
+        if (pass === 4 && n >= 3) noteIdx = this._ci(noteIdx - 1);
+
+        this._note(P[noteIdx], passVol * (0.55 + Math.random() * 0.45), t);
+
+        // Birdsong — always the same bird call, fixed intervals
+        if (hasBird && n === 4 && Math.random() < 0.55) {
+          for (let b = 0; b < bird.length; b++) {
+            this._note(P[this._ci(bird[b])], passVol * 0.12, t + 0.5 + b * 0.15);
+          }
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.82 + Math.random() * 0.36);
+        // Occasional vista pause
+        if (n === 3 && Math.random() < 0.25) t += 1.5 + Math.random() * 1.5;
       }
 
-      // Bass anchor every 4th step — the ground beneath your feet
-      if (i % 4 === 0 && idx > 3) {
-        this._note(P[this._ci(idx - 4)], noteVol * 0.20, t + 0.06);
-      }
-
-      // Wide step movement — bigger leaps than normal
-      const r = Math.random();
-      if (r < 0.30)      idx = this._ci(idx + 2);
-      else if (r < 0.50) idx = this._ci(idx - 1);
-      else if (r < 0.70) idx = this._ci(idx + 3);
-      else if (r < 0.85) idx = this._ci(idx - 2);
-      else                idx = this._ci(idx + 1);
-
-      t += 0.9 + Math.random() * 1.5;
-      // Long pause to take in the view
-      if (Math.random() < 0.10) t += 2.5 + Math.random() * 2.5;
+      t += 2.5 + Math.random() * 2.0;
     }
 
-    // Settling chord — arrived at the hilltop
-    t += 1.5;
-    this._note(P[this._ci(idx - 4)], vol * 0.18, t);
-    this._note(P[idx], vol * 0.35, t + 0.03);
-    this._note(P[this._ci(idx + 2)], vol * 0.25, t + 0.06);
-    this._note(P[this._ci(idx + 4)], vol * 0.18, t + 0.09);
+    // Hilltop chord — arrived, looking out
+    t += 1.0;
+    this._note(P[this._ci(root - 4)], vol * 0.16, t);
+    this._note(P[this._ci(root)], vol * 0.30, t + 0.03);
+    this._note(P[this._ci(root + 2)], vol * 0.22, t + 0.06);
+    this._note(P[this._ci(root + 4)], vol * 0.15, t + 0.09);
   }
 
-  // ── 15. Frozen Lake — crystalline, minimal, with deep resonance underneath ──
+  // ── 15. Frozen Lake — passacaglia: crystalline descending motif over deep ice drone ──
+  //    Identity: the falling-fifth shape (high → drop → step → drop), like ice cracking.
 
   frozenLake() {
     const P = GameMusic.POOL;
-    const vol = 0.006 + Math.random() * 0.004;
+    const vol = 0.007 + Math.random() * 0.003;
+    const root = 10 + Math.floor(Math.random() * 3); // high crystalline register
+    // FIXED MOTIF — Frozen Lake's identity: descending with a catch
+    const motif = [0, -2, -1, -4, -3, -5, -2, -6];
+    // Deep ice bass — very low, barely there
+    const bass = [-9, -8, -10, -7];
+    // Rhythm — slow with one quick "crack" pair
+    const rhythm = [3.2, 1.5, 2.8, 1.2, 2.5, 3.5, 1.8, 4.0];
     let t = 0;
 
-    // Deep ice resonance — the lake groaning beneath
-    this._note(P[this._ci(0)], vol * 0.22, t);
-    this._note(P[this._ci(1)], vol * 0.14, t + 0.8);
-    t += 2.0 + Math.random() * 1.5;
+    // Opening ice groan — deep resonance
+    this._note(P[this._ci(root + bass[0])], vol * 0.22, t);
+    this._note(P[this._ci(root + bass[1])], vol * 0.14, t + 1.2);
+    t += 4.0 + Math.random() * 2.0;
 
-    // Crystal notes — very high, very sparse, with huge gaps
-    const crystals = 10 + Math.floor(Math.random() * 8);
-    for (let i = 0; i < crystals; i++) {
-      const progress = i / crystals;
-      const arc = Math.sin(Math.PI * progress);
+    // 5 passes: silence → crystal → reflection → resonance(climax) → settling
+    for (let pass = 0; pass < 5; pass++) {
+      const passVol = [0.30, 0.50, 0.70, 1.0, 0.30][pass] * vol;
+      const hasBass = pass >= 1 && pass <= 3;
+      const hasRing = pass >= 2 && pass <= 3;
+      const isClimax = pass === 3;
+      const isSettling = pass === 4;
 
-      // High register — ice crystals catching light
-      const idx = this._ci(Math.floor(P.length * 0.6) + Math.floor(Math.random() * (P.length * 0.4)));
-      const noteVol = vol * (0.30 + arc * 0.50) * (0.5 + Math.random() * 0.5);
-
-      this._note(P[idx], noteVol, t);
-
-      // Ice crack — quick descending pair
-      if (Math.random() < 0.18) {
-        this._note(P[this._ci(idx - 1)], noteVol * 0.40, t + 0.10);
-        this._note(P[this._ci(idx - 2)], noteVol * 0.20, t + 0.18);
+      // Ice bass drone
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[pass % bass.length])], passVol * 0.28, t);
       }
 
-      // Harmonic overtone — the ice ringing
-      if (Math.random() < 0.25) {
-        this._note(P[this._ci(idx + 5)], noteVol * 0.15, t + 0.06);
+      const notesToPlay = isSettling ? 5 : motif.length;
+      for (let n = 0; n < notesToPlay; n++) {
+        let noteIdx = this._ci(root + motif[n]);
+
+        // Pass 2 (reflection): mirror the descent — some notes go UP instead
+        if (pass === 2 && (n === 2 || n === 4)) noteIdx = this._ci(root + Math.abs(motif[n]));
+        // Pass 3 (climax): octave doubling on the deep notes
+        if (isClimax && motif[n] <= -4) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.15, t + 0.06);
+        }
+        // Pass 4 (settling): all notes one step higher — the ice refreezing differently
+        if (isSettling) noteIdx = this._ci(noteIdx + 1);
+
+        this._note(P[noteIdx], passVol * (0.50 + Math.random() * 0.50), t);
+
+        // Ice ring — harmonic overtone on some notes
+        if (hasRing && (n === 0 || n === 3 || n === 7) && Math.random() < 0.55) {
+          this._note(P[this._ci(noteIdx + 5)], passVol * 0.12, t + 0.08);
+        }
+
+        // Crack pair — quick descending double on the short-rhythm notes
+        if (rhythm[n % rhythm.length] < 1.5 && Math.random() < 0.40) {
+          this._note(P[this._ci(noteIdx - 1)], passVol * 0.25, t + 0.10);
+        }
+
+        const baseT = rhythm[n % rhythm.length];
+        t += baseT * (0.80 + Math.random() * 0.40);
       }
 
-      // Deep resonance re-anchor every 4 notes
-      if (i % 4 === 0) {
-        const deepIdx = this._ci(Math.floor(Math.random() * 3));
-        this._note(P[deepIdx], vol * 0.16, t + 0.10);
+      // Deep ice groan between passes
+      if (hasBass) {
+        this._note(P[this._ci(root + bass[(pass + 2) % bass.length])], passVol * 0.18, t);
       }
 
-      // Very long gaps — the silence IS the music
-      t += 2.5 + Math.random() * 4.0;
-
-      // Extra-long pause sometimes — pure stillness
-      if (Math.random() < 0.12) t += 4.0 + Math.random() * 4.0;
+      // Long silence — the lake is vast and still
+      t += pass === 3 ? 5.0 + Math.random() * 3.0 : 4.0 + Math.random() * 2.5;
     }
 
-    // Final — ice settling, two very distant notes
-    t += 2.0;
-    this._note(P[this._ci(P.length - 2)], vol * 0.10, t);
-    t += 3.0 + Math.random() * 2.0;
-    this._note(P[this._ci(0)], vol * 0.12, t);
+    // Final: the very first note, alone, an octave lower — the lake remembers
+    this._note(P[this._ci(root + motif[0] - 5)], vol * 0.15, t);
   }
 
   // ═══════════════════════════════════════════════════════════
