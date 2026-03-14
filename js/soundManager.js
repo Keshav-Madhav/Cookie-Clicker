@@ -303,7 +303,20 @@ export class SoundManager {
   }
 
   getCurrentPieceName() { return this._getCurrentPiece().piece.name; }
+  getCurrentPieceIndex() { return this._getCurrentPiece().pieceIdx; }
   getGenerativeMelodyName() { return this._gameMusic ? this._gameMusic.getCurrentName() : ''; }
+  getPieces() { return this._pieces; }
+
+  /** Jump to the start of a specific symphony by index. */
+  playSymphony(pieceIdx) {
+    if (pieceIdx < 0 || pieceIdx >= this._pieces.length) return;
+    // Calculate the global melodyIndex for the first note of this piece
+    let idx = 0;
+    for (let i = 0; i < pieceIdx; i++) idx += this._pieces[i].notes.length;
+    this.game.stats.melodyIndex = idx;
+    // Ensure music is playing
+    if (!this._musicPlaying) this.startMusic();
+  }
   getCurrentBPM()       { return this._getCurrentPiece().piece.bpm; }
   /** Sync target = piece's own BPM. */
   getTargetClickBPM()   { return this.getCurrentBPM(); }

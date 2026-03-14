@@ -149,6 +149,11 @@ export class Game {
           this._openDebugPanel();
           this._typedKeys = '';
         }
+        // Check if "music" was typed — open music player
+        if (this._typedKeys.endsWith('music')) {
+          this._openMusicPlayer();
+          this._typedKeys = '';
+        }
       }
       // Reset idle timer on any key
       this._resetIdleTimer();
@@ -202,7 +207,7 @@ export class Game {
         case 'Escape': {
           // Close topmost overlay
           let closed = false;
-          const overlays = ['building-info-panel', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
+          const overlays = ['building-info-panel', 'music-overlay', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
           for (const id of overlays) {
             const ol = document.getElementById(id);
             if (ol && !ol.classList.contains('hidden')) {
@@ -764,16 +769,15 @@ export class Game {
 
   /** Keep the "Now Playing" widget in the middle panel up-to-date. */
   _updateNowPlaying() {
-    try {
-      const npTitle = document.getElementById('now-playing-title');
-      if (npTitle) {
-        const melodyName = this.soundManager.getGenerativeMelodyName();
-        const pieceName = this.soundManager.getCurrentPieceName();
-        npTitle.textContent = melodyName || pieceName || '';
-      }
-      const npWrap = document.getElementById('now-playing');
-      if (npWrap) npWrap.classList.toggle('active', this.settings.music && this.settings.musicVolume > 0);
-    } catch (_) { /* soundManager not ready yet */ }
+    if (!this.soundManager?._ctx) return; // not ready yet
+    const npTitle = document.getElementById('now-playing-title');
+    if (npTitle) {
+      const melodyName = this.soundManager.getGenerativeMelodyName();
+      const pieceName = this.soundManager.getCurrentPieceName();
+      npTitle.textContent = melodyName || pieceName || '';
+    }
+    const npWrap = document.getElementById('now-playing');
+    if (npWrap) npWrap.classList.toggle('active', this.settings.music && this.settings.musicVolume > 0);
   }
 
   setPurchaseAmount(amount) {
@@ -1592,6 +1596,117 @@ export class Game {
         });
       }
     }
+  }
+
+  // === Music Player ===
+
+  _openMusicPlayer() {
+    const overlay = document.getElementById("music-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    this._renderMusicPlayer();
+    if (this._musicPlayerInterval) clearInterval(this._musicPlayerInterval);
+    this._musicPlayerInterval = setInterval(() => this._updateMusicPlayerUI(), 250);
+
+    if (!this._musicPlayerBound) {
+      this._musicPlayerBound = true;
+      const close = () => {
+        overlay.classList.add("hidden");
+        this.soundManager.panelClose();
+        if (this._musicPlayerInterval) { clearInterval(this._musicPlayerInterval); this._musicPlayerInterval = null; }
+      };
+      document.getElementById("music-close").addEventListener("click", close);
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    }
+  }
+
+  _fmtTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+  }
+
+  _updateMusicPlayerUI() {
+    const gm = this.soundManager._gameMusic;
+    const name = gm ? gm.getCurrentName() : '';
+
+    // Progress bar
+    const nameEl = document.getElementById("music-progress-name");
+    const timeEl = document.getElementById("music-progress-time");
+    const fillEl = document.getElementById("music-progress-fill");
+    if (nameEl) nameEl.textContent = name || 'Nothing playing';
+    if (gm && name && gm._playStartTime) {
+      const elapsed = gm.getElapsed();
+      const total = gm._lastDuration || 30; // guard against 0/undefined
+      const pct = Math.min(100, (elapsed / total) * 100);
+      if (fillEl) fillEl.style.width = `${pct}%`;
+      if (timeEl) timeEl.textContent = `${this._fmtTime(elapsed)} / ${this._fmtTime(total)}`;
+    } else {
+      if (fillEl) fillEl.style.width = '0%';
+      if (timeEl) timeEl.textContent = '';
+    }
+
+    // Highlight playing track
+    document.querySelectorAll('.music-track').forEach(tr => {
+      tr.classList.toggle('playing', !!(name && tr.dataset.display === name));
+    });
+  }
+
+  _renderMusicPlayer() {
+    const body = document.getElementById("music-body");
+    if (!body) return;
+
+    const gm = this.soundManager._gameMusic;
+    let compositions, darkCompositions, displayNames;
+    if (gm) {
+      const C = gm.constructor;
+      compositions = C._COMPOSITIONS || [];
+      darkCompositions = C._DARK_COMPOSITIONS || [];
+      displayNames = C._DISPLAY_NAMES || {};
+    } else {
+      body.innerHTML = '<p class="music-hint">Enable music in settings to browse tracks.</p>';
+      return;
+    }
+
+    const makeTrack = (name, isDark) => {
+      const display = displayNames[name] || name;
+      return `<div class="music-track ${isDark ? 'dark' : ''}" data-name="${name}" data-display="${display}">
+        <span class="music-track-name">${display}</span>
+        <button class="music-track-play">Play</button>
+      </div>`;
+    };
+
+    body.innerHTML = `
+      <div class="music-section-label">Normal</div>
+      ${compositions.map(n => makeTrack(n, false)).join('')}
+      <div class="music-section-label">Grandmapocalypse</div>
+      ${darkCompositions.map(n => makeTrack(n, true)).join('')}
+    `;
+
+    // Play buttons — instant swap, auto-resumes after track ends
+    body.querySelectorAll('.music-track-play').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const track = btn.closest('.music-track');
+        const name = track.dataset.name;
+        this.soundManager._ensureContext();
+        if (!this.soundManager._gameMusic) this.soundManager.startMelody();
+        const m = this.soundManager._gameMusic;
+        if (m) {
+          // Cancel start()'s auto-play timer so it doesn't stomp the user's pick
+          if (m._timer) { clearTimeout(m._timer); m._timer = null; }
+          m.playTrackInstant(name);
+          this._updateMusicPlayerUI();
+        }
+      });
+    });
+
+    // Click track row = play
+    body.querySelectorAll('.music-track').forEach(track => {
+      track.addEventListener('click', () => track.querySelector('.music-track-play').click());
+    });
+
+    this._updateMusicPlayerUI();
   }
 
   // === Cookie Particles ===

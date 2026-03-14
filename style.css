@@ -6168,3 +6168,203 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Music Player Overlay ─────────────────────────────── */
+
+.music-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(6px);
+}
+
+.music-overlay.hidden { display: none; }
+
+.music-panel {
+  background: linear-gradient(160deg, #0a0a1a, #1a1a2e);
+  border: 1px solid rgba(120, 140, 255, 0.25);
+  border-radius: 12px;
+  width: min(520px, 92vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgba(100, 120, 255, 0.12);
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.music-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(120, 140, 255, 0.15);
+  background: rgba(120, 140, 255, 0.05);
+}
+
+.music-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #a0b0ff;
+  text-shadow: 0 0 10px rgba(120, 140, 255, 0.3);
+}
+
+.music-close-btn {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff5050;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.music-close-btn:hover { background: rgba(255, 80, 80, 0.3); }
+
+/* ── Progress Bar ── */
+
+.music-progress-area {
+  padding: 10px 16px;
+  background: rgba(120, 140, 255, 0.03);
+  border-bottom: 1px solid rgba(120, 140, 255, 0.08);
+}
+
+.music-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.music-progress-name {
+  font-size: 0.8rem;
+  color: #c0d0ff;
+}
+
+.music-progress-time {
+  font-size: 0.7rem;
+  color: rgba(120, 140, 255, 0.5);
+}
+
+.music-progress-bar {
+  height: 4px;
+  background: rgba(120, 140, 255, 0.10);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.music-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(120, 140, 255, 0.5), rgba(160, 180, 255, 0.7));
+  border-radius: 2px;
+  transition: width 0.25s linear;
+}
+
+/* ── Track List ── */
+
+.music-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.music-hint {
+  color: #8090cc;
+  font-size: 0.82rem;
+  padding: 12px 0;
+}
+
+/* ── Track Rows ── */
+
+.music-section-label {
+  margin: 8px 0 3px;
+  font-size: 0.68rem;
+  color: rgba(120, 140, 255, 0.40);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.music-section-label:first-child { margin-top: 0; }
+
+.music-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.10s;
+  border: 1px solid transparent;
+}
+
+.music-track:hover {
+  background: rgba(120, 140, 255, 0.07);
+  border-color: rgba(120, 140, 255, 0.12);
+}
+
+.music-track.playing {
+  background: rgba(120, 140, 255, 0.12);
+  border-color: rgba(120, 140, 255, 0.25);
+}
+
+.music-track.playing .music-track-name::before {
+  content: '\25B6\00a0';
+  font-size: 0.6rem;
+}
+
+.music-track-name {
+  flex: 1;
+  font-size: 0.78rem;
+  color: #b0c0e8;
+}
+
+.music-track.dark .music-track-name { color: #c88888; }
+
+.music-track-play {
+  background: rgba(120, 140, 255, 0.10);
+  border: 1px solid rgba(120, 140, 255, 0.18);
+  border-radius: 4px;
+  color: #a0b0ff;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: background 0.10s;
+}
+
+.music-track-play:hover { background: rgba(120, 140, 255, 0.20); }
+
+.music-track.playing .music-track-play {
+  background: rgba(255, 160, 60, 0.12);
+  border-color: rgba(255, 160, 60, 0.25);
+  color: #ffa040;
+}
+
+.music-track.dark .music-track-play {
+  background: rgba(200, 100, 100, 0.10);
+  border-color: rgba(200, 100, 100, 0.18);
+  color: #d09090;
+}
+
+.music-track.dark .music-track-play:hover { background: rgba(200, 100, 100, 0.20); }
+
+@media (max-width: 700px) {
+  .music-panel {
+    max-height: 90vh;
+    border-radius: 10px;
+  }
+}

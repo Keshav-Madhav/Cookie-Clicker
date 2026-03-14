@@ -14,12 +14,18 @@ export class GameMusic {
   /** @param {AudioContext} ctx  @param {GainNode} outputNode */
   constructor(ctx, outputNode) {
     this._ctx = ctx;
-    this._out = outputNode;
+    this._outDest = outputNode;  // the destination node we connect through
+    // Create a GainNode that all compositions route through.
+    // On apocalypse transitions, we swap this node to orphan old oscillators.
+    this._out = ctx.createGain();
+    this._out.gain.value = 1.0;
+    this._out.connect(outputNode);
     this._active = false;
     this._timer = null;
     this._currentName = '';
     this._apocalypseMode = 0; // 0 = normal, 1-3 = grandmapocalypse stage
     this._lastDuration = 40;  // estimated seconds of last composition
+    this._maxNoteEnd = 0;     // tracks the latest scheduled note end time
   }
 
   // ─── note pools ─────────────────────────────────────────────
@@ -41,30 +47,147 @@ export class GameMusic {
 
   // ─── lifecycle ──────────────────────────────────────────────
 
+  /**
+   * Fade out all currently playing notes (300ms), then swap the output node
+   * so old oscillators are orphaned. Returns a promise-like setTimeout callback.
+   * @param {Function} [onReady] — called when the fresh node is ready for new notes.
+   */
+  _fadeAndSwap(onReady) {
+    const ctx = this._ctx;
+    if (!ctx || !this._out) { if (onReady) onReady(); return; }
+
+    const oldOut = this._out;
+    const dest = this._outDest;
+    const t = ctx.currentTime;
+
+    // Fade out old node
+    oldOut.gain.setValueAtTime(oldOut.gain.value, t);
+    oldOut.gain.linearRampToValueAtTime(0.001, t + 0.30);
+
+    // Disconnect old node right after fade completes — orphans all old oscillators
+    setTimeout(() => { try { oldOut.disconnect(); } catch (_) {} }, 320);
+
+    // Create fresh output node
+    setTimeout(() => {
+      const fresh = ctx.createGain();
+      fresh.gain.setValueAtTime(1.0, ctx.currentTime);
+      fresh.connect(dest);
+      this._out = fresh;
+      if (onReady) onReady();
+    }, 350);
+  }
+
   /** Set apocalypse mode: 0 = normal, 1-3 = stage.
-   *  Fast crossfade (~300 ms) into a new composition from the new pool. */
+   *  Fast crossfade into a new composition from the new pool. */
   setApocalypseMode(stage) {
     const prev = this._apocalypseMode;
     this._apocalypseMode = stage;
     if (prev === stage || !this._active) return;
 
-    // Kill pending schedule
     if (this._timer) { clearTimeout(this._timer); this._timer = null; }
 
-    // Fast fade-out of current audio (300 ms)
+    // Generation counter prevents stale callbacks if called rapidly
+    this._swapGen = (this._swapGen || 0) + 1;
+    const gen = this._swapGen;
+    this._fadeAndSwap(() => {
+      if (!this._active || this._swapGen !== gen) return;
+      this._safePlay();
+      this._schedule();
+    });
+  }
+
+  /** Play a specific composition by name, fading out any current notes first. */
+  playTrack(name) {
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+    this._swapGen = (this._swapGen || 0) + 1;
+    const gen = this._swapGen;
+    const displayNames = this.constructor._DISPLAY_NAMES || {};
+    this._fadeAndSwap(() => {
+      if (this._swapGen !== gen) return; // stale callback
+      if (typeof this[name] === 'function') {
+        this._currentName = displayNames[name] || name;
+        try {
+          this._lastDuration = this._runComposition(name) || 30;
+        } catch (e) {
+          console.error(`[GameMusic] Composition "${name}" failed:`, e);
+          this._lastDuration = 5;
+          this._currentName = '';
+        }
+        this._playStartTime = performance.now();
+      }
+    });
+  }
+
+  /** Play a composition instantly — no fade, immediate swap.
+   *  Used by the music player UI for responsive track switching.
+   *  Auto-resumes normal scheduling after the track finishes. */
+  playTrackInstant(name) {
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
     const ctx = this._ctx;
-    if (ctx && this._out) {
-      const t = ctx.currentTime;
-      this._out.gain.setValueAtTime(this._out.gain.value, t);
-      this._out.gain.linearRampToValueAtTime(0.001, t + 0.30);
-      // Restore gain after fade, then play new composition
-      setTimeout(() => {
-        if (!this._active) return;
-        this._out.gain.setValueAtTime(1.0, ctx.currentTime);
-        this._play();
-        this._schedule();
-      }, 350);
+    if (!ctx) return;
+
+    // Disconnect old output immediately — kills all in-flight notes
+    try { this._out.disconnect(); } catch (_) {}
+
+    // Fresh output node
+    const fresh = ctx.createGain();
+    fresh.gain.value = 1.0;
+    fresh.connect(this._outDest);
+    this._out = fresh;
+
+    // Play
+    const displayNames = this.constructor._DISPLAY_NAMES || {};
+    if (typeof this[name] === 'function') {
+      this._currentName = displayNames[name] || name;
+      try {
+        this._lastDuration = this._runComposition(name) || 30;
+      } catch (e) {
+        console.error(`[GameMusic] Composition "${name}" failed:`, e);
+        this._lastDuration = 5;
+        this._currentName = '';
+      }
+      this._playStartTime = performance.now();
+    } else {
+      // Invalid track name — clear state, don't break scheduling
+      console.error(`[GameMusic] Unknown composition "${name}"`);
+      this._currentName = '';
+      this._playStartTime = null;
+      this._lastDuration = 3;
     }
+
+    // Auto-resume normal scheduling after this track ends (only if engine is active)
+    if (this._active) {
+      this._timer = setTimeout(() => {
+        if (!this._active) return;
+        this._safePlay();
+        this._schedule();
+      }, (this._lastDuration || 5) * 1000 + 3000);
+    }
+  }
+
+  /** Run a composition and compute its real duration (including note tails). */
+  _runComposition(name) {
+    this._maxNoteEnd = 0;
+    const t = this[name]();
+    // Real duration = max of (returned t, latest note end time).
+    // If no _note/_darkNote was called (raw Web Audio compositions), add a tail estimate.
+    const fromT = (typeof t === 'number' && t > 0) ? t : 0;
+    const tail = this._maxNoteEnd > 0 ? this._maxNoteEnd : fromT + 4;
+    return Math.max(fromT, tail);
+  }
+
+  /** Returns progress 0-1 of the current composition, or -1 if not playing. */
+  getProgress() {
+    if (!this._playStartTime || !this._lastDuration) return -1;
+    const elapsed = (performance.now() - this._playStartTime) / 1000;
+    if (elapsed > this._lastDuration) return 1;
+    return elapsed / this._lastDuration;
+  }
+
+  /** Returns elapsed seconds since current track started. */
+  getElapsed() {
+    if (!this._playStartTime) return 0;
+    return (performance.now() - this._playStartTime) / 1000;
   }
 
   start() {
@@ -74,7 +197,7 @@ export class GameMusic {
     // This makes each refresh feel distinct immediately rather than waiting 5–17 s.
     this._timer = setTimeout(() => {
       if (!this._active) return;
-      this._play();
+      this._safePlay();
       this._schedule();
     }, 1000 + Math.random() * 2000);
   }
@@ -84,11 +207,19 @@ export class GameMusic {
     if (this._timer) { clearTimeout(this._timer); this._timer = null; }
   }
 
+  /** Wrap _play in try-catch so a broken composition never kills the scheduling chain. */
+  _safePlay() {
+    try {
+      this._play();
+    } catch (e) {
+      console.error('[GameMusic] Composition failed, skipping:', e);
+      this._currentName = '';
+      this._lastDuration = 5; // retry quickly
+    }
+  }
+
   _schedule() {
     if (!this._active) return;
-    // Compositions schedule all their notes at call time (relative to ctx.currentTime),
-    // so the actual audio plays out over _lastDuration seconds. We wait that long
-    // plus a small breathing gap before starting the next piece.
     const stage = this._apocalypseMode || 0;
     const minGap = stage >= 3 ? 2000 : stage >= 2 ? 3000 : stage >= 1 ? 3000 : 4000;
     const maxExtra = stage >= 3 ? 3000 : stage >= 2 ? 4000 : stage >= 1 ? 5000 : 6000;
@@ -96,8 +227,8 @@ export class GameMusic {
     const delay = compositionDuration + minGap + Math.random() * maxExtra;
     this._timer = setTimeout(() => {
       if (!this._active) return;
-      this._play();
-      this._schedule();
+      this._safePlay();
+      this._schedule(); // Always reschedule even if _safePlay caught an error
     }, delay);
   }
 
@@ -168,11 +299,8 @@ export class GameMusic {
     }
     const name = list[Math.floor(Math.random() * list.length)];
     this._currentName = GameMusic._DISPLAY_NAMES[name] || name;
-    const duration = this[name]();
-    // If composition returns its duration, use it; otherwise fall back to estimate
-    this._lastDuration = (typeof duration === 'number' && duration > 0)
-      ? duration
-      : (GameMusic._DURATIONS[name] || 30);
+    this._lastDuration = this._runComposition(name) || (GameMusic._DURATIONS[name] || 30);
+    this._playStartTime = performance.now();
   }
 
   // Fallback duration estimates (seconds). Actual durations come from return t;
@@ -1061,9 +1189,13 @@ export class GameMusic {
   // ── Dark note renderer — gritty, overdriven, metallic with pitch-drop envelope ──
   _darkNote(freq, volume = 0.012, delay = 0) {
     const ctx = this._ctx;
+    const out = this._out;
+    if (!ctx || !out) return;
     const t = ctx.currentTime + delay;
     const dur = 2.5 + Math.random() * 3.5;                    // longer sustain for more weight
-    const out = this._out;
+    // Track when this note's audio actually ends
+    const noteEnd = delay + dur + 0.5;
+    if (noteEnd > this._maxNoteEnd) this._maxNoteEnd = noteEnd;
 
     // Pitch-drop at attack — metal/industrial character (string hitting the fret)
     const pitchDrop = 1.018 + Math.random() * 0.022;
@@ -2248,9 +2380,13 @@ export class GameMusic {
 
   _note(freq, volume = 0.010, delay = 0) {
     const ctx = this._ctx;
+    const out = this._out;
+    if (!ctx || !out) return;
     const t = ctx.currentTime + delay;
     const dur = 5.0 + Math.random() * 5.0;                    // 5–10 s — C418-style long sustain
-    const out = this._out;
+    // Track when this note's audio actually ends (for accurate progress bar)
+    const noteEnd = delay + dur + 1.0;
+    if (noteEnd > this._maxNoteEnd) this._maxNoteEnd = noteEnd;
 
     // ── Warm sine fundamental with gentle attack ──
     const osc = ctx.createOscillator();
