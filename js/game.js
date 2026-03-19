@@ -42,7 +42,7 @@ export class Game {
       ambient: true,         // bakery ambient soundscape
       musicVolume: 0.8,      // music volume (0–1)
       effectsVolume: 0.75,    // effects volume (0–1)
-      ambientVolume: 0.3,    // ambient volume (0–1)
+      ambientVolume: 0.15,   // ambient volume (0–1)
     };
 
     // Active buff system (supports multiple concurrent frenzies)
@@ -776,6 +776,29 @@ export class Game {
       const melodyName = this.soundManager.getGenerativeMelodyName();
       const pieceName = this.soundManager.getCurrentPieceName();
       npTitle.textContent = melodyName || pieceName || '';
+    }
+    // Show volume label (Vol I / II / III)
+    const npVol = document.getElementById('now-playing-volume');
+    if (npVol) {
+      const gm = this.soundManager._gameMusic;
+      if (gm) {
+        const C = gm.constructor;
+        const trackName = gm._currentName;
+        const dn = C._DISPLAY_NAMES || {};
+        // Find which volume the current track belongs to
+        const findKey = Object.entries(dn).find(([, v]) => v === trackName)?.[0];
+        if (findKey && (C._VOL1 || []).includes(findKey)) {
+          npVol.textContent = 'Vol. I';
+        } else if (findKey && (C._VOL2 || []).includes(findKey)) {
+          npVol.textContent = 'Vol. II';
+        } else if (findKey && (C._VOL3 || []).includes(findKey)) {
+          npVol.textContent = 'Vol. III';
+        } else {
+          npVol.textContent = '';
+        }
+      } else {
+        npVol.textContent = '';
+      }
     }
     const npWrap = document.getElementById('now-playing');
     if (npWrap) npWrap.classList.toggle('active', this.settings.music && this.settings.musicVolume > 0);
@@ -1723,30 +1746,33 @@ export class Game {
     if (!body) return;
 
     const gm = this.soundManager._gameMusic;
-    let compositions, darkCompositions, displayNames;
+    let vol1, vol2, vol3, displayNames;
     if (gm) {
       const C = gm.constructor;
-      compositions = C._COMPOSITIONS || [];
-      darkCompositions = C._DARK_COMPOSITIONS || [];
+      vol1 = C._VOL1 || [];
+      vol2 = C._VOL2 || [];
+      vol3 = C._VOL3 || [];
       displayNames = C._DISPLAY_NAMES || {};
     } else {
       body.innerHTML = '<p class="music-hint">Enable music in settings to browse tracks.</p>';
       return;
     }
 
-    const makeTrack = (name, isDark) => {
+    const makeTrack = (name, cls) => {
       const display = displayNames[name] || name;
-      return `<div class="music-track ${isDark ? 'dark' : ''}" data-name="${name}" data-display="${display}">
+      return `<div class="music-track ${cls}" data-name="${name}" data-display="${display}">
         <span class="music-track-name">${display}</span>
         <button class="music-track-play">Play</button>
       </div>`;
     };
 
     body.innerHTML = `
-      <div class="music-section-label">Normal</div>
-      ${compositions.map(n => makeTrack(n, false)).join('')}
-      <div class="music-section-label">Grandmapocalypse</div>
-      ${darkCompositions.map(n => makeTrack(n, true)).join('')}
+      <div class="music-section-label">Volume I</div>
+      ${vol1.map(n => makeTrack(n, '')).join('')}
+      <div class="music-section-label">Volume II — Grandmapocalypse</div>
+      ${vol2.map(n => makeTrack(n, 'dark')).join('')}
+      <div class="music-section-label">Volume III</div>
+      ${vol3.map(n => makeTrack(n, '')).join('')}
     `;
 
     // Play buttons — instant swap, auto-resumes after track ends
@@ -2731,6 +2757,31 @@ export class Game {
     return migrated;
   }
 
+  /**
+   * Apply one-time setting enforcements. Each enforcement has a unique id;
+   * once applied, the id is stored in settings._enforced so it never re-runs.
+   * @param {Array<{id: string, key: string, value: any}>} list
+   */
+  _applyEnforcements(list) {
+    // Migrate old single-flag system → new registry
+    if (this.settings._ambientVolEnforced) {
+      if (!this.settings._enforced) this.settings._enforced = [];
+      if (!this.settings._enforced.includes('ambient-vol-15')) {
+        this.settings._enforced.push('ambient-vol-15');
+      }
+      delete this.settings._ambientVolEnforced;
+    }
+
+    if (!this.settings._enforced) this.settings._enforced = [];
+    const applied = new Set(this.settings._enforced);
+    for (const { id, key, value } of list) {
+      if (!applied.has(id)) {
+        this.settings[key] = value;
+        this.settings._enforced.push(id);
+      }
+    }
+  }
+
   _restoreSave(data) {
     // Migrate old save formats
     if (!data.saveVersion || data.saveVersion < 2) {
@@ -2772,6 +2823,15 @@ export class Game {
     if (data.settings) {
       this.settings = { ...this.settings, ...data.settings };
     }
+
+    // ── One-time setting enforcements ──
+    // Add entries here to force a setting value once for all players (new and existing).
+    // Each entry runs once per save — after that the player's changes are respected.
+    // To enforce a new value: add a new entry with a unique id.
+    this._applyEnforcements([
+      { id: 'ambient-vol-15', key: 'ambientVolume', value: 0.15 },
+      // { id: 'music-vol-80',  key: 'musicVolume',   value: 0.8 },
+    ]);
 
     // Load stats
     if (data.stats) {

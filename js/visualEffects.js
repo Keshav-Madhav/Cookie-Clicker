@@ -108,6 +108,7 @@ export class VisualEffects {
       </div>
       <div id="now-playing">
         <span id="now-playing-label">Now Playing</span>
+        <span id="now-playing-volume"></span>
         <span id="now-playing-title"></span>
         <span id="now-playing-artist">by — The Creator</span>
       </div>

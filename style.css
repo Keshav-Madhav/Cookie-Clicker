@@ -756,6 +756,14 @@ html {
   margin-right: 5px;
 }
 
+#now-playing-volume {
+  font-size: 0.58rem;
+  color: #a08460;
+  letter-spacing: 1px;
+  margin-right: 4px;
+  font-variant: small-caps;
+}
+
 #now-playing-title {
   font-size: 0.7rem;
   color: #c4a882;
