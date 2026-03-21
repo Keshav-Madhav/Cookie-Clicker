@@ -303,6 +303,31 @@ export class WrinklerManager {
 
     canvas.style.pointerEvents = 'auto';
 
+    // Pass through clicks to the cookie button underneath
+    canvas.addEventListener('click', (e) => {
+      // Check if we hit a wrinkler — if not, forward click to cookie button
+      if (this.wrinklers.length > 0) {
+        const rect = this._canvas.getBoundingClientRect();
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const cw = rect.width, ch = rect.height;
+        const cookieCX = cw / 2, cookieCY = ch / 2;
+        const cookieR = Math.min(cw, ch) * 0.35;
+        for (let i = this.wrinklers.length - 1; i >= 0; i--) {
+          const w = this.wrinklers[i];
+          const wx = cookieCX + Math.cos(w.angle) * cookieR * 0.85;
+          const wy = cookieCY + Math.sin(w.angle) * cookieR * 0.85;
+          if (Math.hypot(cx - wx, cy - wy) < w.size * 0.8) {
+            this.popWrinkler(w.id);
+            return; // wrinkler was hit, don't forward
+          }
+        }
+      }
+      // No wrinkler hit — forward click to cookie button
+      const btn = document.getElementById('cookie-button');
+      if (btn) btn.click();
+    });
+
     canvas.addEventListener('mousemove', (e) => {
       const tooltip = document.getElementById('global-tooltip');
       if (!tooltip || !this._canvas || this.wrinklers.length === 0) {

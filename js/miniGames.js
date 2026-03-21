@@ -128,6 +128,19 @@ export class MiniGames {
   }
 
   _close() {
+    if (!this._active) return;  // prevent re-entrant double-close
+    this._active = false;
+
+    // Run registered cleanup (timers, listeners, animation frames)
+    if (this._activeCleanup) {
+      try { this._activeCleanup(); } catch (_) {}
+      this._activeCleanup = null;
+    }
+
+    // Remove any stray tooltips appended to body
+    document.getElementById('dng-tooltip')?.remove();
+    document.getElementById('wordle-tooltip')?.remove();
+
     const overlay = document.getElementById("mini-game-overlay");
     if (!overlay) return;
     this.game.soundManager.panelClose();
@@ -136,7 +149,6 @@ export class MiniGames {
       overlay.classList.add("hidden");
       overlay.classList.remove("mini-game-exit");
       overlay.innerHTML = "";
-      this._active = false;
     }, 300);
   }
 
@@ -281,6 +293,7 @@ export class MiniGames {
 
     // Countdown: 3-2-1-GO
     let countdown = 3;
+    let gameEndTimer = null;
     const cdInterval = setInterval(() => {
       countdown--;
       if (countdown > 0) {
@@ -301,7 +314,7 @@ export class MiniGames {
         });
 
         // End after duration
-        setTimeout(() => {
+        gameEndTimer = setTimeout(() => {
           active = false;
           this.game.soundManager.speedEnd();
           if (countEl) countEl.classList.add("mini-win");
@@ -331,6 +344,7 @@ export class MiniGames {
         if (countEl) countEl.textContent = clicks;
       });
     }
+    this._activeCleanup = () => { clearInterval(cdInterval); if (gameEndTimer) clearTimeout(gameEndTimer); active = false; };
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -398,7 +412,7 @@ export class MiniGames {
       if (bar) { bar.style.transition = `width ${durationSec}s linear`; bar.style.width = "0%"; }
     });
 
-    setTimeout(() => {
+    const catchEndTimer = setTimeout(() => {
       active = false;
       const el = document.getElementById("catch-count");
       if (el) el.classList.add("mini-win");
@@ -414,6 +428,7 @@ export class MiniGames {
       }
       setTimeout(() => this._close(), cfg.resultDisplayMs);
     }, cfg.durationMs);
+    this._activeCleanup = () => { active = false; clearTimeout(catchEndTimer); };
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -496,6 +511,7 @@ export class MiniGames {
         setTimeout(() => this._close(), cfg.timeUpDisplayMs);
       }
     }, cfg.autoCloseMs);
+    this._activeCleanup = () => { answered = true; if (autoCloseTimer) clearTimeout(autoCloseTimer); };
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -590,7 +606,7 @@ export class MiniGames {
     });
 
     // Auto-close after 25 seconds
-    setTimeout(() => {
+    const memAutoClose = setTimeout(() => {
       if (matched < totalPairs) {
         const res = document.getElementById("memory-result");
         if (res) res.textContent = `⏰ Time's up! Found ${matched}/${totalPairs} pairs.`;
@@ -601,6 +617,7 @@ export class MiniGames {
         setTimeout(() => this._close(), cfg.timeUpDisplayMs);
       }
     }, cfg.autoCloseMs);
+    this._activeCleanup = () => { matched = totalPairs; clearTimeout(memAutoClose); };
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -846,12 +863,13 @@ export class MiniGames {
     });
 
     // Time's up
-    setTimeout(() => {
+    const cutterEndTimer = setTimeout(() => {
       if (active) {
         active = false;
         this._finishCookieCutter(pointScores, cfg);
       }
     }, cfg.durationMs);
+    this._activeCleanup = () => { active = false; clearTimeout(cutterEndTimer); };
   }
 
   _generateShapePath(shapeName, size, resolution) {
@@ -1509,11 +1527,19 @@ export class MiniGames {
     };
 
     // Auto-start battle after planning phase
-    setTimeout(() => {
+    const planningTimer = setTimeout(() => {
       if (active && phase === 'planning') {
         startBattle();
       }
     }, cfg.planningPhaseMs);
+
+    // Register cleanup for ESC
+    this._activeCleanup = () => {
+      active = false;
+      clearTimeout(planningTimer);
+      if (spawnInterval) clearInterval(spawnInterval);
+      if (battleLoop) cancelAnimationFrame(battleLoop);
+    };
   }
 
   _generateDefensePath(cols, rows) {
@@ -1834,12 +1860,13 @@ export class MiniGames {
     }
 
     // Game end
-    setTimeout(() => {
+    const kitchenEndTimer = setTimeout(() => {
       if (active) {
         active = false;
         this._finishGrandmasKitchen(score, perfectCount, burntCount, cfg);
       }
     }, cfg.durationMs);
+    this._activeCleanup = () => { active = false; clearTimeout(kitchenEndTimer); };
   }
 
   _finishGrandmasKitchen(score, perfectCount, burntCount, cfg) {
@@ -2107,13 +2134,14 @@ export class MiniGames {
     showQuestion();
 
     // Game end
-    setTimeout(() => {
+    const mathEndTimer = setTimeout(() => {
       if (active) {
         active = false;
         clearTimeout(questionTimeout);
         this._finishMathBaker(score, correctCount, wrongCount, cfg);
       }
     }, cfg.durationMs);
+    this._activeCleanup = () => { active = false; clearTimeout(mathEndTimer); clearTimeout(questionTimeout); };
   }
 
   _finishMathBaker(score, correctCount, wrongCount, cfg) {
@@ -2737,7 +2765,7 @@ export class MiniGames {
       const remaining = Math.max(0, C.durationMs - elapsed);
       const pct = (remaining / C.durationMs) * 100;
 
-      const dir = C.directions[state.currentNum];
+      const dir = C.directions[state.currentNum % C.directions.length] || 'cw';
       const dirLabel = dir === 'cw' ? '↻ Clockwise' : '↺ Counter-clockwise';
 
       const comboHtml = combo.map((n, i) => {
@@ -2957,7 +2985,9 @@ export class MiniGames {
       document.removeEventListener('mouseup', onEnd);
       document.removeEventListener('touchend', onEnd);
       if (state.holdInterval) clearInterval(state.holdInterval);
+      if (state.timerInterval) clearInterval(state.timerInterval);
     };
+    this._activeCleanup = () => state._cleanup();
   }
 
   _safeCrackNumber(state, C, combo, angleToDial, getCurrentNum, getDist) {
@@ -3015,7 +3045,7 @@ export class MiniGames {
     // Update direction label
     const dirEl = document.getElementById('safe-dir');
     if (dirEl) {
-      const dir = C.directions[state.currentNum];
+      const dir = C.directions[state.currentNum % C.directions.length] || 'cw';
       dirEl.textContent = dir === 'cw' ? '↻ Clockwise' : '↺ Counter-clockwise';
     }
 
@@ -3726,9 +3756,11 @@ export class MiniGames {
       document.removeEventListener('mouseup', onEnd);
       document.removeEventListener('touchend', onEnd);
     };
+    this._activeCleanup = () => state._cleanup();
   }
 
   _launchFinish(state, C) {
+    if (state._cleanup) state._cleanup();
     const score = state.totalScore;
     let tier = null;
     if (score >= C.legendaryThreshold) tier = 'legendary';
@@ -3745,6 +3777,8 @@ export class MiniGames {
       const launchBonus = Math.floor(reward * 0.5);
       this.game.cookies = this.game.cookies.add(launchBonus);
       this.game.stats.totalCookiesBaked = this.game.stats.totalCookiesBaked.add(launchBonus);
+      this.game.updateCookieCount();
+      this.game.achievementManager.check();
       reward += launchBonus;
       rewardHtml = `<div class="mini-reward">+${formatNumberInWords(reward)} cookies</div>`;
     }
@@ -3953,7 +3987,7 @@ export class MiniGames {
           state.done = true;
           state.won = true;
           setTimeout(() => snd.miniGameWin(), C.wordLength * 100 + 100);
-          setTimeout(() => this._wordleFinish(state, C), 1500);
+          setTimeout(() => this._wordleFinish(state, C, answer), 1500);
           return;
         }
 
@@ -3963,7 +3997,7 @@ export class MiniGames {
             showMessage(`It was ${answer}`);
             snd.wordleInvalid();
           }, C.wordLength * 100 + 100);
-          setTimeout(() => this._wordleFinish(state, C), 2500);
+          setTimeout(() => this._wordleFinish(state, C, answer), 2500);
           return;
         }
 
@@ -3996,18 +4030,17 @@ export class MiniGames {
     };
     document.addEventListener('keydown', keyHandler);
     state._cleanup = () => document.removeEventListener('keydown', keyHandler);
+    this._activeCleanup = () => state._cleanup();
   }
 
   _wordleEvaluate(guess, answer) {
     const result = new Array(guess.length).fill('absent');
     const answerArr = answer.split('');
-    const used = new Array(guess.length).fill(false);
 
     // First pass: correct positions
     for (let i = 0; i < guess.length; i++) {
       if (guess[i] === answer[i]) {
         result[i] = 'correct';
-        used[i] = true;
         answerArr[i] = null;
       }
     }
@@ -4023,7 +4056,7 @@ export class MiniGames {
     return result;
   }
 
-  _wordleFinish(state, C) {
+  _wordleFinish(state, C, answer = '') {
     if (state._cleanup) state._cleanup();
 
     let tier = null;
@@ -4043,7 +4076,6 @@ export class MiniGames {
       rewardHtml = `<div class="mini-reward">+${formatNumberInWords(reward)} cookies</div>`;
     }
 
-    // Show compact results grid
     const gridEmoji = state.results.map(row =>
       row.map(r => r === 'correct' ? '🟩' : r === 'present' ? '🟨' : '⬛').join('')
     ).join('<br>');
@@ -4052,7 +4084,7 @@ export class MiniGames {
       <div class="mini-title">Cookie Wordle</div>
       <div class="wordle-result">
         <div class="wordle-result-tier">${state.won ? tierLabels[tier] : 'Better luck next time!'}</div>
-        <div class="wordle-result-guesses">${state.won ? `${state.guesses.length}/${C.maxGuesses} guesses` : `The word was ${state.guesses.length > 0 ? '' : ''}...`}</div>
+        <div class="wordle-result-guesses">${state.won ? `${state.guesses.length}/${C.maxGuesses} guesses` : `The word was <b>${answer}</b>`}</div>
         <div class="wordle-result-grid">${gridEmoji}</div>
         ${rewardHtml}
       </div>
@@ -4319,6 +4351,9 @@ export class MiniGames {
       }, 2000);
     };
 
+    this._activeCleanup = () => {
+      if (state.timerInterval) clearInterval(state.timerInterval);
+    };
     renderRound();
   }
 

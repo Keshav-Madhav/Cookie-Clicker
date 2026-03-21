@@ -1425,6 +1425,7 @@ html {
 
 #mini-game-overlay.mini-game-exit {
   animation: miniGameOut 0.3s ease-in forwards;
+  pointer-events: none;
 }
 
 @keyframes miniGameIn {
@@ -1477,6 +1478,14 @@ html {
   margin-top: 10px;
   min-height: 1.2em;
   color: #d5c4a1;
+}
+
+.mini-reward {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4ade80;
+  margin-top: 8px;
+  text-shadow: 0 0 8px rgba(74,222,128,0.3);
 }
 
 .mini-result.mini-win, .mini-big-number.mini-win {
