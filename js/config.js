@@ -444,6 +444,30 @@ export const MINI_GAME_SETTINGS = {
     ],
     rewardTiers: { 5: "legendary", 4: "epic", 3: "great", 2: "normal", 1: "normal", 0: null },
   },
+
+  safeCracker: {
+    /** Total time limit (ms) */
+    durationMs: 30000,
+    /** Combo length (how many numbers to crack) */
+    comboLength: 3,
+    /** Dial range: numbers go from 0 to dialMax-1 */
+    dialMax: 40,
+    /** Tolerance: how close the player needs to be (±this many ticks) to start hold */
+    tolerance: 1,
+    /** Near-zone size for deeper clicks and glow hints (±this many ticks) */
+    nearZone: 5,
+    /** How long to hold on the correct number to lock it (ms) */
+    holdDurationMs: 800,
+    /** Directions: alternating CW/CCW for each combo number */
+    directions: ['cw', 'ccw', 'cw'],
+    /** Score thresholds (seconds remaining when cracked) */
+    legendaryThreshold: 15,
+    epicThreshold: 10,
+    greatThreshold: 5,
+    normalThreshold: 0,
+    /** Result display time (ms) */
+    resultDisplayMs: 2500,
+  },
 };
 
 // ─────────────────────────────────────────────────────────────

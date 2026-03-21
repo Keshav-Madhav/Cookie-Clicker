@@ -6987,6 +6987,171 @@ html {
 
 /* (dng-loot-area defined above with loot cards) */
 
+/* ═══════════════════════════════════════════════════════════
+   🔐  SAFE CRACKER MINIGAME
+   ═══════════════════════════════════════════════════════════ */
+.safe-card { max-width: 380px; }
+
+.safe-combo {
+  display: flex; justify-content: center; gap: 10px; margin: 8px 0 6px;
+}
+.safe-num {
+  width: 44px; height: 44px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 700;
+  background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.1);
+  transition: all 0.3s;
+}
+.safe-num-done {
+  border-color: #4ade80; color: #4ade80; background: rgba(74,222,128,0.15);
+}
+.safe-num-active {
+  border-color: #ffd700; color: #ffd700; background: rgba(255,215,0,0.1);
+  animation: safePulse 1.2s ease-in-out infinite;
+}
+.safe-num-locked { color: #666; }
+
+@keyframes safePulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(255,215,0,0.2); }
+  50% { box-shadow: 0 0 16px rgba(255,215,0,0.5); }
+}
+
+.safe-direction {
+  font-size: 0.78rem; color: #c5aa80; margin-bottom: 10px;
+  text-align: center; font-weight: 600;
+}
+
+.safe-dial-wrap {
+  position: relative; width: 220px; height: 220px;
+  margin: 0 auto 10px; cursor: grab;
+  user-select: none; touch-action: none;
+}
+.safe-dial-wrap:active { cursor: grabbing; }
+
+.safe-dial {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #5a5a5a, #2a2a2a 60%, #1a1a1a);
+  border: 3px solid #666;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.05);
+  transition: none;
+}
+
+.safe-tick {
+  position: absolute; top: 0; left: 50%; width: 1px; height: 100%;
+  transform-origin: center center;
+}
+.safe-tick::before {
+  content: ''; position: absolute; top: 6px; left: -0.5px;
+  width: 1px; height: 8px; background: rgba(255,255,255,0.25);
+}
+.safe-tick-major::before {
+  width: 2px; height: 12px; left: -1px;
+  background: rgba(255,255,255,0.6);
+}
+.safe-tick-label {
+  position: absolute; top: 20px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px; color: rgba(255,255,255,0.5);
+  font-weight: 600; white-space: nowrap;
+}
+
+.safe-dial-pointer {
+  position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 24px; background: #ef4444;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(239,68,68,0.6);
+}
+
+.safe-marker {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 16px; color: #ffd700; z-index: 2;
+  text-shadow: 0 0 6px rgba(255,215,0,0.5);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
+.safe-glow {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px; height: 240px; border-radius: 50%;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+
+.safe-hold-ring {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 236px; height: 236px;
+  pointer-events: none; z-index: 3;
+}
+.safe-hold-ring svg {
+  width: 100%; height: 100%;
+}
+#safe-hold-arc {
+  transition: stroke-dashoffset 0.05s linear;
+  filter: drop-shadow(0 0 4px rgba(255,215,0,0.5));
+}
+
+.safe-readout {
+  font-size: 1.8rem; font-weight: 800; color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.3);
+  text-align: center; margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.15s, text-shadow 0.15s;
+}
+.safe-readout-near {
+  color: #ffaa00;
+  text-shadow: 0 0 14px rgba(255,170,0,0.5);
+}
+.safe-readout-hit {
+  color: #4ade80;
+  text-shadow: 0 0 16px rgba(74,222,128,0.6);
+}
+
+.safe-hint {
+  font-size: 0.72rem; color: #8a7a6a; text-align: center;
+  margin-bottom: 8px; min-height: 16px;
+  transition: color 0.2s;
+}
+.safe-hint-hold {
+  color: #ffd700; font-weight: 600;
+  animation: safeHintPulse 0.6s ease-in-out infinite;
+}
+@keyframes safeHintPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.safe-num-pop {
+  animation: safeNumPop 0.4s ease-out;
+}
+@keyframes safeNumPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.safe-result {
+  text-align: center; padding: 16px 0;
+}
+.safe-result-icon {
+  font-size: 3rem; margin-bottom: 8px;
+  animation: safeUnlock 0.6s ease-out;
+}
+@keyframes safeUnlock {
+  0% { transform: scale(0.5) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.safe-result-tier {
+  font-size: 1.3rem; font-weight: 800; color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.4);
+  margin-bottom: 4px;
+}
+.safe-result-time {
+  font-size: 0.8rem; color: #c5aa80; margin-bottom: 8px;
+}
+
 /* === Enhanced Offline Summary — Newspaper Parchment === */
 .offline-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;

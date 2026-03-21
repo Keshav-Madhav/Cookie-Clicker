@@ -33,6 +33,7 @@ export class MiniGames {
         () => this._grandmasKitchen(),
         () => this._mathBaker(),
         () => this._dungeonCrawl(),
+        () => this._safeCracker(),
       ];
       games[Math.floor(Math.random() * games.length)]();
 
@@ -2653,5 +2654,394 @@ export class MiniGames {
     const et = document.getElementById('dng-et'); if (et) et.innerHTML = `<b>${Math.ceil(e.hp)}</b>/${e.maxHp} HP`;
     const logEl = document.getElementById('dng-log');
     if (logEl) { const ls = D.log.slice(-2); logEl.innerHTML = ls.map((l, i) => `<div class="dng-ll dng-ll-new" style="opacity:${i === ls.length - 1 ? 1 : 0.4}">${l}</div>`).join(''); }
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     🔐  SAFE CRACKER — rotate a dial to crack a 3-number combo
+     ════════════════════════════════════════════════════════════
+     Inspired by The Last of Us Part II safe mechanic:
+     - Every number tick produces a mechanical click
+     - Near the target: deeper clicks, dial shake, glow intensifies
+     - On the target: must HOLD for ~0.8s to lock the tumbler
+     - Satisfying chime per locked number, vault-open on full crack
+  */
+
+  _safeCracker() {
+    const C = MINI_GAME_SETTINGS.safeCracker;
+    const combo = [];
+    for (let i = 0; i < C.comboLength; i++) {
+      combo.push(Math.floor(Math.random() * C.dialMax));
+    }
+
+    const state = {
+      currentNum: 0,
+      dialAngle: 0,
+      cracked: [],
+      done: false,
+      startTime: Date.now(),
+      timerInterval: null,
+      dragActive: false,
+      lastMouseAngle: null,
+      lastTickNum: -1,       // last dial number we ticked on (for detent sound)
+      holdStart: 0,          // timestamp when we first landed on correct number
+      holdActive: false,     // are we currently holding on the correct number?
+      holdProgress: 0,       // 0-1 fill for the hold ring
+      holdInterval: null,    // interval for updating hold progress
+      shakeIntensity: 0,     // current shake amount for CSS
+    };
+
+    const angleToDial = (deg) => {
+      const n = ((deg % 360) + 360) % 360;
+      return (n / 360) * C.dialMax;
+    };
+
+    const getCurrentNum = () => {
+      return ((Math.round(angleToDial(state.dialAngle)) % C.dialMax) + C.dialMax) % C.dialMax;
+    };
+
+    const getDist = (num) => {
+      const target = combo[state.currentNum];
+      return Math.min(
+        Math.abs(num - target),
+        C.dialMax - Math.abs(num - target)
+      );
+    };
+
+    // ── Render ──
+    const render = () => {
+      const elapsed = Date.now() - state.startTime;
+      const remaining = Math.max(0, C.durationMs - elapsed);
+      const pct = (remaining / C.durationMs) * 100;
+
+      const dir = C.directions[state.currentNum];
+      const dirLabel = dir === 'cw' ? '↻ Clockwise' : '↺ Counter-clockwise';
+
+      const comboHtml = combo.map((n, i) => {
+        if (i < state.currentNum) return `<span class="safe-num safe-num-done">✓</span>`;
+        if (i === state.currentNum) return `<span class="safe-num safe-num-active">??</span>`;
+        return `<span class="safe-num safe-num-locked">🔒</span>`;
+      }).join('');
+
+      this._show(`<div class="mini-game-card safe-card" id="safe-card">
+        <div class="mini-title">🔐 Safe Cracker</div>
+        <div class="safe-combo" id="safe-combo">${comboHtml}</div>
+        <div class="safe-direction" id="safe-dir">${dirLabel}</div>
+        <div class="safe-dial-wrap" id="safe-dial-wrap">
+          <div class="safe-dial" id="safe-dial" style="transform: rotate(${state.dialAngle}deg)">
+            ${this._safeDialTicks(C.dialMax)}
+            <div class="safe-dial-pointer"></div>
+          </div>
+          <div class="safe-marker">▼</div>
+          <div class="safe-glow" id="safe-glow"></div>
+          <div class="safe-hold-ring" id="safe-hold-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd700" stroke-width="4"
+                stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round"
+                id="safe-hold-arc" transform="rotate(-90 50 50)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="safe-readout" id="safe-readout">${getCurrentNum()}</div>
+        <div class="safe-hint" id="safe-hint">Turn the dial...</div>
+        <div class="mini-timer-bar"><div class="mini-timer-fill" id="safe-timer" style="width:${pct}%"></div></div>
+      </div>`);
+
+      this._safeBindDrag(state, C, combo, angleToDial, getCurrentNum, getDist);
+      this._safeStartTimer(state, C);
+    };
+
+    render();
+  }
+
+  _safeDialTicks(dialMax) {
+    let ticks = '';
+    for (let i = 0; i < dialMax; i++) {
+      const angle = (i / dialMax) * 360;
+      const isMajor = i % 5 === 0;
+      ticks += `<div class="safe-tick${isMajor ? ' safe-tick-major' : ''}" style="transform: rotate(${angle}deg)">
+        ${isMajor ? `<span class="safe-tick-label" style="transform: rotate(${-angle}deg)">${i}</span>` : ''}
+      </div>`;
+    }
+    return ticks;
+  }
+
+  _safeBindDrag(state, C, combo, angleToDial, getCurrentNum, getDist) {
+    const wrap = document.getElementById('safe-dial-wrap');
+    const dial = document.getElementById('safe-dial');
+    if (!wrap || !dial) return;
+    const snd = this.game.soundManager;
+
+    const getMouseAngle = (e) => {
+      const rect = wrap.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+    };
+
+    // ── Cancel hold when player moves off the target ──
+    const cancelHold = () => {
+      if (state.holdInterval) { clearInterval(state.holdInterval); state.holdInterval = null; }
+      state.holdActive = false;
+      state.holdStart = 0;
+      state.holdProgress = 0;
+      const arc = document.getElementById('safe-hold-arc');
+      if (arc) arc.style.strokeDashoffset = '289';
+      const hint = document.getElementById('safe-hint');
+      if (hint) hint.textContent = 'Turn the dial...';
+    };
+
+    // ── Start hold timer when on target ──
+    const startHold = () => {
+      if (state.holdActive || state.done) return;
+      state.holdActive = true;
+      state.holdStart = Date.now();
+      state.holdProgress = 0;
+      snd.safeTumblerNear();
+
+      const hint = document.getElementById('safe-hint');
+      if (hint) { hint.textContent = 'Hold it...'; hint.classList.add('safe-hint-hold'); }
+
+      state.holdInterval = setInterval(() => {
+        if (state.done) { clearInterval(state.holdInterval); return; }
+        const elapsed = Date.now() - state.holdStart;
+        state.holdProgress = Math.min(1, elapsed / C.holdDurationMs);
+
+        // Update hold ring arc
+        const arc = document.getElementById('safe-hold-arc');
+        if (arc) arc.style.strokeDashoffset = (289 * (1 - state.holdProgress)).toFixed(1);
+
+        // Escalating shake
+        state.shakeIntensity = state.holdProgress * 3;
+        const card = document.getElementById('safe-card');
+        if (card) {
+          const sx = (Math.random() - 0.5) * state.shakeIntensity;
+          const sy = (Math.random() - 0.5) * state.shakeIntensity;
+          card.style.transform = `translate(${sx}px, ${sy}px)`;
+        }
+
+        // Escalating tick sounds as hold progresses
+        if (state.holdProgress > 0.3 && Math.random() < 0.3) snd.safeTumblerClick();
+
+        if (state.holdProgress >= 1) {
+          // Cracked this number!
+          clearInterval(state.holdInterval);
+          state.holdInterval = null;
+          state.holdActive = false;
+          state.shakeIntensity = 0;
+          const c = document.getElementById('safe-card');
+          if (c) c.style.transform = '';
+          this._safeCrackNumber(state, C, combo, angleToDial, getCurrentNum, getDist);
+        }
+      }, 30);
+    };
+
+    const onStart = (e) => {
+      if (state.done) return;
+      e.preventDefault();
+      state.dragActive = true;
+      state.lastMouseAngle = getMouseAngle(e);
+    };
+
+    const onMove = (e) => {
+      if (!state.dragActive || state.done) return;
+      e.preventDefault();
+      const mouseAngle = getMouseAngle(e);
+      let delta = mouseAngle - state.lastMouseAngle;
+
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+
+      state.dialAngle += delta;
+      state.lastMouseAngle = mouseAngle;
+      dial.style.transform = `rotate(${state.dialAngle}deg)`;
+
+      const currentNum = getCurrentNum();
+      const readout = document.getElementById('safe-readout');
+      if (readout) readout.textContent = currentNum;
+
+      // ── Detent tick: play a click every time the number changes ──
+      if (currentNum !== state.lastTickNum) {
+        const dist = getDist(currentNum);
+
+        if (dist === 0) {
+          // ON the target — deeper tumbler sound
+          snd.safeTumblerHit();
+          if (!state.holdActive) startHold();
+        } else if (dist <= C.nearZone) {
+          // NEAR the target — slightly heavier click, intensity scales with proximity
+          snd.safeTumblerNear();
+        } else {
+          // Normal detent tick
+          snd.safeDialTick();
+        }
+        state.lastTickNum = currentNum;
+      }
+
+      // ── If we moved off the target while holding, cancel ──
+      const dist = getDist(currentNum);
+      if (dist > C.tolerance && state.holdActive) {
+        cancelHold();
+      }
+
+      // ── Glow + shake based on proximity ──
+      const glow = document.getElementById('safe-glow');
+      if (glow) {
+        if (dist <= C.nearZone) {
+          const intensity = 1 - (dist / C.nearZone);
+          glow.style.opacity = (intensity * 0.7).toFixed(2);
+          glow.style.boxShadow = `0 0 ${Math.round(intensity * 35)}px ${Math.round(intensity * 18)}px rgba(255,215,0,${(intensity * 0.5).toFixed(2)})`;
+
+          // Subtle dial shake when near (not holding — hold shake is separate)
+          if (!state.holdActive && dist <= 2) {
+            const sx = (Math.random() - 0.5) * (1 - dist / 3) * 1.5;
+            const sy = (Math.random() - 0.5) * (1 - dist / 3) * 1.5;
+            dial.style.transform = `rotate(${state.dialAngle}deg) translate(${sx}px, ${sy}px)`;
+          }
+        } else {
+          glow.style.opacity = '0';
+          glow.style.boxShadow = 'none';
+        }
+      }
+
+      // ── Readout color ──
+      if (readout) {
+        if (dist === 0) readout.className = 'safe-readout safe-readout-hit';
+        else if (dist <= C.nearZone) readout.className = 'safe-readout safe-readout-near';
+        else readout.className = 'safe-readout';
+      }
+    };
+
+    const onEnd = () => {
+      state.dragActive = false;
+      // Hold continues even after mouse release — player just needs to
+      // land on the number and wait, no need to keep dragging
+    };
+
+    wrap.addEventListener('mousedown', onStart);
+    wrap.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchend', onEnd);
+
+    state._cleanup = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchend', onEnd);
+      if (state.holdInterval) clearInterval(state.holdInterval);
+    };
+  }
+
+  _safeCrackNumber(state, C, combo, angleToDial, getCurrentNum, getDist) {
+    if (state.done) return;
+    const snd = this.game.soundManager;
+
+    state.cracked.push(combo[state.currentNum]);
+    state.currentNum++;
+    snd.safeCrackNum();
+
+    // Flash the cracked number
+    const nums = document.querySelectorAll('.safe-num');
+    if (nums[state.currentNum - 1]) {
+      nums[state.currentNum - 1].textContent = '✓';
+      nums[state.currentNum - 1].className = 'safe-num safe-num-done safe-num-pop';
+    }
+
+    const hint = document.getElementById('safe-hint');
+    if (hint) hint.classList.remove('safe-hint-hold');
+
+    if (state.currentNum >= C.comboLength) {
+      // All cracked!
+      state.done = true;
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      if (state._cleanup) state._cleanup();
+
+      const elapsed = (Date.now() - state.startTime) / 1000;
+      const remaining = Math.max(0, (C.durationMs / 1000) - elapsed);
+
+      let tier = null;
+      if (remaining >= C.legendaryThreshold) tier = 'legendary';
+      else if (remaining >= C.epicThreshold) tier = 'epic';
+      else if (remaining >= C.greatThreshold) tier = 'great';
+      else tier = 'normal';
+
+      snd.safeCrackOpen();
+      const reward = this._giveReward(tier, 'safeCracker');
+      const tierLabels = { legendary: '🏆 LEGENDARY', epic: '💎 EPIC', great: '⭐ GREAT', normal: '✅ Cracked!' };
+
+      setTimeout(() => {
+        this._show(`<div class="mini-game-card safe-card">
+          <div class="mini-title">🔐 Safe Cracker</div>
+          <div class="safe-result">
+            <div class="safe-result-icon">🔓</div>
+            <div class="safe-result-tier">${tierLabels[tier]}</div>
+            <div class="safe-result-time">${elapsed.toFixed(1)}s · ${remaining.toFixed(1)}s left</div>
+            <div class="mini-reward">+${formatNumberInWords(reward)} cookies</div>
+          </div>
+        </div>`);
+        setTimeout(() => this._close(), C.resultDisplayMs);
+      }, 600);
+      return;
+    }
+
+    // Update direction label
+    const dirEl = document.getElementById('safe-dir');
+    if (dirEl) {
+      const dir = C.directions[state.currentNum];
+      dirEl.textContent = dir === 'cw' ? '↻ Clockwise' : '↺ Counter-clockwise';
+    }
+
+    // Update active number display
+    if (nums[state.currentNum]) {
+      nums[state.currentNum].className = 'safe-num safe-num-active';
+      nums[state.currentNum].textContent = '??';
+    }
+
+    if (hint) hint.textContent = 'Next number...';
+
+    // Reset glow & hold ring
+    const glow = document.getElementById('safe-glow');
+    if (glow) { glow.style.opacity = '0'; glow.style.boxShadow = 'none'; }
+    const arc = document.getElementById('safe-hold-arc');
+    if (arc) arc.style.strokeDashoffset = '289';
+
+    // Reset hold state for next number
+    state.holdActive = false;
+    state.holdStart = 0;
+    state.holdProgress = 0;
+    state.lastTickNum = -1;
+  }
+
+  _safeStartTimer(state, C) {
+    state.timerInterval = setInterval(() => {
+      if (state.done) { clearInterval(state.timerInterval); return; }
+      const elapsed = Date.now() - state.startTime;
+      const remaining = Math.max(0, C.durationMs - elapsed);
+      const pct = (remaining / C.durationMs) * 100;
+
+      const timerEl = document.getElementById('safe-timer');
+      if (timerEl) timerEl.style.width = pct + '%';
+
+      if (remaining <= 0) {
+        state.done = true;
+        clearInterval(state.timerInterval);
+        if (state._cleanup) state._cleanup();
+        this.game.soundManager.panelClose();
+
+        this._show(`<div class="mini-game-card safe-card">
+          <div class="mini-title">🔐 Safe Cracker</div>
+          <div class="safe-result">
+            <div class="safe-result-icon">⏰</div>
+            <div class="safe-result-tier">Time's Up!</div>
+            <div class="safe-result-time">Cracked ${state.currentNum}/${C.comboLength}</div>
+          </div>
+        </div>`);
+        setTimeout(() => this._close(), 2000);
+      }
+    }, 100);
   }
 }

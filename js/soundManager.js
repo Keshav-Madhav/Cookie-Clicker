@@ -2005,4 +2005,65 @@ export class SoundManager {
     this._playTone('triangle', 660, 660, 0.25, 0.04, 0.4); // E5 ring
     this._playNoise(0.15, 0.02, 0.35, 4000);            // sparkle
   }
+
+  // ── Safe Cracker sounds ──────────────────────────────────
+
+  /** Normal detent tick — soft sine click like cursor, no harshness */
+  safeDialTick() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 800, 600, 0.015, 0.02);
+  }
+
+  /** Near-target tick — warmer, slightly deeper sine click */
+  safeTumblerNear() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 500, 350, 0.025, 0.03);
+    this._playTone('sine', 250, 180, 0.03, 0.02);
+  }
+
+  /** On-target tumbler hit — deep soft thud, you're on the right number */
+  safeTumblerHit() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 220, 130, 0.05, 0.04);
+    this._playTone('sine', 350, 250, 0.04, 0.03);
+    this._playNoise(0.03, 0.015, 0, 1000);
+  }
+
+  /** Subtle click during hold progression — building tension */
+  safeTumblerClick() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 400, 300, 0.02, 0.02);
+    this._playNoise(0.01, 0.008, 0, 2000);
+  }
+
+  /** Number cracked — satisfying tumbler lock chime */
+  safeCrackNum() {
+    if (!this._canPlayEffects()) return;
+    // Soft metallic tumbler fall
+    this._playTone('sine', 180, 100, 0.1, 0.04);
+    this._playNoise(0.06, 0.02, 0, 800);
+    // Warm chime
+    this._playTone('sine', 523, 523, 0.15, 0.05, 0.06);
+    this._playTone('triangle', 659, 659, 0.12, 0.04, 0.12);
+    this._playTone('sine', 784, 784, 0.1, 0.03, 0.18);
+  }
+
+  /** Vault fully cracked — heavy mechanism + triumphant ascension */
+  safeCrackOpen() {
+    if (!this._canPlayEffects()) return;
+    // Heavy vault bolt mechanism — deep sine thud
+    this._playTone('sine', 80, 60, 0.25, 0.05);
+    this._playNoise(0.18, 0.03, 0, 500);
+    this._playTone('sine', 150, 100, 0.12, 0.03, 0.05);
+    // Mechanism release
+    this._playNoise(0.1, 0.03, 0.15, 1200);
+    this._playTone('sine', 200, 150, 0.08, 0.03, 0.15);
+    // Triumphant ascending chime
+    this._playTone('sine', 330, 330, 0.15, 0.05, 0.3);
+    this._playTone('sine', 440, 440, 0.15, 0.05, 0.4);
+    this._playTone('sine', 554, 554, 0.15, 0.05, 0.5);
+    this._playTone('triangle', 660, 660, 0.2, 0.04, 0.6);
+    this._playTone('sine', 880, 880, 0.2, 0.04, 0.7);
+    this._playNoise(0.12, 0.02, 0.65, 4000);
+  }
 }
