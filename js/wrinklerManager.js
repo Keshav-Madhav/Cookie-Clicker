@@ -2,6 +2,16 @@ import { GRANDMAPOCALYPSE } from "./config.js";
 import { formatNumberInWords } from "./utils.js";
 import { CookieNum } from "./cookieNum.js";
 
+/** Format milliseconds elapsed into a human-readable duration */
+function _formatAge(ms) {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ${sec % 60}s`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ${min % 60}m`;
+}
+
 export class WrinklerManager {
   constructor(game) {
     this.game = game;
@@ -28,6 +38,7 @@ export class WrinklerManager {
     window.addEventListener("resize", () => this._resize());
     this._startRenderLoop();
     this._setupClickDetection(container);
+    this._setupHoverDetection(container);
 
     // If stage is already active on load, start spawning
     if (this.game.grandmapocalypse && this.game.grandmapocalypse.stage >= 1 &&
@@ -282,6 +293,66 @@ export class WrinklerManager {
         }
       }
     }, true); // capture phase so we can intercept before cookie click
+  }
+
+  // ── Hover Tooltip ──
+
+  _setupHoverDetection(container) {
+    const canvas = this._canvas;
+    if (!canvas) return;
+
+    canvas.style.pointerEvents = 'auto';
+
+    canvas.addEventListener('mousemove', (e) => {
+      const tooltip = document.getElementById('global-tooltip');
+      if (!tooltip || !this._canvas || this.wrinklers.length === 0) {
+        if (tooltip) tooltip.style.opacity = '0';
+        return;
+      }
+
+      const rect = this._canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const cw = rect.width;
+      const ch = rect.height;
+      const cookieCX = cw / 2;
+      const cookieCY = ch / 2;
+      const cookieR = Math.min(cw, ch) * 0.35;
+
+      let found = null;
+      for (let i = this.wrinklers.length - 1; i >= 0; i--) {
+        const w = this.wrinklers[i];
+        const wx = cookieCX + Math.cos(w.angle) * cookieR * 0.85;
+        const wy = cookieCY + Math.sin(w.angle) * cookieR * 0.85;
+        const dist = Math.hypot(cx - wx, cy - wy);
+        if (dist < w.size * 0.8) { found = w; break; }
+      }
+
+      if (found) {
+        const type = found.shiny ? '✨ Shiny Wrinkler' : found.elder ? '👹 Elder Wrinkler' : '🐛 Wrinkler';
+        const returnMult = found.shiny ? GRANDMAPOCALYPSE.shinyReturnMultiplier
+          : found.elder ? GRANDMAPOCALYPSE.elderWrinklerReturnMultiplier
+          : GRANDMAPOCALYPSE.wrinklerReturnMultiplier;
+        const age = _formatAge(Date.now() - found.spawnTime);
+        const eaten = formatNumberInWords(found.cookiesEaten);
+
+        tooltip.innerHTML = `<p style="font-weight:bold">${type}</p>`
+          + `<p style="font-size:11px">Cookies eaten: ${eaten}</p>`
+          + `<p style="font-size:11px">Return: ${(returnMult * 100).toFixed(0)}%</p>`
+          + `<p style="font-size:11px;color:#aaa">Age: ${age}</p>`
+          + `<p style="font-size:10px;color:#f8c471">Click to pop</p>`;
+        tooltip.style.opacity = '1';
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+      } else {
+        tooltip.style.opacity = '0';
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      const tooltip = document.getElementById('global-tooltip');
+      if (tooltip) tooltip.style.opacity = '0';
+    });
   }
 
   // ── Render Loop ──

@@ -886,14 +886,14 @@ export class Tutorial {
   /* ═══════════════════════════════════════════════════
      OFFLINE EARNINGS POPUP
      ═══════════════════════════════════════════════════ */
-  showOfflineEarnings({ elapsedSec, baseCps, offlineMultiplier, totalEarned, formatFn }) {
-    const fmt = formatFn || (n => n.toLocaleString());
+  showOfflineEarnings({ elapsedSec, baseCps, offlineMultiplier, totalEarned, formatFn,
+                        buildings, wrinklerCount, wrinklerCookies, missedGoldenCookies, grandmaStage }) {
+    const fmt = formatFn || (n => String(n));
 
-    // Time away in human-readable form
+    // Format time
     let timeStr;
-    if (elapsedSec < 60) {
-      timeStr = `${elapsedSec}s`;
-    } else if (elapsedSec < 3600) {
+    if (elapsedSec < 60) timeStr = `${elapsedSec}s`;
+    else if (elapsedSec < 3600) {
       const m = Math.floor(elapsedSec / 60);
       const s = elapsedSec % 60;
       timeStr = s > 0 ? `${m}m ${s}s` : `${m}m`;
@@ -903,36 +903,103 @@ export class Tutorial {
       timeStr = m > 0 ? `${h}h ${m}m` : `${h}h`;
     }
 
-    const html = `
-      <div class="offline-summary">
-        <div class="offline-total">+${fmt(totalEarned)} cookies</div>
-        <div class="offline-details">
-          <span>Time away</span><span>${timeStr}</span>
-          <span>Base CPS</span><span>${fmt(baseCps)}/s</span>
-          <span>Offline multiplier</span><span>${offlineMultiplier}x</span>
-          <span>Effective rate</span><span>${fmt(parseFloat((baseCps * offlineMultiplier).toFixed(2)))}/s</span>
+    // Top 3 buildings by CPS contribution
+    const topBuildings = (buildings || []).slice(0, 3);
+    const buildingRows = topBuildings.map((b, i) =>
+      `<div class="offline-building-row"><span class="offline-rank">${i + 1}.</span> <strong>${b.name}</strong> <span class="offline-dim">x${b.count}</span><span class="offline-val">${fmt(b.cps)}/s</span></div>`
+    ).join('');
+
+    // Wrinkler section
+    let wrinklerHtml = '';
+    if (wrinklerCount > 0) {
+      wrinklerHtml = `
+        <div class="offline-report-section">
+          <h4>Wrinkler Report</h4>
+          <div class="offline-report-grid">
+            <span class="offline-label">Wrinklers hibernating</span><span class="offline-val">${wrinklerCount}</span>
+            <span class="offline-label">Cookies stored</span><span class="offline-val">${wrinklerCookies || '0'}</span>
+          </div>
+        </div>`;
+    }
+
+    // Missed events
+    let eventsHtml = '';
+    if (missedGoldenCookies > 0 || grandmaStage >= 1) {
+      eventsHtml = `
+        <div class="offline-report-section">
+          <h4>While You Were Away</h4>
+          <div class="offline-report-grid">
+            ${missedGoldenCookies > 0 ? `<span class="offline-label">Golden cookies missed</span><span class="offline-val">~${missedGoldenCookies}</span>` : ''}
+            ${grandmaStage >= 1 ? `<span class="offline-label">Grandmapocalypse</span><span class="offline-val">Stage ${grandmaStage}</span>` : ''}
+          </div>
+        </div>`;
+    }
+
+    // Date line for newspaper header
+    const now = new Date();
+    const dateLine = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Render as standalone parchment overlay (bypasses tutorial tooltip)
+    const overlay = document.createElement('div');
+    overlay.className = 'offline-overlay';
+    const effCps = fmt(parseFloat((baseCps * offlineMultiplier).toFixed(2)));
+
+    // Sidebar items (wrinklers, missed events) — shown as footnotes
+    let footerItems = '';
+    if (wrinklerCount > 0) {
+      footerItems += `<span class="offline-foot-item">🐛 <strong>${wrinklerCount}</strong> wrinkler${wrinklerCount > 1 ? 's' : ''} hibernating · <strong>${wrinklerCookies || '0'}</strong> stored</span>`;
+    }
+    if (missedGoldenCookies > 0) {
+      footerItems += `<span class="offline-foot-item">🍪 ~<strong>${missedGoldenCookies}</strong> golden cookie${missedGoldenCookies > 1 ? 's' : ''} missed</span>`;
+    }
+    if (grandmaStage >= 1) {
+      footerItems += `<span class="offline-foot-item">👵 Grandmapocalypse Stage <strong>${grandmaStage}</strong></span>`;
+    }
+
+    overlay.innerHTML = `
+      <div class="offline-report">
+        <div class="offline-report-masthead">The Baker's Gazette</div>
+        <div class="offline-report-dateline">${dateLine} · Vol. ${Math.floor(Math.random() * 900) + 100} · No. ${Math.floor(Math.random() * 90) + 10}</div>
+        <div class="offline-report-rule thick"></div>
+        <div class="offline-report-headline">Baker Returns After ${timeStr}</div>
+        <div class="offline-report-subhead">"Unprecedented output," says head grandma — <strong>${fmt(totalEarned)}</strong> cookies produced overnight</div>
+        <div class="offline-report-rule thin"></div>
+
+        <div class="offline-report-total-row">
+          <span class="offline-total-label">Total Earned</span>
+          <span class="offline-total-num">+${fmt(totalEarned)}</span>
         </div>
+
+        <div class="offline-ticker">
+          <span class="offline-ticker-item">Base CPS <strong>${fmt(baseCps)}/s</strong></span>
+          <span class="offline-ticker-sep">·</span>
+          <span class="offline-ticker-item">Offline Rate <strong>${(offlineMultiplier * 100).toFixed(0)}%</strong></span>
+          <span class="offline-ticker-sep">·</span>
+          <span class="offline-ticker-item">Effective <strong>${effCps}/s</strong></span>
+        </div>
+
+        ${topBuildings.length > 0 ? `
+        <div class="offline-report-rule thin"></div>
+        <div class="offline-report-section">
+          <h4>Top Producers</h4>
+          ${buildingRows}
+        </div>
+        ` : ''}
+
+        ${footerItems ? `
+        <div class="offline-report-rule thin"></div>
+        <div class="offline-footer">${footerItems}</div>
+        ` : ''}
+        <div class="offline-report-rule thick"></div>
+        <button class="offline-dismiss">Continue Baking</button>
       </div>`;
 
-    const step = {
-      title: "Welcome Back, Baker!",
-      text: html,
-      html: true,
-      target: null,
-      position: "left",
-      isLast: true,
-    };
+    document.body.appendChild(overlay);
 
-    // Ensure DOM is built (showOfflineEarnings may fire before init())
-    if (!this.overlay) this._buildDOM();
-
-    // Show immediately — bypass event queue since this is a one-shot popup
-    this._eventBusy = true;
-    if (this.game.visualEffects) this.game.visualEffects.pauseNews();
-    this.activeSequence = [step];
-    this.currentStep = 0;
-    this._showOverlay();
-    this._renderStep();
+    // Dismiss handlers
+    const dismiss = () => overlay.remove();
+    overlay.querySelector('.offline-dismiss').addEventListener('click', dismiss);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) dismiss(); });
   }
 
   /* ═══════════════════════════════════════════════════

@@ -15,6 +15,7 @@ import {
 import { GrandmapocalypseManager } from "./grandmapocalypse.js";
 import { WrinklerManager } from "./wrinklerManager.js";
 import { CookieNum } from "./cookieNum.js";
+import { getBuildingIcon } from "./buildingIcons.js";
 
 export class Game {
   constructor() {
@@ -76,6 +77,9 @@ export class Game {
       wrathCookiesClicked: 0,
       wrathClotSurvived: 0,
       elderFrenzyTriggered: 0,
+      dungeonRuns: 0,
+      dungeonBossesDefeated: 0,
+      dungeonBestRooms: 0,
     };
 
     // Load buildings & upgrades from gameData.js
@@ -112,6 +116,13 @@ export class Game {
     this.setupHeavenlyShop();
     this.setupUpgradeNav();
     this.setupMenu();
+
+    // Floating newspaper button
+    const newsBtn = document.getElementById("newspaper-btn");
+    if (newsBtn) newsBtn.addEventListener("click", () => this._openStatsOverlay());
+    // Floating synergy button
+    const synBtn = document.getElementById("synergy-float-btn");
+    if (synBtn) synBtn.addEventListener("click", () => this._openSynergyVisualizer());
     this.initParticles();
     this.visualEffects.init();
     this.soundManager.init();
@@ -199,7 +210,7 @@ export class Game {
         case 'Escape': {
           // Close topmost overlay
           let closed = false;
-          const overlays = ['building-info-panel', 'minigame-overlay', 'music-overlay', 'debug-overlay', 'heavenly-overlay', 'menu-overlay'];
+          const overlays = ['building-info-panel', 'synergy-overlay', 'minigame-overlay', 'music-overlay', 'debug-overlay', 'heavenly-overlay', 'stats-overlay', 'menu-overlay'];
           for (const id of overlays) {
             const ol = document.getElementById(id);
             if (ol && !ol.classList.contains('hidden')) {
@@ -990,11 +1001,8 @@ export class Game {
       const owned = this.prestige.hasUpgrade(upgrade.id);
       const canBuy = this.prestige.canBuyUpgrade(upgrade.id);
 
-      // Check prerequisites
       const prereqsMet = !upgrade.requires || upgrade.requires.length === 0 ||
         upgrade.requires.every(r => this.prestige.hasUpgrade(r));
-
-      // Unaffordable: prereqs met but not enough chips
       const unaffordable = !owned && !canBuy && prereqsMet && spendable < upgrade.cost;
 
       const card = document.createElement("div");
@@ -1024,11 +1032,8 @@ export class Game {
             this.calculateCPS();
             this.updateLeftPanel();
             this.saveGame();
-            // Flash the chip count after re-render to show it decreased
             const newChipsEl = document.getElementById("heavenly-available-chips");
-            if (newChipsEl) {
-              newChipsEl.classList.add('heavenly-chip-flash');
-            }
+            if (newChipsEl) newChipsEl.classList.add('heavenly-chip-flash');
           }
         });
       }
@@ -1578,6 +1583,15 @@ export class Game {
           }
         });
       }
+
+      // Newspaper banner button to open stats
+      if (!statsEl.querySelector('.sn-open-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'sn-open-btn';
+        btn.innerHTML = `<div class="sn-btn-masthead">The Cookie Chronicle</div><div class="sn-btn-teaser">Tap to read the latest — ${formatNumberInWords(this.stats.totalCookiesBaked)} cookies and counting</div>`;
+        btn.addEventListener('click', () => this._openStatsOverlay());
+        statsEl.appendChild(btn);
+      }
     }
 
     // Achievement progress bar
@@ -1660,6 +1674,7 @@ export class Game {
       { id: "defense",    emoji: "🛡️", name: "Cookie Defense",     desc: "Tower defense mini-game" },
       { id: "kitchen",    emoji: "👵", name: "Grandma's Kitchen",  desc: "Bake cookies at the right time" },
       { id: "math",       emoji: "🔢", name: "Math Baker",         desc: "Solve math for cookies" },
+      { id: "dungeon",    emoji: "⚔️", name: "Dungeon Crawl",      desc: "Turn-based RPG adventure" },
     ];
 
     const body = document.getElementById("minigame-select-body");
@@ -1685,6 +1700,7 @@ export class Game {
       defense: () => mg._cookieDefense(),
       kitchen: () => mg._grandmasKitchen(),
       math:    () => mg._mathBaker(),
+      dungeon: () => mg._dungeonCrawl(),
     };
 
     body.querySelectorAll('.minigame-select-btn').forEach(btn => {
@@ -1707,6 +1723,638 @@ export class Game {
       document.getElementById("minigame-close").addEventListener("click", close);
       overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
     }
+  }
+
+  // === Building Synergy Visualizer ===
+
+  _openSynergyVisualizer() {
+    const overlay = document.getElementById('synergy-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    this.soundManager.panelOpen();
+
+    // Update subtitle
+    const synergies = this.upgrades.filter(u => u.type === 'synergy');
+    const activeCount = synergies.filter(u => u.level > 0).length;
+    const sub = document.getElementById('synergy-subtitle');
+    if (sub) sub.textContent = `${activeCount} of ${synergies.length} active · Hover nodes & lines for details`;
+
+    // Legend
+    const legend = document.getElementById('synergy-legend');
+    if (legend) legend.innerHTML = `<span class="syn-leg-item"><span class="syn-leg-line syn-leg-active"></span> Active</span><span class="syn-leg-item"><span class="syn-leg-line syn-leg-inactive"></span> Locked</span>`;
+
+    this._renderSynergyGraph();
+
+    if (!this._synergyBound) {
+      this._synergyBound = true;
+      const close = () => {
+        overlay.classList.add('hidden');
+        this.soundManager.panelClose();
+      };
+      document.getElementById('synergy-close').addEventListener('click', close);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    }
+  }
+
+  _renderSynergyGraph() {
+    const svgEl = document.getElementById('synergy-svg');
+    const tooltip = document.getElementById('synergy-tooltip');
+    if (!svgEl) return;
+
+    // Per-building theme colors
+    const bColors = {
+      'Cursor': '#00ff88', 'Grandma': '#e8a0c0', 'Farm': '#6abf4b', 'Factory': '#c0c0c0',
+      'Mine': '#d4a052', 'Shipment': '#5088cc', 'Alchemy Lab': '#ffd700', 'Portal': '#bf5fff',
+      'Time Machine': '#40e0d0', 'Antimatter Condenser': '#ff4060', 'Prism': '#ffe066',
+      'Chancemaker': '#ff8040', 'Fractal Engine': '#80ffcc', 'Idleverse': '#a070e0',
+      'Cortex Baker': '#ff70a0', 'Reality Bender': '#ffffff',
+    };
+    const bColor = (name) => bColors[name] || '#f8c471';
+
+    const synergyUpgrades = this.upgrades.filter(u => u.type === 'synergy');
+    const synergyMult = this.prestige.getSynergyMultiplier() * this.prestige.getSynergyMultiplier2() * this.prestige.getSynergyMultiplier3();
+
+    // Collect unique building names involved in synergies
+    const buildingSet = new Set();
+    synergyUpgrades.forEach(u => { buildingSet.add(u.source); buildingSet.add(u.target); });
+    const unordered = Array.from(buildingSet);
+
+    // Arrange buildings so connected pairs are NOT adjacent or directly opposite.
+    // Greedy placement: for each slot, pick the building that has the fewest
+    // synergy connections to already-placed neighbors.
+    const edges = new Set();
+    synergyUpgrades.forEach(u => { edges.add(u.source + '|' + u.target); edges.add(u.target + '|' + u.source); });
+    const connected = (a, b) => edges.has(a + '|' + b);
+    const n = unordered.length;
+    const half = Math.floor(n / 2);
+
+    // Score: penalize adjacent and opposite positions heavily
+    const buildingNames = [];
+    const remaining = new Set(unordered);
+    // Start with the node that has the most connections (hardest to place)
+    const connCount = (name) => synergyUpgrades.filter(u => u.source === name || u.target === name).length;
+    const first = unordered.reduce((best, b) => connCount(b) > connCount(best) ? b : best, unordered[0]);
+    buildingNames.push(first);
+    remaining.delete(first);
+
+    while (remaining.size > 0) {
+      let bestName = null, bestScore = Infinity;
+      const idx = buildingNames.length; // slot index being filled
+      for (const cand of remaining) {
+        let score = 0;
+        // Penalize if connected to the previous slot (adjacent)
+        if (idx > 0 && connected(cand, buildingNames[idx - 1])) score += 10;
+        // Penalize if connected to the first slot (will be adjacent when circle closes)
+        if (idx === n - 1 && connected(cand, buildingNames[0])) score += 10;
+        // Penalize if connected to the node directly opposite (if that slot is filled)
+        const oppIdx = (idx + half) % n;
+        if (oppIdx < buildingNames.length && connected(cand, buildingNames[oppIdx])) score += 10;
+        // Also check if WE would be opposite to an already-placed node
+        for (let j = 0; j < buildingNames.length; j++) {
+          if (Math.abs(idx - j) === half && connected(cand, buildingNames[j])) score += 10;
+        }
+        // Slight preference for fewer total connections (spread out hubs)
+        score += connCount(cand) * 0.1;
+        if (score < bestScore) { bestScore = score; bestName = cand; }
+      }
+      buildingNames.push(bestName);
+      remaining.delete(bestName);
+    }
+
+    // Position buildings in a circle — radius scales with node count for spacing
+    const nodeR = 30;
+    const minGap = nodeR * 3.2; // minimum arc distance between node centers
+    const circumNeeded = n * minGap;
+    const radius = Math.max(210, circumNeeded / (2 * Math.PI));
+    const W = (radius + nodeR + 40) * 2;
+    const H = (radius + nodeR + 40) * 2;
+    const cx = W / 2, cy = H / 2;
+    const nodePositions = {};
+    buildingNames.forEach((name, i) => {
+      const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+      nodePositions[name] = { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+    });
+
+    const ns = 'http://www.w3.org/2000/svg';
+    svgEl.innerHTML = '';
+    svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    // Defs: glow filter, arrowhead markers (active + inactive)
+    svgEl.innerHTML = `<defs>
+      <filter id="syn-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <marker id="syn-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L10,5 L0,9 Z" fill="#f8c471" opacity="0.9"/></marker>
+      <marker id="syn-arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,1 L10,5 L0,9 Z" fill="#666" opacity="0.5"/></marker>
+    </defs>`;
+
+    // Show tooltip near cursor (use body-relative positions for reliability)
+    const showTip = (e, html) => {
+      tooltip.innerHTML = html;
+      tooltip.style.opacity = '1';
+      const rect = svgEl.closest('.synergy-body').getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+    };
+    const moveTip = (e) => {
+      const rect = svgEl.closest('.synergy-body').getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+      tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+    };
+    const hideTip = () => { tooltip.style.opacity = '0'; };
+
+    // ── Draw edges: curved bezier lines ──
+    synergyUpgrades.forEach(u => {
+      const src = nodePositions[u.source];
+      const tgt = nodePositions[u.target];
+      if (!src || !tgt) return;
+
+      const active = u.level > 0;
+
+      // Cubic bezier: control points pull toward the center of the graph
+      const pull = 0.4;
+      const cp1x = src.x + (cx - src.x) * pull;
+      const cp1y = src.y + (cy - src.y) * pull;
+      const cp2x = tgt.x + (cx - tgt.x) * pull;
+      const cp2y = tgt.y + (cy - tgt.y) * pull;
+
+      // Place endpoints on circle edge in the direction the curve actually leaves
+      // Source: direction toward cp1
+      const d1x = cp1x - src.x, d1y = cp1y - src.y;
+      const d1 = Math.sqrt(d1x * d1x + d1y * d1y) || 1;
+      const x1 = src.x + (d1x / d1) * nodeR, y1 = src.y + (d1y / d1) * nodeR;
+      // Target: direction from cp2 toward target (arrow lands on circle edge)
+      const d2x = tgt.x - cp2x, d2y = tgt.y - cp2y;
+      const d2 = Math.sqrt(d2x * d2x + d2y * d2y) || 1;
+      const x2 = tgt.x - (d2x / d2) * (nodeR + 4), y2 = tgt.y - (d2y / d2) * (nodeR + 4);
+
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', `M${x1},${y1} C${cp1x},${cp1y} ${cp2x},${cp2y} ${x2},${y2}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', active ? bColor(u.source) : '#555');
+      path.setAttribute('stroke-width', active ? '2.5' : '1.5');
+      path.setAttribute('stroke-opacity', active ? '0.8' : '0.35');
+      if (!active) path.setAttribute('stroke-dasharray', '8 5');
+      path.setAttribute('marker-end', active ? 'url(#syn-arrow)' : 'url(#syn-arrow-off)');
+      path.style.cursor = 'pointer';
+      path.style.transition = 'stroke-opacity 0.2s, stroke-width 0.2s';
+
+      // Invisible fat hitbox for easier hovering
+      const hitbox = document.createElementNS(ns, 'path');
+      hitbox.setAttribute('d', `M${x1},${y1} C${cp1x},${cp1y} ${cp2x},${cp2y} ${x2},${y2}`);
+      hitbox.setAttribute('fill', 'none');
+      hitbox.setAttribute('stroke', 'transparent');
+      hitbox.setAttribute('stroke-width', '16');
+      hitbox.style.cursor = 'pointer';
+
+      const sourceB = this.buildings.find(b => b.name === u.source);
+      const targetB = this.buildings.find(b => b.name === u.target);
+      const totalCps = (sourceB && targetB && active) ? sourceB.count * u.bonus * u.level * synergyMult * targetB.count : 0;
+
+      const onEnter = (e) => {
+        path.setAttribute('stroke-opacity', '1');
+        path.setAttribute('stroke-width', active ? '4' : '2.5');
+        if (active) path.setAttribute('filter', 'url(#syn-glow)');
+        showTip(e, `
+          <div style="font-weight:700;color:#f8c471;margin-bottom:4px">${u.name}</div>
+          <div style="font-size:11px;color:#d5c4a1">${u.source} → ${u.target}</div>
+          <div style="margin-top:6px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px">
+            <span style="color:#a08060">Level</span><span style="font-weight:700">${u.level} / ${u.max_level || '?'}</span>
+            <span style="color:#a08060">Bonus</span><span style="font-weight:700">${u.bonus}/source</span>
+            <span style="color:#a08060">CPS Added</span><span style="font-weight:700;color:${active ? '#a0d060' : '#888'}">${active ? formatNumberInWords(totalCps) + '/s' : 'Inactive'}</span>
+          </div>
+          ${!active ? '<div style="margin-top:4px;font-size:10px;color:#e07050">Not yet purchased</div>' : ''}`);
+      };
+      const onLeave = () => {
+        path.setAttribute('stroke-opacity', active ? '0.8' : '0.35');
+        path.setAttribute('stroke-width', active ? '2.5' : '1.5');
+        path.removeAttribute('filter');
+        hideTip();
+      };
+      hitbox.addEventListener('mouseenter', onEnter);
+      hitbox.addEventListener('mousemove', moveTip);
+      hitbox.addEventListener('mouseleave', onLeave);
+
+      svgEl.appendChild(path);
+      svgEl.appendChild(hitbox);
+    });
+
+    // ── Draw building nodes: icon + ring ──
+    buildingNames.forEach(name => {
+      const pos = nodePositions[name];
+      const building = this.buildings.find(b => b.name === name);
+      const owned = building && building.count > 0;
+      const color = bColor(name);
+
+      const g = document.createElementNS(ns, 'g');
+      g.style.cursor = 'pointer';
+
+      // Outer glow ring (owned only)
+      if (owned) {
+        const glow = document.createElementNS(ns, 'circle');
+        glow.setAttribute('cx', pos.x); glow.setAttribute('cy', pos.y);
+        glow.setAttribute('r', nodeR + 4);
+        glow.setAttribute('fill', 'none'); glow.setAttribute('stroke', color);
+        glow.setAttribute('stroke-width', '1.5'); glow.setAttribute('stroke-opacity', '0.3');
+        g.appendChild(glow);
+      }
+
+      // Background circle
+      const bg = document.createElementNS(ns, 'circle');
+      bg.setAttribute('cx', pos.x); bg.setAttribute('cy', pos.y);
+      bg.setAttribute('r', nodeR);
+      bg.setAttribute('fill', owned ? '#1a0e06' : '#120a04');
+      bg.setAttribute('stroke', owned ? color : '#444');
+      bg.setAttribute('stroke-width', owned ? '2.5' : '1');
+      bg.setAttribute('stroke-opacity', owned ? '1' : '0.5');
+      g.appendChild(bg);
+
+      // Building icon (canvas → data URL → SVG image)
+      try {
+        const iconCanvas = getBuildingIcon(name, 36);
+        const dataUrl = iconCanvas.toDataURL();
+        const img = document.createElementNS(ns, 'image');
+        img.setAttribute('href', dataUrl);
+        img.setAttribute('x', pos.x - 18); img.setAttribute('y', pos.y - 18);
+        img.setAttribute('width', 36); img.setAttribute('height', 36);
+        if (!owned) img.setAttribute('opacity', '0.35');
+        g.appendChild(img);
+      } catch (_) { /* fallback: no icon */ }
+
+      // Name label below
+      const label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', pos.x); label.setAttribute('y', pos.y + nodeR + 14);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('fill', owned ? color : '#666');
+      label.setAttribute('font-size', '10'); label.setAttribute('font-weight', '600');
+      label.setAttribute('font-family', 'system-ui, sans-serif');
+      label.textContent = name;
+      g.appendChild(label);
+
+      // Count badge (if owned)
+      if (owned) {
+        const badge = document.createElementNS(ns, 'text');
+        badge.setAttribute('x', pos.x); badge.setAttribute('y', pos.y + nodeR + 24);
+        badge.setAttribute('text-anchor', 'middle');
+        badge.setAttribute('fill', '#a08060'); badge.setAttribute('font-size', '9');
+        badge.setAttribute('font-family', 'system-ui, sans-serif');
+        badge.textContent = `x${building.count}`;
+        g.appendChild(badge);
+      }
+
+      // Hover / click
+      const cps = building ? building.cps.mul(building.count) : CookieNum.ZERO;
+      const relatedSynergies = synergyUpgrades.filter(u => u.source === name || u.target === name);
+      g.addEventListener('mouseenter', (e) => {
+        bg.setAttribute('stroke-width', '3.5');
+        const synLines = relatedSynergies.map(u => {
+          const dir = u.source === name ? `→ ${u.target}` : `← ${u.source}`;
+          return `<div style="font-size:10px;color:#d5c4a1">${u.level > 0 ? '✅' : '🔒'} ${u.name} (${dir})</div>`;
+        }).join('');
+        showTip(e, `
+          <div style="font-weight:700;color:${color};font-size:14px;margin-bottom:4px">${name}</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px;margin-bottom:6px">
+            <span style="color:#a08060">Owned</span><span style="font-weight:700">${building ? building.count : 0}</span>
+            <span style="color:#a08060">CPS Each</span><span style="font-weight:700">${building ? formatNumberInWords(building.cps) : '0'}/s</span>
+            <span style="color:#a08060">Total CPS</span><span style="font-weight:700;color:#a0d060">${formatNumberInWords(cps)}/s</span>
+          </div>
+          ${synLines ? `<div style="border-top:1px solid rgba(165,120,71,0.3);padding-top:4px;margin-top:2px"><div style="font-size:9px;color:#8b6a4a;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Synergies</div>${synLines}</div>` : ''}`);
+      });
+      g.addEventListener('mousemove', moveTip);
+      g.addEventListener('mouseleave', () => { bg.setAttribute('stroke-width', owned ? '2.5' : '1'); hideTip(); });
+
+      svgEl.appendChild(g);
+    });
+
+    // Center label — brighter so it reads clearly
+    const activeN = synergyUpgrades.filter(u => u.level > 0).length;
+    const centerText = document.createElementNS(ns, 'text');
+    centerText.setAttribute('x', cx); centerText.setAttribute('y', cy - 8);
+    centerText.setAttribute('text-anchor', 'middle');
+    centerText.setAttribute('fill', 'rgba(200,160,240,0.5)'); centerText.setAttribute('font-size', '16');
+    centerText.setAttribute('font-weight', '700'); centerText.setAttribute('font-family', 'Georgia, serif');
+    centerText.setAttribute('letter-spacing', '2');
+    centerText.textContent = 'SYNERGY NETWORK';
+    svgEl.appendChild(centerText);
+    const centerSub = document.createElementNS(ns, 'text');
+    centerSub.setAttribute('x', cx); centerSub.setAttribute('y', cy + 12);
+    centerSub.setAttribute('text-anchor', 'middle');
+    centerSub.setAttribute('fill', 'rgba(200,160,240,0.35)'); centerSub.setAttribute('font-size', '12');
+    centerSub.setAttribute('font-family', 'Georgia, serif');
+    centerSub.textContent = `${activeN} of ${synergyUpgrades.length} active`;
+    svgEl.appendChild(centerSub);
+  }
+
+  // === Statistics Dashboard ===
+
+  _openStatsOverlay() {
+    // Close the settings menu if it's open
+    const menu = document.getElementById("menu-overlay");
+    if (menu && !menu.classList.contains("hidden")) {
+      menu.classList.add("hidden");
+    }
+
+    const overlay = document.getElementById("stats-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    this.soundManager.panelOpen();
+
+    // Dateline
+    const dl = document.getElementById("sn-dateline");
+    if (dl) {
+      const d = new Date();
+      dl.textContent = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        + ` · Est. ${new Date(this.stats.startTime).getFullYear()}`;
+    }
+
+    this._snPage = 0;
+    this._renderStatsPage();
+
+    if (!this._statsBound) {
+      this._statsBound = true;
+
+      document.getElementById("sn-prev").addEventListener("click", () => {
+        if (this._snPage > 0) { this._snPage--; this._renderStatsPage(); this.soundManager.uiClick(); }
+      });
+      document.getElementById("sn-next").addEventListener("click", () => {
+        if (this._snPage < this._snTotalPages() - 1) { this._snPage++; this._renderStatsPage(); this.soundManager.uiClick(); }
+      });
+
+      const close = () => { overlay.classList.add("hidden"); this.soundManager.panelClose(); };
+      document.getElementById("stats-close").addEventListener("click", close);
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    }
+  }
+
+  _snTotalPages() { return 6; }
+
+  _renderStatsPage() {
+    const body = document.getElementById("sn-body");
+    if (!body) return;
+
+    const total = this._snTotalPages();
+    const pages = ['Front Page', 'Industry', 'Upgrades', 'Entertainment', 'Achievements', 'The Dark Side'];
+    const label = document.getElementById("sn-page-label");
+    label.innerHTML = `<span class="sn-page-name">${pages[this._snPage]}</span><span class="sn-page-num">${this._snPage + 1} / ${total}</span>`;
+    document.getElementById("sn-prev").disabled = this._snPage === 0;
+    document.getElementById("sn-next").disabled = this._snPage >= total - 1;
+
+    // Page turn animation
+    body.classList.remove('sn-page-enter');
+    void body.offsetWidth; // force reflow
+    body.classList.add('sn-page-enter');
+
+    const fmt = (v) => {
+      if (v && typeof v === 'object' && v.toNumber) return formatNumberInWords(v);
+      if (typeof v === 'number') return formatNumberInWords(v);
+      return v;
+    };
+
+    switch (this._snPage) {
+      case 0: this._renderFrontPage(body, fmt); break;
+      case 1: this._renderIndustryPage(body, fmt); break;
+      case 2: this._renderUpgradesPage(body, fmt); break;
+      case 3: this._renderEntertainmentPage(body, fmt); break;
+      case 4: this._renderAchievementsPage(body, fmt); break;
+      case 5: this._renderDarkSidePage(body, fmt); break;
+    }
+  }
+
+  _renderFrontPage(body, fmt) {
+    const elapsed = Math.floor((Date.now() - this.stats.startTime) / 1000);
+    const mins = Math.floor(elapsed / 60); const hrs = Math.floor(mins / 60); const days = Math.floor(hrs / 24);
+    let timeStr;
+    if (days > 0) timeStr = `${days} days, ${hrs % 24} hours`;
+    else if (hrs > 0) timeStr = `${hrs} hours, ${mins % 60} minutes`;
+    else timeStr = `${mins} minutes`;
+
+    const totalClicks = this.stats.totalClicks || 0;
+    const avgPerClick = totalClicks > 0 ? fmt(this.stats.handmadeCookies.div(totalClicks)) : '0';
+    const cps = fmt(this.getEffectiveCPS());
+
+    body.innerHTML = `
+      <div class="sn-article sn-lead">
+        <h2 class="sn-headline">Empire Reaches ${fmt(this.stats.totalCookiesBaked)} Cookies</h2>
+        <p class="sn-byline">By Our Cookie Correspondent · ${timeStr} of operation</p>
+        <p class="sn-body-text">The bakery empire has now produced a staggering <strong>${fmt(this.stats.totalCookiesBaked)}</strong> cookies since its founding, officials confirmed today. Current output stands at <strong>${cps}</strong> cookies per second.</p>
+      </div>
+      <div class="sn-rule"></div>
+      <div class="sn-two-col">
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">By the Numbers</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(totalClicks)}</span><span class="sn-fact-label">Total Clicks</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${avgPerClick}</span><span class="sn-fact-label">Avg. per Click</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.goldenCookiesClicked)}</span><span class="sn-fact-label">Golden Cookies</span></div>
+          </div>
+        </div>
+        <div class="sn-col-divider"></div>
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">Market Report</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.frenziesTriggered)}</span><span class="sn-fact-label">Frenzies</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.luckyClicks)}</span><span class="sn-fact-label">Lucky Clicks</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${this.stats.timesPrestiged}</span><span class="sn-fact-label">Times Ascended</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  _renderIndustryPage(body, fmt) {
+    const owned = this.buildings.filter(b => b.count > 0);
+
+    // Sum raw building CPS for accurate percentages
+    let rawTotalCps = CookieNum.ZERO;
+    owned.forEach(b => { rawTotalCps = rawTotalCps.add(b.cps.mul(b.count)); });
+    const rawTotalNum = rawTotalCps.toNumber();
+
+    // Top producer for headline
+    let topName = 'None', topCps = CookieNum.ZERO;
+    owned.forEach(b => { const t = b.cps.mul(b.count); if (t.gt(topCps)) { topCps = t; topName = b.name; } });
+
+    const rows = owned.map(b => {
+      const bTotalCps = b.cps.mul(b.count);
+      const pct = rawTotalNum > 0 ? ((bTotalCps.toNumber() / rawTotalNum) * 100).toFixed(1) : '0.0';
+      const barW = rawTotalNum > 0 ? Math.max(2, (bTotalCps.toNumber() / rawTotalNum) * 100) : 0;
+      return `<div class="sn-building-row">
+        <span class="sn-b-name"><strong>${b.name}</strong> <span class="sn-b-dim">x${b.count}</span></span>
+        <div class="sn-b-bar-track"><div class="sn-b-bar-fill" style="width:${barW}%"></div></div>
+        <span class="sn-b-val">${pct}%</span>
+      </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="sn-article sn-lead">
+        <h2 class="sn-headline">${topName} Leads Production at ${fmt(topCps)}/s</h2>
+        <p class="sn-byline">Industry Desk · ${owned.length} of ${this.buildings.length} sectors active</p>
+        <p class="sn-body-text">The bakery's ${owned.length} active divisions generated a combined <strong>${fmt(rawTotalCps)}</strong> base cookies per second today. Multipliers push effective output to <strong>${fmt(this.getEffectiveCPS())}</strong>/s.</p>
+      </div>
+      <div class="sn-rule"></div>
+      <div class="sn-article">
+        <h3 class="sn-subhead">Production Share by Division</h3>
+        <div class="sn-building-list">${rows || '<p class="sn-body-text" style="color:#8b5e34;font-style:italic">No divisions operational yet.</p>'}</div>
+      </div>`;
+  }
+
+  _renderUpgradesPage(body, fmt) {
+    const purchased = this.upgrades.filter(u => u.level > 0);
+    const total = this.upgrades.length;
+    const maxed = this.upgrades.filter(u => {
+      if (u.type === 'tieredUpgrade') return u.level > 0 && u.currentTier >= (u.tiers || []).length - 1;
+      return u.level >= u.getEffectiveMaxLevel();
+    }).length;
+
+    // Categorize
+    const clickUpgrades = purchased.filter(u => u.type === 'clickMultiplier' || (u.type === 'tieredUpgrade' && u.subtype === 'clickMultiplier'));
+    const synergyUpgrades = purchased.filter(u => u.type === 'synergy');
+    const otherUpgrades = purchased.filter(u => !clickUpgrades.includes(u) && !synergyUpgrades.includes(u));
+
+    // Global multiplier breakdown
+    const globalMult = this.globalCpsMultiplier;
+    const achMult = this.achievementManager.getMultiplier();
+    const prestMult = this.prestige.getPrestigeMultiplier();
+
+    body.innerHTML = `
+      <div class="sn-article sn-lead">
+        <h2 class="sn-headline">${purchased.length} Upgrades Purchased of ${total}</h2>
+        <p class="sn-byline">Technology Desk · ${maxed} fully maxed</p>
+        <p class="sn-body-text">The bakery's research division reports <strong>${purchased.length}</strong> active upgrades powering current production. Combined multipliers have reached extraordinary levels.</p>
+      </div>
+      <div class="sn-rule"></div>
+      <div class="sn-two-col">
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">Multipliers</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">x${globalMult.toFixed(2)}</span><span class="sn-fact-label">Global CPS</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">x${achMult.toFixed(2)}</span><span class="sn-fact-label">Achievement</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">x${prestMult.toFixed(2)}</span><span class="sn-fact-label">Prestige</span></div>
+          </div>
+        </div>
+        <div class="sn-col-divider"></div>
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">By Category</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${clickUpgrades.length}</span><span class="sn-fact-label">Click Power</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${synergyUpgrades.length}</span><span class="sn-fact-label">Synergies</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${otherUpgrades.length}</span><span class="sn-fact-label">Other</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  _renderEntertainmentPage(body, fmt) {
+    const wonList = this.stats.miniGamesWon || [];
+    const played = this.stats.miniGamesPlayed || 0;
+    const winRate = played > 0 ? ((wonList.length / played) * 100).toFixed(0) : '0';
+
+    const dungeonRuns = this.stats.dungeonRuns || 0;
+    const dungeonBosses = this.stats.dungeonBossesDefeated || 0;
+    const dungeonBest = this.stats.dungeonBestRooms || 0;
+
+    body.innerHTML = `
+      <div class="sn-article sn-lead">
+        <h2 class="sn-headline">Mini-Games: ${played} Rounds Played</h2>
+        <p class="sn-byline">Entertainment Section</p>
+        <p class="sn-body-text">The bakery's recreational program has seen <strong>${played}</strong> games played to date, with a <strong>${winRate}%</strong> win rate across all categories.</p>
+      </div>
+      <div class="sn-rule"></div>
+      <div class="sn-two-col">
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">Records</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${wonList.length}</span><span class="sn-fact-label">Unique Wins</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.slotsJackpots)}</span><span class="sn-fact-label">Jackpots</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${(this.stats.cutterBestAccuracy || 0).toFixed(0)}%</span><span class="sn-fact-label">Best Cutter</span></div>
+          </div>
+        </div>
+        <div class="sn-col-divider"></div>
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">Dungeon Report</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${dungeonRuns}</span><span class="sn-fact-label">Runs</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${dungeonBosses}</span><span class="sn-fact-label">Bosses Slain</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${dungeonBest}</span><span class="sn-fact-label">Best Depth</span></div>
+          </div>
+        </div>
+      </div>
+      ${wonList.length > 0 ? `<div class="sn-rule"></div><div class="sn-article"><p class="sn-body-text" style="font-size:11px;color:#6b4a2a"><strong>Won:</strong> ${wonList.join(', ')}</p></div>` : ''}`;
+  }
+
+  _renderAchievementsPage(body, fmt) {
+    const am = this.achievementManager;
+    const unlocked = am.getUnlockedCount();
+    const total = am.getTotalCount();
+    const pct = total > 0 ? ((unlocked / total) * 100).toFixed(0) : '0';
+    const mult = am.getMultiplier();
+
+    // Get recent achievements (last 5 unlocked)
+    const allAch = am.achievements || [];
+    const unlockedAch = allAch.filter(a => a.unlocked);
+    const recent = unlockedAch.slice(-5).reverse();
+    const recentHtml = recent.map(a =>
+      `<div class="sn-ach-row"><span class="sn-ach-icon">${a.icon || '🏆'}</span><strong>${a.name}</strong><span class="sn-ach-desc">${a.desc || ''}</span></div>`
+    ).join('');
+
+    // Locked teasers (first 3 locked)
+    const locked = allAch.filter(a => !a.unlocked).slice(0, 3);
+    const teaserHtml = locked.map(a =>
+      `<div class="sn-ach-row sn-ach-locked"><span class="sn-ach-icon">🔒</span><span class="sn-ach-hint">${a.hint || '???'}</span></div>`
+    ).join('');
+
+    body.innerHTML = `
+      <div class="sn-article sn-lead">
+        <h2 class="sn-headline">${unlocked} of ${total} Achievements Unlocked</h2>
+        <p class="sn-byline">Honors & Awards Section</p>
+        <p class="sn-body-text">The bakery has earned <strong>${pct}%</strong> of all possible achievements, providing a <strong>x${mult.toFixed(2)}</strong> production multiplier. ${total - unlocked > 0 ? `${total - unlocked} achievements remain hidden, waiting to be discovered.` : 'All achievements unlocked — legendary status achieved!'}</p>
+      </div>
+      <div class="sn-rule"></div>
+      <div class="sn-ach-bar-wrap">
+        <div class="sn-ach-bar"><div class="sn-ach-bar-fill" style="width:${pct}%"></div></div>
+        <span class="sn-ach-bar-label">${pct}% Complete</span>
+      </div>
+      ${recent.length > 0 ? `
+      <div class="sn-rule"></div>
+      <div class="sn-article">
+        <h3 class="sn-subhead">Latest Honors</h3>
+        ${recentHtml}
+      </div>` : ''}
+      ${locked.length > 0 ? `
+      <div class="sn-rule"></div>
+      <div class="sn-article">
+        <h3 class="sn-subhead">Coming Up Next</h3>
+        ${teaserHtml}
+      </div>` : ''}`;
+  }
+
+  _renderDarkSidePage(body, fmt) {
+    const stage = this.grandmapocalypse ? this.grandmapocalypse.stage : 0;
+    const stageNames = ['Dormant — The grandmas are content. For now.', 'Displeased — They whisper. They watch.', 'Angered — The baking has taken a dark turn.', 'Awoken — They have transcended. Cookie production is eternal suffering.'];
+    const stageLine = stageNames[stage] || `Stage ${stage}`;
+
+    body.innerHTML = `
+      <div class="sn-article sn-lead sn-dark-lead">
+        <h2 class="sn-headline">The Grandmapocalypse: Stage ${stage}</h2>
+        <p class="sn-byline">Investigative Report · Classified</p>
+        <p class="sn-body-text"><em>${stageLine}</em></p>
+      </div>
+      <div class="sn-rule"></div>
+      <div class="sn-two-col">
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">Wrinkler Activity</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.wrinklersFed || 0)}</span><span class="sn-fact-label">Fed</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.wrinklersPopped || 0)}</span><span class="sn-fact-label">Popped</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.shinyWrinklersPopped || 0)}</span><span class="sn-fact-label">Shiny Popped</span></div>
+          </div>
+        </div>
+        <div class="sn-col-divider"></div>
+        <div class="sn-article sn-col-article">
+          <h3 class="sn-subhead">Elder Affairs</h3>
+          <div class="sn-fact-list">
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.elderPledgesUsed || 0)}</span><span class="sn-fact-label">Pledges Used</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.elderFrenzyTriggered || 0)}</span><span class="sn-fact-label">Elder Frenzies</span></div>
+            <div class="sn-fact"><span class="sn-fact-num">${fmt(this.stats.wrathCookiesClicked || 0)}</span><span class="sn-fact-label">Wrath Cookies</span></div>
+          </div>
+        </div>
+      </div>`;
   }
 
   _fmtTime(s) {
@@ -2954,12 +3602,31 @@ export class Game {
         if (offlineEarnings.gt(0)) {
           if (this.visualEffects) this.visualEffects.triggerIncomeRain(offlineEarnings.toNumber());
           if (this.tutorial) {
+            // Build enhanced offline report data
+            const buildingsData = this.buildings
+              .filter(b => b.count > 0)
+              .map(b => ({ name: b.name, count: b.count, cps: b.cps.mul(b.count).toNumber() }))
+              .sort((a, b) => b.cps - a.cps);
+
+            const wrinklerCount = data.wrinklers?.wrinklers?.length || 0;
+            const wrinklerCookies = (data.wrinklers?.wrinklers || []).reduce(
+              (sum, w) => sum + (typeof w.cookiesEaten === 'number' ? w.cookiesEaten : parseFloat(w.cookiesEaten) || 0), 0
+            );
+
+            const missedGoldenCookies = Math.floor(elapsedTime / 120);
+            const grandmaStage = this.grandmapocalypse ? this.grandmapocalypse.stage : 0;
+
             this.tutorial.showOfflineEarnings({
               elapsedSec: elapsedTime,
               baseCps: baseCps.toNumber(),
               offlineMultiplier,
               totalEarned: offlineEarnings.toNumber(),
               formatFn: formatNumberInWords,
+              buildings: buildingsData,
+              wrinklerCount,
+              wrinklerCookies: formatNumberInWords(wrinklerCookies),
+              missedGoldenCookies,
+              grandmaStage,
             });
           }
         }

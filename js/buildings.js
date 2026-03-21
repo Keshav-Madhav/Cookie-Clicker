@@ -18,6 +18,7 @@ export class Building {
     this.desc = this.building.desc || '';
     this.flavor = this.building.flavor || '';
     this.lore = this.building.lore || '';
+    this.milestoneTexts = this.building.milestoneTexts || [];
     this.count = 0;
   }
 
@@ -198,6 +199,16 @@ export class Building {
   // Calculate cost based on count
   recalculateCost() {
     this.cost = this._costAtCount(this.count);
+  }
+
+  /** Get milestone flavor text based on current count, or default flavor */
+  getMilestoneText() {
+    if (this.count === 0 || this.milestoneTexts.length === 0) return this.flavor;
+    let best = null;
+    for (const m of this.milestoneTexts) {
+      if (this.count >= m.threshold) best = m;
+    }
+    return best ? best.text : this.flavor;
   }
 
   /** How close the player is to meeting requirements (0..1) */
@@ -528,9 +539,10 @@ export class Building {
       button.disabled = !canAfford;
     }
 
-    // Store flavor text for tooltip
-    if (this.flavor) {
-      button.dataset.buildingFlavor = this.flavor;
+    // Store flavor text for tooltip (milestone-aware)
+    const flavorText = this.getMilestoneText();
+    if (flavorText) {
+      button.dataset.buildingFlavor = flavorText;
     }
 
     // Building icon — clicking opens info panel + plays sound
