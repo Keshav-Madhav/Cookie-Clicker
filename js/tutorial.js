@@ -93,9 +93,15 @@ export class Tutorial {
         position: "right",
       },
       {
-        title: "Settings and Stats",
-        text: "Click the gear icon to view detailed statistics, your full achievement list, and to replay this tutorial anytime.",
+        title: "Settings",
+        text: "Click the gear icon to adjust settings, manage saves, and replay this tutorial anytime.",
         target: "#menu-btn",
+        position: "bottom-right",
+      },
+      {
+        title: "The Cookie Chronicle",
+        text: "Click the newspaper icon to open The Cookie Chronicle — your bakery's very own newspaper. It tracks all your stats, achievements, mini-game records, and more across 8 detailed pages.",
+        target: "#newspaper-btn",
         position: "bottom-right",
       },
       {
@@ -958,7 +964,7 @@ export class Tutorial {
 
     overlay.innerHTML = `
       <div class="offline-report">
-        <div class="offline-report-masthead">The Baker's Gazette</div>
+        <div class="offline-report-masthead">The Cookie Chronicle</div>
         <div class="offline-report-dateline">${dateLine} · Vol. ${Math.floor(Math.random() * 900) + 100} · No. ${Math.floor(Math.random() * 90) + 10}</div>
         <div class="offline-report-rule thick"></div>
         <div class="offline-report-headline">Baker Returns After ${timeStr}</div>
@@ -991,7 +997,10 @@ export class Tutorial {
         <div class="offline-footer">${footerItems}</div>
         ` : ''}
         <div class="offline-report-rule thick"></div>
-        <button class="offline-dismiss">Continue Baking</button>
+        <div class="offline-buttons">
+          <button class="offline-dismiss">Continue Baking</button>
+          <button class="offline-read-more">Read the Chronicle</button>
+        </div>
       </div>`;
 
     document.body.appendChild(overlay);
@@ -999,6 +1008,10 @@ export class Tutorial {
     // Dismiss handlers
     const dismiss = () => overlay.remove();
     overlay.querySelector('.offline-dismiss').addEventListener('click', dismiss);
+    overlay.querySelector('.offline-read-more').addEventListener('click', () => {
+      dismiss();
+      if (this.game._openStatsOverlay) this.game._openStatsOverlay();
+    });
     overlay.addEventListener('click', (e) => { if (e.target === overlay) dismiss(); });
   }
 

@@ -111,6 +111,19 @@ export class AchievementManager {
         case "slotsJackpot":
           met = stats.slotsJackpots >= achievement.requirement;
           break;
+        case "miniGamesPlayed":
+          met = (stats.miniGamesPlayed || 0) >= achievement.requirement;
+          break;
+        case "dungeonBestRooms":
+          met = (stats.dungeonBestRooms || 0) >= achievement.requirement;
+          break;
+        case "dungeonBossesDefeated":
+          met = (stats.dungeonBossesDefeated || 0) >= achievement.requirement;
+          break;
+        case "gameWins":
+          met = stats.perGame && stats.perGame[achievement.gameName] &&
+                stats.perGame[achievement.gameName].wins >= achievement.requirement;
+          break;
         case "goldenCookiesClicked":
           met = stats.goldenCookiesClicked >= achievement.requirement;
           break;

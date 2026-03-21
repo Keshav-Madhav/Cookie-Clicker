@@ -379,10 +379,8 @@ export class GameMusic {
   _play() {
     const stage = this._apocalypseMode || 0;
     let list;
-    if (stage >= 2) {
+    if (stage >= 3) {
       list = GameMusic._DARK_COMPOSITIONS;
-    } else if (stage === 1) {
-      list = Math.random() < 0.5 ? GameMusic._DARK_COMPOSITIONS : GameMusic._COMPOSITIONS;
     } else {
       list = GameMusic._COMPOSITIONS;
     }

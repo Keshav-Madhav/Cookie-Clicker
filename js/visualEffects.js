@@ -66,6 +66,7 @@ export class VisualEffects {
           <canvas id="news-bg-canvas"></canvas>
           <div id="news-tv">
             <div id="news-tv-screen">
+              <div id="news-tv-logo">TCC</div>
               <div id="news-anchor">
                 <div class="anchor-head">
                   <div class="anchor-hair"></div>
@@ -83,7 +84,7 @@ export class VisualEffects {
             <div id="news-tv-frame"></div>
           </div>
           <div id="news-content">
-            <div id="news-label">COOKIE NEWS</div>
+            <div id="news-label">COOKIE NEWS <span class="news-label-tcc">by TCC</span></div>
             <div id="news-text-wrap">
               <span id="news-text">Welcome to Cookie Clicker!</span>
             </div>
@@ -556,11 +557,17 @@ export class VisualEffects {
         return;
       }
 
-      this.newsIndex = (this.newsIndex + 1) % pool.length;
+      // 40% chance to pick a dynamic message if any exist, otherwise random from full pool
+      let msg;
+      if (dynamic.length > 0 && Math.random() < 0.4) {
+        msg = dynamic[Math.floor(Math.random() * dynamic.length)];
+      } else {
+        msg = pool[Math.floor(Math.random() * pool.length)];
+      }
 
       el.classList.add("news-exit");
       setTimeout(() => {
-        el.textContent = pool[this.newsIndex];
+        el.textContent = msg;
         el.classList.remove("news-exit");
         el.classList.add("news-enter");
         // Broadcast speak animation
@@ -576,15 +583,167 @@ export class VisualEffects {
   _getDynamicNews() {
     const msgs = [];
     const g = this.game;
+    const fmt = formatNumberInWords;
     const cps = g.getEffectiveCPS();
-    if (cps.gt(0)) msgs.push(`Your bakeries are churning out ${formatNumberInWords(cps)} cookies every second!`);
     const total = g.stats.totalCookiesBaked;
-    if (total.gt(1000)) msgs.push(`Over ${formatNumberInWords(total)} cookies have been baked in total!`);
-    if (g.stats.totalClicks > 100) msgs.push(`You've clicked ${formatNumberInWords(g.stats.totalClicks)} times! Your fingers must be tired.`);
+    const clicks = g.stats.totalClicks;
     const buildings = g.getTotalBuildingCount();
-    if (buildings > 10) msgs.push(`You now own ${buildings} buildings across your cookie empire.`);
-    if (g.prestige.getSpendableChips() > 0) msgs.push(`Your ${formatNumberInWords(g.prestige.getSpendableChips())} heavenly chips glow with prestige.`);
-    if (g.activeBuffs.length > 0) msgs.push("FRENZY IS ACTIVE! Bake faster!");
+    const chips = g.prestige.getSpendableChips() || 0;
+    const cpc = g.getEffectiveCPC();
+
+    // Production reports
+    if (cps.gt(0)) {
+      msgs.push(`TCC Market Watch: bakery output surges to ${fmt(cps)} cookies/sec, analysts bullish.`);
+      msgs.push(`Officials confirm: cookie production holds steady at ${fmt(cps)} per second across all divisions.`);
+    }
+    if (total.gt(1000)) {
+      msgs.push(`Empire milestone: bakers celebrate as total output crosses ${fmt(total)} cookies.`);
+      msgs.push(`Treasury report: cookie reserves at ${fmt(g.cookies)}, officials say "room to grow."`);
+    }
+
+    // Click reports
+    if (clicks > 100) msgs.push(`Click bureau logs ${fmt(clicks)} operations. "Every click counts," says director.`);
+    if (clicks > 1000) msgs.push(`Breaking: click count surpasses ${fmt(clicks)}. Wrist specialists issue advisory.`);
+    if (cpc.gt(1)) msgs.push(`New efficiency record: each click now yields ${fmt(cpc)} cookies, engineers report.`);
+
+    // Building reports
+    if (buildings > 10) msgs.push(`Urban report: ${buildings} cookie facilities now dot the landscape.`);
+    if (buildings > 50) msgs.push(`Infrastructure boom: ${buildings} buildings running at full capacity, inspectors overwhelmed.`);
+    const owned = g.buildings.filter(b => b.count > 0);
+    if (owned.length > 0) {
+      const top = owned.reduce((a, b) => b.cps.mul(b.count).gt(a.cps.mul(a.count)) ? b : a);
+      msgs.push(`Industry spotlight: ${top.name} division dominates with ${top.count} units deployed.`);
+    }
+
+    // Prestige
+    if (chips > 0) msgs.push(`Heavenly affairs: ${fmt(chips)} prestige chips glow above the bakery, sources confirm.`);
+    if (g.stats.timesPrestiged > 0) {
+      const tp = g.stats.timesPrestiged;
+      msgs.push(`Opinion: "Resetting your empire ${tp} times isn't failure, it's strategy," says local philosopher.`);
+      if (tp === 1) msgs.push(`Head baker shocks nation by resetting entire empire. "I'll be back stronger," they vow.`);
+      if (tp >= 3) msgs.push(`Serial ascender resets empire for the ${tp}th time. Grandmas unfazed. "We've seen worse."`);
+      if (tp >= 5) msgs.push(`Prestige enthusiast ascends again. Friends stage intervention. Baker declines.`);
+      if (tp >= 10) msgs.push(`After ${tp} ascensions, the head baker has seen more resets than a Windows computer.`);
+    }
+
+    // Buffs
+    if (g.activeBuffs.length > 0) msgs.push("URGENT: Frenzy declared across all bakery sectors! All hands to the ovens!");
+    if (g.activeBuffs.some(b => b.type === 'click')) msgs.push("ALERT: Click frenzy in effect! Workers scramble for overtime as payouts skyrocket.");
+    if (g.activeBuffs.length >= 2) msgs.push("BREAKING: Double frenzy hits bakery! Economists call it \"the perfect storm of cookies.\"");
+
+    // Mini-games
+    const played = g.stats.miniGamesPlayed || 0;
+    const pg = g.stats.perGame || {};
+    if (played > 0) msgs.push(`Recreation dept reports ${played} mini-games played. Staff morale at all-time high.`);
+    const wonList = g.stats.miniGamesWon || [];
+    if (wonList.length > 5) msgs.push(`Local baker masters ${wonList.length} different games. "Is there anything they can't do?" asks rival.`);
+    if (played >= 100) msgs.push(`Arcade hall of fame overflows with ${played} entries. Custodian requests bigger plaque.`);
+
+    // Slots
+    const jackpots = g.stats.slotsJackpots || 0;
+    if (jackpots > 0) msgs.push(`Breaking: local baker hits slot machine jackpot! That's ${jackpots} total.`);
+    if (jackpots >= 3) msgs.push(`Serial jackpot winner strikes again. Casino management considers "lifetime ban."`);
+    if (jackpots >= 5) msgs.push(`"I just have lucky hands," says baker after ${jackpots}th slot machine jackpot.`);
+    if (pg.slots && pg.slots.played > 10) msgs.push(`Slot machine logs ${pg.slots.played} plays. Maintenance crew reports lever is wearing thin.`);
+
+    // Dungeon
+    const dRuns = g.stats.dungeonRuns || 0;
+    const dBosses = g.stats.dungeonBossesDefeated || 0;
+    const dBest = g.stats.dungeonBestRooms || 0;
+    if (dRuns > 0) msgs.push(`Dungeon expedition #${dRuns} complete. Survivors debrief over warm cookies.`);
+    if (dBosses > 0) msgs.push(`Heroic baker slays dungeon boss! ${dBosses} boss${dBosses > 1 ? 'es' : ''} felled in total, guild confirms.`);
+    if (dBosses >= 5) msgs.push(`Adventurers' guild offers honorary membership after baker defeats ${dBosses}th dungeon boss.`);
+    if (dBest >= 5) msgs.push(`New dungeon record: floor ${dBest} cleared. "It smelled like burnt cookies down there," reports explorer.`);
+    if (dBest >= 10) msgs.push(`Floor ${dBest} conquered! Cartographers petition for bigger maps of the deep cookie caverns.`);
+
+    // Cookie Cutter
+    const cutterAcc = g.stats.cutterBestAccuracy || 0;
+    if (cutterAcc >= 90) msgs.push(`Cookie cutter champion stuns crowd with ${cutterAcc.toFixed(0)}% accuracy. Surgeons reportedly "taking notes."`);
+    if (cutterAcc >= 95) msgs.push(`Near-perfect ${cutterAcc.toFixed(0)}% cutter score leaves judges speechless. "Inhuman precision," they declare.`);
+
+    // Kitchen
+    const kitchenStreak = g.stats.kitchenBestStreak || 0;
+    if (kitchenStreak >= 3) msgs.push(`Kitchen prodigy bakes ${kitchenStreak} perfect cookies in a row. Grandma "couldn't be prouder."`);
+    if (kitchenStreak >= 8) msgs.push(`${kitchenStreak} flawless cookies straight! Grandma sheds a single proud tear at the ceremony.`);
+
+    // Speed Click
+    if (pg.speed && pg.speed.wins > 0) msgs.push(`Speed click champion clocks ${pg.speed.wins} victories. "Fastest fingers in the bakery," coach confirms.`);
+
+    // Cookie Catch
+    if (pg.catch && pg.catch.wins > 0) msgs.push(`Cookie catcher snags ${pg.catch.wins}th win. Reflexes described as "superhuman" by witnesses.`);
+
+    // Trivia
+    if (pg.trivia && pg.trivia.wins > 0) msgs.push(`Quiz night upset: bakery employee wins ${pg.trivia.wins}th round. Opponents demand recount.`);
+    if (pg.trivia && pg.trivia.wins >= 5) msgs.push(`"Is there anything they don't know?" asks stunned rival after ${pg.trivia.wins}th trivia victory.`);
+
+    // Memory
+    if (pg.memory && pg.memory.wins > 0) msgs.push(`Memory match prodigy clears board for ${pg.memory.wins}th time. Scientists want to study their brain.`);
+
+    // Safe Cracker
+    if (pg.safeCracker && pg.safeCracker.wins > 0) msgs.push(`Vault cracked wide open! Expert tallies ${pg.safeCracker.wins} successful heists and counting.`);
+    if (pg.safeCracker && pg.safeCracker.wins >= 3) msgs.push(`Banks reportedly nervous after baker cracks ${pg.safeCracker.wins} safes. "It's just a game," they insist.`);
+
+    // Cookie Launch
+    if (pg.cookieLaunch && pg.cookieLaunch.wins > 0) msgs.push(`Cookie successfully launched into orbit! Space agency logs ${pg.cookieLaunch.wins} missions complete.`);
+
+    // Cookie Wordle
+    if (pg.cookieWordle && pg.cookieWordle.wins > 0) msgs.push(`Bakery linguist cracks wordle puzzle for ${pg.cookieWordle.wins}th time. Dictionary publishers alarmed.`);
+
+    // Cookie Defense
+    if (pg.cookieDefense && pg.cookieDefense.wins > 0) msgs.push(`Cookie garrison repels ${pg.cookieDefense.wins}th wave of attackers. "The ovens are safe," says commander.`);
+
+    // Math Baker
+    if (pg.mathBaker && pg.mathBaker.wins > 0) msgs.push(`Math baker solves ${pg.mathBaker.wins}th equation to perfect the recipe. "Numbers don't lie," they say.`);
+
+    // Assembly
+    if (pg.cookieAssembly && pg.cookieAssembly.wins > 0) msgs.push(`Assembly line celebrates ${pg.cookieAssembly.wins}th flawless run. Factory foreman declares "zero defects."`);
+
+    // Alchemy
+    const alchDisc = (g.stats.alchemyDiscovered || []).length;
+    const alchResets = g.stats.alchemyResets || 0;
+    if (alchDisc > 0) msgs.push(`Alchemy lab reports ${alchDisc} recipes discovered. "The cauldron never sleeps," says lead researcher.`);
+    if (alchDisc >= 50) msgs.push(`Master alchemist discovers ${alchDisc}th recipe. "The philosopher's cookie draws near," they whisper.`);
+    if (alchResets > 0) msgs.push(`Alchemist completes full mastery cycle for ${alchResets}${alchResets === 1 ? 'st' : alchResets === 2 ? 'nd' : 'rd'} time. Peers astonished.`);
+
+    // Achievements
+    const achCount = g.achievementManager.getUnlockedCount();
+    const achTotal = g.achievementManager.getTotalCount();
+    if (achCount > 0) msgs.push(`Awards ceremony: ${achCount} of ${achTotal} achievements presented to head baker.`);
+    if (achCount >= achTotal * 0.5 && achCount < achTotal) msgs.push(`Halfway to glory! Baker earns ${achCount} of ${achTotal} possible honors, crowd roars.`);
+    if (achCount === achTotal) msgs.push(`HISTORIC: All ${achTotal} achievements unlocked! The Cookie Chronicle names baker a living legend.`);
+
+    // Wrinklers
+    const wrPop = g.stats.wrinklersPopped || 0;
+    if (wrPop > 0) msgs.push(`Pest control confirms: ${wrPop} wrinklers eliminated in ongoing containment effort.`);
+    if (wrPop >= 50) msgs.push(`Veteran exterminator pops wrinkler #${wrPop}. "They just keep coming back," they sigh.`);
+    if (g.stats.shinyWrinklersPopped > 0) msgs.push(`Rare shiny wrinkler popped! Collectors reportedly offering fortunes for the remains.`);
+    if (g.wrinklerManager && g.wrinklerManager.getWrinklerCount() >= 10) msgs.push(`Warning: ${g.wrinklerManager.getWrinklerCount()} wrinklers spotted feeding on the big cookie. Officials urge calm.`);
+
+    // Golden cookies
+    const gc = g.stats.goldenCookiesClicked || 0;
+    if (gc > 0) msgs.push(`Golden cookie bureau reports ${gc} caught. "Fortune favors the alert," says director.`);
+    if (gc >= 50) msgs.push(`Seasoned hunter bags golden cookie #${gc}. "I can hear them shimmer from a mile away."`);
+    if (gc >= 100) msgs.push(`${gc} golden cookies seized! Leprechaun council files formal complaint.`);
+
+    // Wrath cookies
+    const wc = g.stats.wrathCookiesClicked || 0;
+    if (wc > 0) msgs.push(`Daredevil baker clicks wrath cookie #${wc}. "I like to live dangerously," they tell reporters.`);
+    if (wc >= 10) msgs.push(`After ${wc} wrath cookies, insurance company officially drops baker's coverage.`);
+
+    // Lucky clicks
+    if (g.stats.luckyClicks >= 10) msgs.push(`Statisticians baffled: baker triggers ${g.stats.luckyClicks}th lucky click. "The odds should be impossible."`);
+
+    // Elder affairs
+    if (g.stats.elderPledgesUsed >= 3) msgs.push(`Elder Pledge invoked ${g.stats.elderPledgesUsed} times. "It's only temporary peace," warns chief diplomat.`);
+    if (g.stats.elderCovenantSigned) msgs.push(`Elder Covenant remains in force. Critics debate whether the production cost is worth the peace.`);
+    if (g.stats.elderFrenzyTriggered > 0) msgs.push(`Elder Frenzy strikes for ${g.stats.elderFrenzyTriggered}${g.stats.elderFrenzyTriggered === 1 ? 'st' : 'nd'} time! 666x output leaves scorch marks on every oven.`);
+
+    // Big reward stories
+    const allGames = Object.values(pg);
+    const biggestReward = allGames.reduce((max, gm) => Math.max(max, gm.bestReward || 0), 0);
+    if (biggestReward > 0) msgs.push(`Record payout: single mini-game yields ${fmt(biggestReward)} cookies. Finance dept scrambles to count.`);
+    const totalMiniEarned = allGames.reduce((s, gm) => s + (gm.totalReward || 0), 0);
+    if (totalMiniEarned > 0) msgs.push(`Recreation budget justified: mini-games have earned the bakery ${fmt(totalMiniEarned)} cookies total.`);
 
     // Grandmapocalypse stage-specific news
     if (g.grandmapocalypse && g.grandmapocalypse.stage > 0 &&
@@ -596,7 +755,7 @@ export class VisualEffects {
         msgs.push(stagePool[idx1]);
         if (g.grandmapocalypse.stage >= 2 && stagePool.length > 1) {
           let idx2 = Math.floor(Math.random() * (stagePool.length - 1));
-          if (idx2 >= idx1) idx2++; // avoid duplicate
+          if (idx2 >= idx1) idx2++;
           msgs.push(stagePool[idx2]);
         }
       }

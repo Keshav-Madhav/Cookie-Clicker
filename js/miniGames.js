@@ -33,23 +33,26 @@ export class MiniGames {
       this.game.soundManager.newsPlayDice();
 
       const games = [
-        () => this._slotMachine(),
-        () => this._speedClick(),
-        () => this._cookieCatch(),
-        () => this._trivia(),
-        () => this._emojiMemory(),
-        () => this._cookieCutter(),
-        () => this._cookieDefense(),
-        () => this._grandmasKitchen(),
-        () => this._mathBaker(),
-        () => this._dungeonCrawl(),
-        () => this._safeCracker(),
-        () => this._cookieLaunch(),
-        () => this._cookieWordle(),
-        () => this._cookieAssembly(),
-        () => this._cookieAlchemy(),
+        ['slots',          () => this._slotMachine()],
+        ['speed',          () => this._speedClick()],
+        ['catch',          () => this._cookieCatch()],
+        ['trivia',         () => this._trivia()],
+        ['memory',         () => this._emojiMemory()],
+        ['cookieCutter',   () => this._cookieCutter()],
+        ['cookieDefense',  () => this._cookieDefense()],
+        ['grandmasKitchen',() => this._grandmasKitchen()],
+        ['mathBaker',      () => this._mathBaker()],
+        ['dungeon',        () => this._dungeonCrawl()],
+        ['safeCracker',    () => this._safeCracker()],
+        ['cookieLaunch',   () => this._cookieLaunch()],
+        ['cookieWordle',   () => this._cookieWordle()],
+        ['cookieAssembly', () => this._cookieAssembly()],
+        ['cookieAlchemy',  () => this._cookieAlchemy()],
       ];
-      games[Math.floor(Math.random() * games.length)]();
+      const [name, launch] = games[Math.floor(Math.random() * games.length)];
+      this._currentGameName = name;
+      this._currentGameRewarded = false;
+      launch();
 
       btn.classList.add("dice-spin");
       setTimeout(() => btn.classList.remove("dice-spin"), 600);
@@ -106,6 +109,18 @@ export class MiniGames {
     // Track total minigames played
     g.stats.miniGamesPlayed = (g.stats.miniGamesPlayed || 0) + 1;
 
+    // Per-game stats tracking
+    if (gameName) {
+      if (!g.stats.perGame) g.stats.perGame = {};
+      if (!g.stats.perGame[gameName]) g.stats.perGame[gameName] = { played: 0, wins: 0, totalReward: 0, bestReward: 0 };
+      const pg = g.stats.perGame[gameName];
+      pg.played++;
+      pg.wins++;
+      pg.totalReward += reward;
+      if (reward > pg.bestReward) pg.bestReward = reward;
+      this._currentGameRewarded = true;
+    }
+
     // Easter egg: minigame addict (100 games played)
     if (g.stats.miniGamesPlayed === 100 && g.tutorial) {
       g.tutorial.triggerEvent('miniGameAddict');
@@ -132,6 +147,17 @@ export class MiniGames {
   _close() {
     if (!this._active) return;  // prevent re-entrant double-close
     this._active = false;
+
+    // Track loss if game was not rewarded
+    if (this._currentGameName && !this._currentGameRewarded) {
+      const g = this.game;
+      if (!g.stats.perGame) g.stats.perGame = {};
+      if (!g.stats.perGame[this._currentGameName]) g.stats.perGame[this._currentGameName] = { played: 0, wins: 0, totalReward: 0, bestReward: 0 };
+      g.stats.perGame[this._currentGameName].played++;
+      g.stats.miniGamesPlayed = (g.stats.miniGamesPlayed || 0) + 1;
+    }
+    this._currentGameName = '';
+    this._currentGameRewarded = false;
 
     // Run registered cleanup (timers, listeners, animation frames)
     if (this._activeCleanup) {

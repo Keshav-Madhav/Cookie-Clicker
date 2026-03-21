@@ -32,10 +32,10 @@ body.grandma-stage-3 #cookie-button {
   transition: filter 4s ease;
 }
 
-/* ── Vignette ── */
-body.grandma-stage-1 #click-area::before,
-body.grandma-stage-2 #click-area::before,
-body.grandma-stage-3 #click-area::before {
+/* ── Vignette (uses ::after so it doesn't overwrite the dotted texture on ::before) ── */
+body.grandma-stage-1 #click-area::after,
+body.grandma-stage-2 #click-area::after,
+body.grandma-stage-3 #click-area::after {
   content: '';
   position: absolute;
   inset: 0;
