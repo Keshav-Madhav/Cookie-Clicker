@@ -425,35 +425,35 @@ export const MINI_GAME_SETTINGS = {
     enemyBlockReduction: 0.5, // enemy block reduces player dmg by 50%
     // Enemy pools by tier (randomly picked per floor)
     enemyTiers: [
-      // Tier 1 — floors 1-2: weak enemies
+      // Tier 1 — floors 1-2
       [
-        { name: "Stale Cookie",    emoji: "🍘", hp: 35, atk: 8  },
-        { name: "Crumb Rat",       emoji: "🐀", hp: 30, atk: 9  },
-        { name: "Flour Phantom",   emoji: "👻", hp: 28, atk: 10 },
-        { name: "Moldy Morsel",    emoji: "🦠", hp: 33, atk: 7  },
+        { name: "Stale Cookie",    emoji: "🍘", hp: 55, atk: 13 },
+        { name: "Crumb Rat",       emoji: "🐀", hp: 50, atk: 15 },
+        { name: "Flour Phantom",   emoji: "👻", hp: 48, atk: 16 },
+        { name: "Moldy Morsel",    emoji: "🦠", hp: 52, atk: 12 },
       ],
-      // Tier 2 — floors 3-4: mid enemies
+      // Tier 2 — floors 3-4
       [
-        { name: "Raisin Imposter", emoji: "🫘", hp: 50, atk: 13 },
-        { name: "Burnt Batch",     emoji: "🌋", hp: 55, atk: 14 },
-        { name: "Cookie Golem",    emoji: "🗿", hp: 60, atk: 12 },
-        { name: "Sugar Wraith",    emoji: "💀", hp: 48, atk: 16 },
-        { name: "Dough Beast",     emoji: "🫠", hp: 65, atk: 11 },
+        { name: "Raisin Imposter", emoji: "🫘", hp: 80, atk: 20 },
+        { name: "Burnt Batch",     emoji: "🌋", hp: 85, atk: 21 },
+        { name: "Cookie Golem",    emoji: "🗿", hp: 90, atk: 18 },
+        { name: "Sugar Wraith",    emoji: "💀", hp: 75, atk: 23 },
+        { name: "Dough Beast",     emoji: "🫠", hp: 95, atk: 17 },
       ],
-      // Tier 3 — elite (floor 4 only if not boss)
+      // Tier 3 — elite
       [
-        { name: "Grandma's Wrath", emoji: "👹", hp: 72, atk: 19 },
-        { name: "Sugar Elemental", emoji: "⚡", hp: 80, atk: 18 },
-        { name: "Oven Fiend",      emoji: "😈", hp: 75, atk: 20 },
-        { name: "Frosting Hydra",  emoji: "🐲", hp: 85, atk: 17 },
+        { name: "Grandma's Wrath", emoji: "👹", hp: 110, atk: 26 },
+        { name: "Sugar Elemental", emoji: "⚡", hp: 120, atk: 25 },
+        { name: "Oven Fiend",      emoji: "😈", hp: 115, atk: 28 },
+        { name: "Frosting Hydra",  emoji: "🐲", hp: 125, atk: 24 },
       ],
     ],
-    // Boss pool — one randomly chosen per run (buffed for challenge)
+    // Boss pool — one randomly chosen per run
     bosses: [
-      { name: "Cookie Dragon",     emoji: "🐉", hp: 180, atk: 28 },
-      { name: "The Grand Grandma", emoji: "👑", hp: 170, atk: 30 },
-      { name: "Dough Titan",       emoji: "🦍", hp: 200, atk: 26 },
-      { name: "Infernal Oven",     emoji: "🌋", hp: 160, atk: 32 },
+      { name: "Cookie Dragon",     emoji: "🐉", hp: 280, atk: 34 },
+      { name: "The Grand Grandma", emoji: "👑", hp: 260, atk: 36 },
+      { name: "Dough Titan",       emoji: "🦍", hp: 300, atk: 32 },
+      { name: "Infernal Oven",     emoji: "🌋", hp: 240, atk: 38 },
     ],
     /** Which tier to use per floor index (0-based). Last floor is always boss. */
     floorTiers: [0, 0, 1, 1, 2],

@@ -137,9 +137,12 @@ export class MiniGames {
       this._activeCleanup = null;
     }
 
-    // Remove any stray tooltips appended to body
+    // Remove any stray tooltips
     document.getElementById('dng-tooltip')?.remove();
     document.getElementById('wordle-tooltip')?.remove();
+    // Hide global tooltip (used by dungeon button hover)
+    const gt = document.getElementById('global-tooltip');
+    if (gt) gt.style.opacity = '0';
 
     const overlay = document.getElementById("mini-game-overlay");
     if (!overlay) return;
@@ -2230,7 +2233,7 @@ export class MiniGames {
 
     const mhp = Math.floor(C.baseHp + g.getTotalBuildingCount() * C.hpPerBuilding);
     this._dng = { C, floors, fl: 0, busy: false, log: [],
-      scouted: false, stunned: false,
+      scouted: false, stunned: false, earned: 0,
       p: { hp: mhp, maxHp: mhp, atk: Math.min(C.atkCap, C.baseAtk + cps * C.atkCpsScale),
            pot: C.potions, crit: C.critChance, x2: false } };
     this._dR();
@@ -2275,6 +2278,7 @@ export class MiniGames {
     this._show(`<div class="mini-game-card dungeon-card" id="dng-card">
       <div class="dng-head">
         <span>⚔️ Cookie Dungeon</span>
+        <span class="dng-earned" id="dng-earned">${D.earned > 0 ? '+' + formatNumberInWords(D.earned) : ''}</span>
         <span class="dng-fl">Floor ${fl + 1}/${floors.length}</span>
         <button class="dng-help-btn" id="dng-help">?</button>
       </div>
@@ -2314,14 +2318,15 @@ export class MiniGames {
             <svg viewBox="0 0 32 32" width="100%" height="100%"><defs><linearGradient id="pg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="transparent"/><stop offset="45%" stop-color="transparent"/><stop offset="45%" stop-color="rgba(74,222,128,0.35)"/><stop offset="100%" stop-color="rgba(34,197,94,0.6)"/></linearGradient></defs><path d="M12 4h8v2h2l1 4-2 18H11L9 10l1-4h2V4z" fill="url(#pg1)" stroke="#4ade80" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 4h8v2H12z" fill="rgba(74,222,128,0.2)" stroke="#4ade80" stroke-width="1.2"/><circle cx="14" cy="20" r="1" fill="#86efac" opacity="0.5"/><circle cx="17" cy="22" r="0.7" fill="#86efac" opacity="0.4"/><circle cx="15" cy="17" r="0.6" fill="#86efac" opacity="0.3"/><line x1="14" y1="8" x2="18" y2="8" stroke="rgba(74,222,128,0.3)" stroke-width="0.8"/></svg>
             ${p.pot > 0 ? `<span class="dng-u-badge">${p.pot}</span>` : ''}
           </button>
-          <button class="dng-u dng-u-run" data-a="run" data-tip="Flee with earned rewards. Dying = 50% penalty.">
+          <button class="dng-u dng-u-run" data-a="run" data-tip="Flee and keep earned cookies (${D.earned > 0 ? formatNumberInWords(D.earned) : '0'} so far). Dying = 50% penalty.">
             <svg viewBox="0 0 32 32" width="100%" height="100%"><circle cx="20" cy="7" r="3" fill="none" stroke="#d1d5db" stroke-width="1.5"/><path d="M17 12l-5 6 3 1-2 9" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 12l4 5 4-2" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 18l-5 3" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M5 14l3 1" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M6 17l2 0" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2"/></svg>
           </button>
         </div>
         <div class="dng-btns" id="dng-btns">
-          <button class="dng-b dng-b-atk" data-a="atk" data-tip="Deal ${Math.floor(p.atk * 0.8)}-${Math.floor(p.atk * 1.2)} damage. ${Math.round(p.crit * 100)}% crit chance.">Attack (${Math.floor(p.atk)})</button>
-          <button class="dng-b dng-b-heavy" data-a="heavy" ${D.stunned ? 'disabled' : ''} data-tip="Deal ${Math.floor(p.atk * C.heavyAtkMult * 0.8)}-${Math.floor(p.atk * C.heavyAtkMult * 1.2)} damage. Skips next turn.">Heavy (${Math.floor(p.atk * C.heavyAtkMult)})${D.stunned ? ' ⏳' : ''}</button>
-          <button class="dng-b dng-b-blk" data-a="blk" data-tip="Block ${Math.round(C.blockPercent * 100)}% of incoming damage this turn.">Block (${Math.round(C.blockPercent * 100)}%)</button>
+          <button class="dng-b dng-b-atk" data-a="atk" ${D.stunned ? 'disabled' : ''} data-tip="Deal ${Math.floor(p.atk * 0.8)}-${Math.floor(p.atk * 1.2)} damage. ${Math.round(p.crit * 100)}% crit chance.">Attack (${Math.floor(p.atk)})</button>
+          <button class="dng-b dng-b-heavy" data-a="heavy" ${D.stunned ? 'disabled' : ''} data-tip="Deal ${Math.floor(p.atk * C.heavyAtkMult * 0.8)}-${Math.floor(p.atk * C.heavyAtkMult * 1.2)} damage. Skips next turn.">Heavy (${Math.floor(p.atk * C.heavyAtkMult)})</button>
+          <button class="dng-b dng-b-blk" data-a="blk" ${D.stunned ? 'disabled' : ''} data-tip="Block ${Math.round(C.blockPercent * 100)}% of incoming damage this turn.">Block (${Math.round(C.blockPercent * 100)}%)</button>
+          <button class="dng-b dng-b-skip" data-a="skip" ${D.stunned ? '' : 'disabled'} data-tip="Skip your turn. Used when recovering from heavy attack.">Skip 💫</button>
         </div>
       </div>
     </div>`);
@@ -2454,6 +2459,15 @@ export class MiniGames {
       return;
     }
 
+    // Skip turn action (used when stunned)
+    if (a === 'skip') {
+      D.stunned = false;
+      D.log.push('💫 Recovering from heavy attack...');
+      this._dSync();
+      setTimeout(() => this._dEnemyTurn(a), 500 + Math.floor(Math.random() * 500));
+      return;
+    }
+
     // If stunned from previous heavy attack, skip player turn
     if (D.stunned) {
       D.stunned = false;
@@ -2502,8 +2516,14 @@ export class MiniGames {
 
       // Enemy dead?
       if (e.hp <= 0) {
-        D.log.push(`☠️ ${e.name} defeated!`);
+        // Per-floor cookie reward
+        const floorReward = Math.floor(e.maxHp * (e.isBoss ? 3 : 1.5));
+        D.earned += floorReward;
+        D.log.push(`☠️ ${e.name} defeated! <span style="color:#4ade80">+${floorReward}</span>`);
         this._dFx('dng-ei', 'dng-die'); snd.dungeonKill();
+        // Update earned display
+        const earnedEl = document.getElementById('dng-earned');
+        if (earnedEl) earnedEl.textContent = '+' + formatNumberInWords(D.earned);
         this._dSync();
         D.fl++;
         if (D.fl >= floors.length) { setTimeout(() => this._dEnd(true, false), 800); }
@@ -2523,10 +2543,13 @@ export class MiniGames {
     const intent = e.intent;
 
     if (intent === 'flee') {
-      D.log.push(`${e.emoji} ${e.name} flees!`);
+      const fleeReward = Math.floor(e.maxHp * 0.8);
+      D.earned += fleeReward;
+      D.log.push(`${e.emoji} ${e.name} flees! <span style="color:#4ade80">+${fleeReward}</span>`);
       this._dF('dng-ef', '🏃', '#93c5fd');
       snd.dungeonFlee();
-      // Enemy fleeing = player wins this floor without killing
+      const earnedEl = document.getElementById('dng-earned');
+      if (earnedEl) earnedEl.textContent = '+' + formatNumberInWords(D.earned);
       this._dSync();
       D.fl++;
       if (D.fl >= floors.length) { setTimeout(() => this._dEnd(true, false), 600); }
@@ -2611,23 +2634,20 @@ export class MiniGames {
   /** Re-enable all buttons after enemy turn */
   _dEnableBtns() {
     const D = this._dng, p = D.p;
-    D.scouted = false; // reset scout for new turn
+    D.scouted = false;
+
     document.querySelectorAll('#dng-btns .dng-b, #dng-utils .dng-u').forEach(b => {
       const a = b.dataset.a;
       if (a === 'pot' && p.pot <= 0) { b.disabled = true; return; }
-      // When stunned: disable all combat actions, only allow free actions (scout, pot, run)
-      if (D.stunned && (a === 'atk' || a === 'heavy' || a === 'blk')) {
-        b.disabled = true;
-        if (a === 'heavy') b.textContent = '💀 Heavy (stun)';
-        if (a === 'atk') b.textContent = `Attack 💫`;
-        if (a === 'blk') b.textContent = `Block 💫`;
-        return;
-      }
       if (a === 'scout') { b.disabled = false; return; }
+      // When stunned: disable atk/heavy/blk, enable skip
+      if (D.stunned) {
+        if (a === 'atk' || a === 'heavy' || a === 'blk') { b.disabled = true; return; }
+        if (a === 'skip') { b.disabled = false; return; }
+      } else {
+        if (a === 'skip') { b.disabled = true; return; }
+      }
       b.disabled = false;
-      if (a === 'heavy') b.textContent = `Heavy (${Math.floor(p.atk * D.C.heavyAtkMult)})`;
-      if (a === 'atk') b.textContent = `Attack (${Math.floor(p.atk)})`;
-      if (a === 'blk') b.textContent = `Block (${Math.round(D.C.blockPercent * 100)}%)`;
     });
   }
 
@@ -2671,16 +2691,25 @@ export class MiniGames {
     let title = victory ? 'DUNGEON CONQUERED!' : cleared > 0 ? `Cleared ${cleared}/${floors.length}` : 'Defeated';
 
     let rewardHtml = '', penaltyNote = '';
+    // Floor earnings (always awarded if > 0)
+    let totalReward = D.earned;
     if (tier) {
-      let r = this._giveReward(tier, 'dungeon');
-      if (died && !victory) {
-        // Death penalty: lose half the reward (already given, so take it back)
-        const penalty = Math.floor(r * 0.5);
-        g.cookies = g.cookies.sub(penalty);
-        r = r - penalty;
-        penaltyNote = `<div class="dng-penalty">💀 Death penalty: -50% reward</div>`;
-      }
-      rewardHtml = `<div class="dng-reward">+${formatNumberInWords(r)} cookies</div>`;
+      totalReward += this._giveReward(tier, 'dungeon');
+    }
+    // Add floor earnings to cookies
+    if (D.earned > 0) {
+      g.cookies = g.cookies.add(D.earned);
+      g.stats.totalCookiesBaked = g.stats.totalCookiesBaked.add(D.earned);
+      g.updateCookieCount();
+    }
+    if (died && !victory) {
+      const penalty = Math.floor(totalReward * 0.5);
+      g.cookies = g.cookies.sub(penalty);
+      totalReward -= penalty;
+      penaltyNote = `<div class="dng-penalty">💀 Death penalty: -50% reward</div>`;
+    }
+    if (totalReward > 0) {
+      rewardHtml = `<div class="dng-reward">+${formatNumberInWords(totalReward)} cookies</div>`;
     }
 
     this._show(`<div class="mini-game-card dungeon-card">
@@ -2788,10 +2817,7 @@ export class MiniGames {
         <div class="safe-combo" id="safe-combo">${comboHtml}</div>
         <div class="safe-direction" id="safe-dir">${dirLabel}</div>
         <div class="safe-dial-wrap" id="safe-dial-wrap">
-          <div class="safe-dial" id="safe-dial" style="transform: rotate(${state.dialAngle}deg)">
-            ${this._safeDialTicks(C.dialMax)}
-            <div class="safe-dial-pointer"></div>
-          </div>
+          <canvas id="safe-dial-canvas" width="220" height="220" class="safe-dial-canvas" style="transform: rotate(${state.dialAngle}deg)"></canvas>
           <div class="safe-marker">▼</div>
           <div class="safe-glow" id="safe-glow"></div>
           <div class="safe-hold-ring" id="safe-hold-ring">
@@ -2810,26 +2836,161 @@ export class MiniGames {
 
       this._safeBindDrag(state, C, combo, angleToDial, getCurrentNum, getDist);
       this._safeStartTimer(state, C);
+      this._safeDrawDial(C.dialMax);
     };
 
     render();
   }
 
-  _safeDialTicks(dialMax) {
-    let ticks = '';
-    for (let i = 0; i < dialMax; i++) {
-      const angle = (i / dialMax) * 360;
-      const isMajor = i % 5 === 0;
-      ticks += `<div class="safe-tick${isMajor ? ' safe-tick-major' : ''}" style="transform: rotate(${angle}deg)">
-        ${isMajor ? `<span class="safe-tick-label" style="transform: rotate(${-angle}deg)">${i}</span>` : ''}
-      </div>`;
+  /** Draw the entire safe dial as a detailed cookie with tick marks */
+  _safeDrawDial(dialMax) {
+    const cvs = document.getElementById('safe-dial-canvas');
+    if (!cvs) return;
+    const ctx = cvs.getContext('2d');
+    const s = 220, cx = s / 2, cy = s / 2, r = 104;
+
+    ctx.clearRect(0, 0, s, s);
+
+    // Outer shadow
+    ctx.beginPath(); ctx.arc(cx + 2, cy + 3, r + 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+
+    // Cookie body — radial gradient
+    const grad = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.25, r * 0.05, cx + r * 0.1, cy + r * 0.1, r);
+    grad.addColorStop(0, '#e8c078');
+    grad.addColorStop(0.35, '#d4a050');
+    grad.addColorStop(0.7, '#b8863a');
+    grad.addColorStop(1, '#8a6020');
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Crispy outer edge
+    ctx.strokeStyle = '#6a4818';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // Inner edge ring
+    ctx.beginPath(); ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,220,160,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Surface texture — random bumps
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r - 2, 0, Math.PI * 2); ctx.clip();
+    for (let i = 0; i < 30; i++) {
+      const bx = cx + Math.sin(i * 2.7 + 0.3) * r * 0.7;
+      const by = cy + Math.cos(i * 3.3 + 1.1) * r * 0.7;
+      const br = 4 + (i % 5) * 2;
+      const bg = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+      bg.addColorStop(0, 'rgba(0,0,0,0.04)');
+      bg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
     }
-    return ticks;
+
+    // Cracks
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 7; i++) {
+      const ang = i * 0.9 + 0.2;
+      const startR = r * 0.12;
+      const endR = r * (0.35 + (i % 3) * 0.15);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(ang) * startR, cy + Math.sin(ang) * startR);
+      for (let s2 = 1; s2 <= 4; s2++) {
+        const t = s2 / 4;
+        const cr = startR + (endR - startR) * t;
+        const j = Math.sin(i * 7 + s2 * 3) * 0.12;
+        ctx.lineTo(cx + Math.cos(ang + j) * cr, cy + Math.sin(ang + j) * cr);
+      }
+      ctx.stroke();
+    }
+
+    // Chocolate chips — scattered across the cookie
+    const seed = (i, m) => ((i * 137.508 + 43.7) % m) / m;
+    for (let i = 0; i < 14; i++) {
+      const chipAng = seed(i, 97) * Math.PI * 2;
+      const chipR = r * 0.2 + seed(i + 30, 83) * r * 0.55;
+      const x = cx + Math.cos(chipAng) * chipR;
+      const y = cy + Math.sin(chipAng) * chipR;
+      const sz = 5 + (i % 3) * 2;
+      const rot = seed(i + 10, 7) * Math.PI;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      // Teardrop chip
+      const cg = ctx.createRadialGradient(-1, -1, 0, 0, 0, sz);
+      cg.addColorStop(0, '#4a2a14');
+      cg.addColorStop(1, '#1a0a04');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.moveTo(0, -sz);
+      ctx.quadraticCurveTo(sz * 0.8, -sz * 0.3, sz * 0.6, sz * 0.4);
+      ctx.quadraticCurveTo(0, sz * 0.7, -sz * 0.6, sz * 0.4);
+      ctx.quadraticCurveTo(-sz * 0.8, -sz * 0.3, 0, -sz);
+      ctx.fill();
+      // Shine
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.arc(-1.5, -sz * 0.3, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Highlight crescent
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.beginPath();
+    ctx.ellipse(cx - r * 0.15, cy - r * 0.2, r * 0.55, r * 0.3, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Tick marks — drawn ON TOP of the cookie, around the edge
+    for (let i = 0; i < dialMax; i++) {
+      const ang = (i / dialMax) * Math.PI * 2 - Math.PI / 2;
+      const isMajor = i % 5 === 0;
+      const outerR = r - 2;
+      const innerR = isMajor ? r - 16 : r - 10;
+
+      // Tick line
+      ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = isMajor ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(ang) * innerR, cy + Math.sin(ang) * innerR);
+      ctx.lineTo(cx + Math.cos(ang) * outerR, cy + Math.sin(ang) * outerR);
+      ctx.stroke();
+
+      // Number labels for major ticks
+      if (isMajor) {
+        const labelR = r - 24;
+        const lx = cx + Math.cos(ang) * labelR;
+        const ly = cy + Math.sin(ang) * labelR;
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i), lx, ly);
+      }
+    }
+
+    // Red pointer at top
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, 6);
+    ctx.lineTo(cx + 3, 6);
+    ctx.lineTo(cx, 28);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,100,100,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(cx - 2, 8);
+    ctx.lineTo(cx, 24);
+    ctx.lineTo(cx + 2, 8);
+    ctx.closePath();
+    ctx.fill();
   }
 
   _safeBindDrag(state, C, combo, angleToDial, getCurrentNum, getDist) {
     const wrap = document.getElementById('safe-dial-wrap');
-    const dial = document.getElementById('safe-dial');
+    const dial = document.getElementById('safe-dial-canvas');
     if (!wrap || !dial) return;
     const snd = this.game.soundManager;
 
