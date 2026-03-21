@@ -1905,4 +1905,104 @@ export class SoundManager {
       this._playVowel(45, 430, 980, 2500, 1.5, 0.02, riffEnd + 1.0);
     }
   }
+
+  // ─── Dungeon crawl sounds ─────────────────────────────────
+
+  /** Player attack — quick slash whoosh + thud impact */
+  dungeonAttack() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playNoise(0.08, 0.05, 0, 3000);          // whoosh
+    this._playTone('triangle', 200, 80, 0.1, 0.06, 0.05); // thud
+  }
+
+  /** Critical hit — sharper slash + metallic ring + impact */
+  dungeonCrit() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playNoise(0.06, 0.06, 0, 4500);           // sharp whoosh
+    this._playFM(400, 2.5, 100, 0.15, 0.05, 0.03);  // metallic ring
+    this._playTone('sawtooth', 250, 60, 0.12, 0.06, 0.04); // heavy thud
+  }
+
+  /** Player blocks — solid clank + bass thump */
+  dungeonBlock() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playFM(300, 1.2, 80, 0.08, 0.06);         // metallic clank
+    this._playTone('triangle', 120, 60, 0.15, 0.05, 0.03); // bass thump
+  }
+
+  /** Player takes damage — dull impact + low grunt */
+  dungeonHurt() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('sine', 150, 60, 0.12, 0.05);    // impact
+    this._playNoise(0.06, 0.04, 0.02, 800);         // crunch
+  }
+
+  /** Heavy attack from enemy — deeper, more menacing */
+  dungeonHeavy() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('sawtooth', 80, 40, 0.25, 0.06);  // deep rumble
+    this._playNoise(0.1, 0.05, 0.05, 600);           // crunch
+    this._playFM(120, 1.5, 200, 0.15, 0.04, 0.08);  // growl
+  }
+
+  /** Potion heal — bubbly shimmer */
+  dungeonHeal() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('sine', 523, 784, 0.2, 0.05);     // rising sparkle
+    this._playTone('sine', 659, 988, 0.18, 0.04, 0.06);
+    this._playNoise(0.08, 0.02, 0.04, 5000);         // fizz
+  }
+
+  /** Enemy defeated — satisfying thud + victory sparkle */
+  dungeonKill() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playNoise(0.12, 0.06, 0, 500);            // collapse
+    this._playTone('sine', 330, 330, 0.1, 0.05, 0.1);
+    this._playTone('sine', 440, 440, 0.1, 0.04, 0.16);
+    this._playTone('triangle', 554, 554, 0.12, 0.04, 0.22);
+  }
+
+  /** Player death — low descending doom */
+  dungeonDeath() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('sawtooth', 200, 50, 0.5, 0.05);
+    this._playTone('sine', 150, 40, 0.6, 0.04, 0.1);
+    this._playNoise(0.3, 0.03, 0.2, 300);
+  }
+
+  /** Loot pickup — cheerful ding */
+  dungeonLoot() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('sine', 660, 660, 0.1, 0.05);
+    this._playTone('sine', 880, 880, 0.12, 0.05, 0.08);
+  }
+
+  /** Flee — quick descending run */
+  dungeonFlee() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('triangle', 500, 200, 0.15, 0.04);
+    this._playTone('triangle', 400, 150, 0.12, 0.03, 0.08);
+  }
+
+  /** Dungeon victory — triumphant fanfare */
+  dungeonVictory() {
+    if (!this._canPlayEffects()) return;
+    this._ensureContext();
+    this._playTone('sine', 262, 262, 0.15, 0.05);     // C
+    this._playTone('sine', 330, 330, 0.15, 0.05, 0.1); // E
+    this._playTone('sine', 392, 392, 0.15, 0.05, 0.2); // G
+    this._playTone('sine', 523, 523, 0.2, 0.06, 0.3);  // C5
+    this._playTone('triangle', 660, 660, 0.25, 0.04, 0.4); // E5 ring
+    this._playNoise(0.15, 0.02, 0.35, 4000);            // sparkle
+  }
 }

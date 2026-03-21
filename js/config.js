@@ -402,6 +402,48 @@ export const MINI_GAME_SETTINGS = {
     /** Result display time (ms) */
     resultDisplayMs: 2500,
   },
+
+  dungeon: {
+    totalFloors: 5,
+    entryFeeMultiplier: 8,
+    // Player
+    baseHp: 100, hpPerBuilding: 0.2, baseAtk: 12, atkCpsScale: 0.0002, atkCap: 35,
+    potions: 2, potionHeal: 0.35,
+    // Combat
+    critChance: 0.12, critMult: 1.75,
+    blockPercent: 0.65,
+    heavyAtkMult: 1.6,       // player heavy attack: 1.6x dmg but skip next turn
+    scoutCost: 0.08,          // scout costs 8% of max HP
+    // Enemy AI — context-aware, not random pool
+    enemyHeavyChance: 0.2,    // 20% chance of heavy (increased for bosses)
+    enemyBlockChance: 0.15,   // 15% chance to block
+    enemyHealChance: 0.25,    // heal when below 70% HP, 25% chance
+    enemyHealAmount: 0.2,     // heals 20% of max HP
+    enemyFleeHpThreshold: 0.5, // can flee below 50% HP
+    enemyFleeChance: 0.08,    // 8% chance to flee (rare)
+    heavyMult: 1.7,           // enemy heavy does 1.7x
+    enemyBlockReduction: 0.5, // enemy block reduces player dmg by 50%
+    // Enemies
+    enemies: [
+      { name: "Stale Cookie",    emoji: "🍘", hp: 35, atk: 8  },
+      { name: "Raisin Imposter", emoji: "🫘", hp: 42, atk: 10 },
+      { name: "Burnt Batch",     emoji: "🔥", hp: 50, atk: 13 },
+      { name: "Cookie Golem",    emoji: "🗿", hp: 60, atk: 16 },
+      { name: "Grandma's Wrath", emoji: "👵", hp: 72, atk: 19 },
+      { name: "Sugar Elemental", emoji: "✨", hp: 85, atk: 22 },
+    ],
+    boss: { name: "Cookie Dragon", emoji: "🐉", hp: 140, atk: 24 },
+    depthScale: 0.15,
+    loot: [
+      { icon: "💪", label: "+3 Attack",     apply: (p) => { p.atk += 3; } },
+      { icon: "❤️", label: "+15 Max HP",    apply: (p) => { p.maxHp += 15; p.hp = Math.min(p.hp + 15, p.maxHp); } },
+      { icon: "💊", label: "+1 Potion",     apply: (p) => { p.potions++; } },
+      { icon: "🩹", label: "Heal 40%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.4)); } },
+      { icon: "🎯", label: "+10% Crit",     apply: (p) => { p.critChance = Math.min(0.5, p.critChance + 0.1); } },
+      { icon: "⚡", label: "Next hit 2x",   apply: (p) => { p.doubleNext = true; } },
+    ],
+    rewardTiers: { 5: "legendary", 4: "epic", 3: "great", 2: "normal", 1: "normal", 0: null },
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
