@@ -2615,10 +2615,19 @@ export class MiniGames {
     document.querySelectorAll('#dng-btns .dng-b, #dng-utils .dng-u').forEach(b => {
       const a = b.dataset.a;
       if (a === 'pot' && p.pot <= 0) { b.disabled = true; return; }
-      if (a === 'heavy' && D.stunned) { b.disabled = true; b.textContent = '💀 Heavy (stun)'; return; }
-      if (a === 'scout') { b.disabled = false; return; } // reset scout each turn
+      // When stunned: disable all combat actions, only allow free actions (scout, pot, run)
+      if (D.stunned && (a === 'atk' || a === 'heavy' || a === 'blk')) {
+        b.disabled = true;
+        if (a === 'heavy') b.textContent = '💀 Heavy (stun)';
+        if (a === 'atk') b.textContent = `Attack 💫`;
+        if (a === 'blk') b.textContent = `Block 💫`;
+        return;
+      }
+      if (a === 'scout') { b.disabled = false; return; }
       b.disabled = false;
-      if (a === 'heavy') b.textContent = '💀 Heavy';
+      if (a === 'heavy') b.textContent = `Heavy (${Math.floor(p.atk * D.C.heavyAtkMult)})`;
+      if (a === 'atk') b.textContent = `Attack (${Math.floor(p.atk)})`;
+      if (a === 'blk') b.textContent = `Block (${Math.round(D.C.blockPercent * 100)}%)`;
     });
   }
 

@@ -448,12 +448,12 @@ export const MINI_GAME_SETTINGS = {
         { name: "Frosting Hydra",  emoji: "🐲", hp: 85, atk: 17 },
       ],
     ],
-    // Boss pool — one randomly chosen per run
+    // Boss pool — one randomly chosen per run (buffed for challenge)
     bosses: [
-      { name: "Cookie Dragon",     emoji: "🐉", hp: 140, atk: 24 },
-      { name: "The Grand Grandma", emoji: "👑", hp: 130, atk: 26 },
-      { name: "Dough Titan",       emoji: "🦍", hp: 160, atk: 22 },
-      { name: "Infernal Oven",     emoji: "🌋", hp: 120, atk: 28 },
+      { name: "Cookie Dragon",     emoji: "🐉", hp: 180, atk: 28 },
+      { name: "The Grand Grandma", emoji: "👑", hp: 170, atk: 30 },
+      { name: "Dough Titan",       emoji: "🦍", hp: 200, atk: 26 },
+      { name: "Infernal Oven",     emoji: "🌋", hp: 160, atk: 32 },
     ],
     /** Which tier to use per floor index (0-based). Last floor is always boss. */
     floorTiers: [0, 0, 1, 1, 2],
@@ -464,7 +464,7 @@ export const MINI_GAME_SETTINGS = {
       { icon: "🧪", label: "+1 Potion",     apply: (p) => { p.potions++; } },
       { icon: "❤️‍🩹", label: "Heal 40%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.4)); } },
       { icon: "🎯", label: "+10% Crit",     apply: (p) => { p.critChance = Math.min(0.5, p.critChance + 0.1); } },
-      { icon: "⚡", label: "Next hit 2x",   apply: (p) => { p.doubleNext = true; } },
+      { icon: "⚡", label: "Next hit 2x",   apply: (p) => { p.x2 = true; } },
     ],
     rewardTiers: { 5: "legendary", 4: "epic", 3: "great", 2: "normal", 1: "normal", 0: null },
   },
