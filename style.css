@@ -7319,6 +7319,162 @@ html {
   letter-spacing: 1px;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   🧑‍🍳  COOKIE ASSEMBLY MINIGAME
+   ═══════════════════════════════════════════════════════════ */
+.asm-card { max-width: 520px; padding: 0 !important; overflow: hidden; }
+
+.asm-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; background: rgba(0,0,0,0.15);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.asm-title { font-size: 0.9rem; font-weight: 700; color: #f5e8d3; }
+.asm-round-badge {
+  font-size: 0.65rem; font-weight: 700; color: #c5aa80;
+  background: rgba(0,0,0,0.2); padding: 3px 10px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.asm-body {
+  display: flex; gap: 0; min-height: 200px;
+}
+
+/* Left panel — order ticket + target preview */
+.asm-left {
+  width: 180px; flex-shrink: 0; padding: 12px;
+  background: rgba(0,0,0,0.1); border-right: 1px solid rgba(255,255,255,0.05);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.asm-ticket {
+  width: 100%; background: rgba(245,232,211,0.06); border-radius: 6px;
+  padding: 8px 10px; border: 1px dashed rgba(200,144,80,0.25);
+}
+.asm-ticket-head {
+  font-size: 0.6rem; font-weight: 800; color: #c89050;
+  text-transform: uppercase; letter-spacing: 1.5px; text-align: center;
+  margin-bottom: 6px; padding-bottom: 4px;
+  border-bottom: 1px solid rgba(200,144,80,0.2);
+}
+.asm-ticket-item {
+  font-size: 0.68rem; color: #d5c4a1; padding: 2px 0;
+}
+.asm-ticket-cat { color: #8a7a6a; }
+.asm-ticket-val { color: #f5e8d3; font-weight: 600; }
+
+.asm-canvas-target, .asm-canvas-player {
+  border-radius: 8px; background: rgba(0,0,0,0.12);
+  border: 1.5px solid rgba(255,255,255,0.05);
+}
+.asm-label {
+  font-size: 0.58rem; color: #6a5a4a; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+  text-align: center;
+}
+
+/* Right panel — build station */
+.asm-right {
+  flex: 1; padding: 12px; display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+}
+
+.asm-tabs {
+  display: flex; gap: 3px; width: 100%;
+}
+.asm-tab {
+  flex: 1; padding: 6px 4px; border: none; border-radius: 6px 6px 0 0;
+  background: rgba(0,0,0,0.15); color: #8a7a6a;
+  font-size: 0.62rem; font-weight: 700; cursor: pointer;
+  font-family: inherit; text-transform: uppercase; letter-spacing: 0.3px;
+  transition: all 0.12s; border-bottom: 2px solid transparent;
+}
+.asm-tab:hover { color: #c5aa80; background: rgba(0,0,0,0.2); }
+.asm-tab-active {
+  color: #ffd700; background: rgba(255,215,0,0.08);
+  border-bottom-color: #ffd700;
+}
+.asm-tab-done { position: relative; }
+.asm-tab-done::after {
+  content: ''; position: absolute; top: 3px; right: 4px;
+  width: 5px; height: 5px; border-radius: 50%; background: #4ade80;
+}
+
+.asm-options {
+  display: flex; flex-wrap: wrap; gap: 5px; width: 100%;
+  background: rgba(0,0,0,0.08); border-radius: 0 0 6px 6px;
+  padding: 8px; min-height: 60px;
+}
+.asm-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 8px; border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.15); color: #d5c4a1;
+  font-size: 0.62rem; cursor: pointer; font-family: inherit;
+  transition: all 0.12s; min-width: 52px;
+}
+.asm-opt:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.04); transform: translateY(-1px); }
+.asm-opt-sel {
+  border-color: #ffd700; background: rgba(255,215,0,0.1);
+  box-shadow: 0 0 10px rgba(255,215,0,0.15);
+  color: #ffd700;
+}
+.asm-opt-canvas { border-radius: 4px; }
+.asm-opt-label { font-size: 0.58rem; white-space: nowrap; font-weight: 600; }
+
+/* Bottom bar */
+.asm-bottom { padding: 8px 14px 10px; }
+.asm-submit {
+  display: block; width: 100%; padding: 9px;
+  border: 1.5px solid #c89050; border-radius: 8px;
+  background: linear-gradient(135deg, #6d4a2a, #5a3921);
+  color: #ffd700; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; font-family: inherit; margin-bottom: 8px;
+  transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.asm-submit:hover { background: linear-gradient(135deg, #8b5e34, #7a4f2e); transform: translateY(-1px); }
+
+/* Comparison screen */
+.asm-compare { padding: 14px; }
+.asm-compare-cookies {
+  display: flex; justify-content: center; gap: 24px; margin-bottom: 12px;
+}
+.asm-comp-details {
+  display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px;
+}
+.asm-comp-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.7rem; padding: 4px 8px; border-radius: 4px;
+}
+.asm-comp-ok { background: rgba(74,222,128,0.1); }
+.asm-comp-wrong { background: rgba(239,68,68,0.1); }
+.asm-comp-cat { color: #8a7a6a; width: 55px; font-weight: 600; }
+.asm-comp-expected { color: #4ade80; flex: 1; }
+.asm-comp-icon { color: rgba(255,255,255,0.2); font-weight: 700; width: 14px; text-align: center; }
+.asm-comp-wrong .asm-comp-icon { color: #ef4444; }
+.asm-comp-got { color: #d5c4a1; flex: 1; text-align: right; }
+.asm-comp-wrong .asm-comp-got { color: #ef4444; }
+.asm-comp-score {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  font-size: 0.85rem; margin-top: 6px;
+}
+.asm-comp-pts { font-weight: 800; color: #ffd700; font-size: 1.1rem; }
+.asm-comp-bonus { color: #c5aa80; }
+.asm-comp-perfect { color: #4ade80; font-weight: 700; }
+
+/* Finish screen */
+.asm-finish { text-align: center; padding: 20px 16px; }
+.asm-finish-tier {
+  font-size: 1.3rem; font-weight: 800; color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.4); margin-bottom: 4px;
+}
+.asm-finish-total { font-size: 1rem; color: #f5e8d3; margin-bottom: 10px; }
+.asm-finish-rounds { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
+.asm-rnd-score {
+  font-size: 0.75rem; color: #c5aa80;
+  background: rgba(0,0,0,0.2); padding: 4px 10px;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);
+}
+
 /* === Enhanced Offline Summary — Newspaper Parchment === */
 .offline-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;

@@ -423,22 +423,46 @@ export const MINI_GAME_SETTINGS = {
     enemyFleeChance: 0.08,    // 8% chance to flee (rare)
     heavyMult: 1.7,           // enemy heavy does 1.7x
     enemyBlockReduction: 0.5, // enemy block reduces player dmg by 50%
-    // Enemies
-    enemies: [
-      { name: "Stale Cookie",    emoji: "🍘", hp: 35, atk: 8  },
-      { name: "Raisin Imposter", emoji: "🫘", hp: 42, atk: 10 },
-      { name: "Burnt Batch",     emoji: "🔥", hp: 50, atk: 13 },
-      { name: "Cookie Golem",    emoji: "🗿", hp: 60, atk: 16 },
-      { name: "Grandma's Wrath", emoji: "👵", hp: 72, atk: 19 },
-      { name: "Sugar Elemental", emoji: "✨", hp: 85, atk: 22 },
+    // Enemy pools by tier (randomly picked per floor)
+    enemyTiers: [
+      // Tier 1 — floors 1-2: weak enemies
+      [
+        { name: "Stale Cookie",    emoji: "🍘", hp: 35, atk: 8  },
+        { name: "Crumb Rat",       emoji: "🐀", hp: 30, atk: 9  },
+        { name: "Flour Phantom",   emoji: "👻", hp: 28, atk: 10 },
+        { name: "Moldy Morsel",    emoji: "🦠", hp: 33, atk: 7  },
+      ],
+      // Tier 2 — floors 3-4: mid enemies
+      [
+        { name: "Raisin Imposter", emoji: "🫘", hp: 50, atk: 13 },
+        { name: "Burnt Batch",     emoji: "🌋", hp: 55, atk: 14 },
+        { name: "Cookie Golem",    emoji: "🗿", hp: 60, atk: 12 },
+        { name: "Sugar Wraith",    emoji: "💀", hp: 48, atk: 16 },
+        { name: "Dough Beast",     emoji: "🫠", hp: 65, atk: 11 },
+      ],
+      // Tier 3 — elite (floor 4 only if not boss)
+      [
+        { name: "Grandma's Wrath", emoji: "👹", hp: 72, atk: 19 },
+        { name: "Sugar Elemental", emoji: "⚡", hp: 80, atk: 18 },
+        { name: "Oven Fiend",      emoji: "😈", hp: 75, atk: 20 },
+        { name: "Frosting Hydra",  emoji: "🐲", hp: 85, atk: 17 },
+      ],
     ],
-    boss: { name: "Cookie Dragon", emoji: "🐉", hp: 140, atk: 24 },
+    // Boss pool — one randomly chosen per run
+    bosses: [
+      { name: "Cookie Dragon",     emoji: "🐉", hp: 140, atk: 24 },
+      { name: "The Grand Grandma", emoji: "👑", hp: 130, atk: 26 },
+      { name: "Dough Titan",       emoji: "🦍", hp: 160, atk: 22 },
+      { name: "Infernal Oven",     emoji: "🌋", hp: 120, atk: 28 },
+    ],
+    /** Which tier to use per floor index (0-based). Last floor is always boss. */
+    floorTiers: [0, 0, 1, 1, 2],
     depthScale: 0.15,
     loot: [
-      { icon: "💪", label: "+3 Attack",     apply: (p) => { p.atk += 3; } },
-      { icon: "❤️", label: "+15 Max HP",    apply: (p) => { p.maxHp += 15; p.hp = Math.min(p.hp + 15, p.maxHp); } },
-      { icon: "💊", label: "+1 Potion",     apply: (p) => { p.potions++; } },
-      { icon: "🩹", label: "Heal 40%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.4)); } },
+      { icon: "🗡️", label: "+3 Attack",     apply: (p) => { p.atk += 3; } },
+      { icon: "🛡️", label: "+15 Max HP",    apply: (p) => { p.maxHp += 15; p.hp = Math.min(p.hp + 15, p.maxHp); } },
+      { icon: "🧪", label: "+1 Potion",     apply: (p) => { p.potions++; } },
+      { icon: "❤️‍🩹", label: "Heal 40%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.4)); } },
       { icon: "🎯", label: "+10% Crit",     apply: (p) => { p.critChance = Math.min(0.5, p.critChance + 0.1); } },
       { icon: "⚡", label: "Next hit 2x",   apply: (p) => { p.doubleNext = true; } },
     ],
@@ -556,6 +580,46 @@ export const MINI_GAME_SETTINGS = {
       'MOCHA', 'PECAN', 'LEMON', 'GRATE', 'SIFTS',
       'TORTE', 'TREAT', 'CRISP', 'LAYER', 'PLATE',
     ],
+  },
+
+  cookieAssembly: {
+    rounds: 3,
+    categoriesPerRound: [3, 4, 5],
+    roundTimeMs: 10000,
+    correctPoints: 20,
+    timeBonusPerSec: 2,
+    legendaryThreshold: 250,
+    epicThreshold: 200,
+    greatThreshold: 140,
+    normalThreshold: 60,
+    resultDisplayMs: 2500,
+    /** Canvas size for cookie preview */
+    cookieSize: 130,
+    /** Categories — id-based, all drawing done in code */
+    categories: [
+      { name: 'Shape', options: ['circle', 'square', 'star', 'heart', 'diamond'] },
+      { name: 'Color', options: ['golden', 'brown', 'pink', 'ivory', 'dark'] },
+      { name: 'Topping', options: ['chips', 'sprinkles', 'nuts', 'raisins', 'none'] },
+      { name: 'Drizzle', options: ['chocolate', 'caramel', 'strawberry', 'white', 'none'] },
+      { name: 'Garnish', options: ['cherry', 'mint', 'powdered', 'frosting', 'none'] },
+    ],
+    /** Color map for cookie base */
+    colorMap: {
+      golden: '#d4a050', brown: '#8B4513', pink: '#e8a0b4', ivory: '#f0ead6', dark: '#3d1f0a',
+    },
+    /** Drizzle color map */
+    drizzleMap: {
+      chocolate: '#3a1a08', caramel: '#c8860a', strawberry: '#d4456a', white: '#f5f0dc',
+    },
+    /** Display labels */
+    labels: {
+      circle: 'Round', square: 'Square', star: 'Star', heart: 'Heart', diamond: 'Diamond',
+      golden: 'Golden', brown: 'Brown', pink: 'Pink', ivory: 'Ivory', dark: 'Dark',
+      chips: 'Choc Chips', sprinkles: 'Sprinkles', nuts: 'Nuts', raisins: 'Raisins',
+      chocolate: 'Chocolate', caramel: 'Caramel', strawberry: 'Strawberry', white: 'White',
+      cherry: 'Cherry', mint: 'Mint Leaf', powdered: 'Powdered', frosting: 'Frosting',
+      none: 'None',
+    },
   },
 };
 

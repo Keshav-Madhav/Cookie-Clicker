@@ -2167,4 +2167,55 @@ export class SoundManager {
     this._playTone('sine', 300, 200, 0.08, 0.03);
     this._playTone('sine', 250, 180, 0.06, 0.025, 0.05);
   }
+
+  // ── Cookie Assembly sounds ─────────────────────────────────
+
+  /** Select an ingredient option — soft plop */
+  assemblySelect() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 500, 600, 0.04, 0.03);
+    this._playTone('sine', 700, 750, 0.03, 0.02, 0.02);
+  }
+
+  /** Switch category tab */
+  assemblyTab() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 400, 500, 0.03, 0.025);
+  }
+
+  /** Submit order — whoosh */
+  assemblyServe() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 300, 600, 0.1, 0.04);
+    this._playNoise(0.06, 0.02, 0.02, 2000);
+  }
+
+  /** Perfect match — bright ding */
+  assemblyPerfect() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 523, 523, 0.1, 0.05);
+    this._playTone('sine', 659, 659, 0.1, 0.05, 0.08);
+    this._playTone('triangle', 784, 784, 0.12, 0.04, 0.16);
+    this._playNoise(0.06, 0.015, 0.15, 4000);
+  }
+
+  /** Partial match — ok chime */
+  assemblyPartial() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 440, 440, 0.08, 0.04);
+    this._playTone('sine', 350, 350, 0.06, 0.03, 0.06);
+  }
+
+  /** No match — sad tone */
+  assemblyFail() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 300, 200, 0.1, 0.04);
+    this._playTone('sine', 220, 180, 0.08, 0.03, 0.06);
+  }
+
+  /** Timer running low warning tick */
+  assemblyTimeTick() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 800, 700, 0.02, 0.02);
+  }
 }

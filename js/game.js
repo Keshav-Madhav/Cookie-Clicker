@@ -1678,6 +1678,7 @@ export class Game {
       { id: "safe",       emoji: "🔐", name: "Safe Cracker",       desc: "Crack the combination lock" },
       { id: "launch",     emoji: "🚀", name: "Cookie Launch",      desc: "Slingshot cookies to the target" },
       { id: "wordle",     emoji: "📝", name: "Cookie Wordle",      desc: "Guess the baking word" },
+      { id: "assembly",   emoji: "🧑‍🍳", name: "Cookie Assembly",   desc: "Replicate the target cookie" },
     ];
 
     const body = document.getElementById("minigame-select-body");
@@ -1707,6 +1708,7 @@ export class Game {
       safe:    () => mg._safeCracker(),
       launch:  () => mg._cookieLaunch(),
       wordle:  () => mg._cookieWordle(),
+      assembly:() => mg._cookieAssembly(),
     };
 
     body.querySelectorAll('.minigame-select-btn').forEach(btn => {
