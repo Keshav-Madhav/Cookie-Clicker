@@ -2,6 +2,7 @@ import { formatNumberInWords } from "./utils.js";
 import {
   MINI_GAME_REWARDS, MINI_GAME_SETTINGS, TRIVIA_QUESTIONS, MATH_OPERATIONS
 } from "./config.js";
+import { runCookieAlchemy } from "./cookieAlchemy.js";
 
 /**
  * MiniGames — five fun micro-games launched from the news ticker 🎲
@@ -46,6 +47,7 @@ export class MiniGames {
         () => this._cookieLaunch(),
         () => this._cookieWordle(),
         () => this._cookieAssembly(),
+        () => this._cookieAlchemy(),
       ];
       games[Math.floor(Math.random() * games.length)]();
 
@@ -5038,4 +5040,10 @@ export class MiniGames {
     </div>`);
     setTimeout(() => this._close(), C.resultDisplayMs);
   }
+
+  /* ════════════════════════════════════════════════════════════
+     🧪  COOKIE ALCHEMY  — delegated to cookieAlchemy.js
+     ════════════════════════════════════════════════════════════ */
+  _cookieAlchemy() { runCookieAlchemy(this); }
+
 }

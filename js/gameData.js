@@ -921,4 +921,12 @@ export const achievements = [
   { id: "wrath_clot", name: "The Clot Thickens", desc: "Survive a Clot penalty from a wrath cookie", type: "wrathClotSurvived", requirement: 1 },
   { id: "wrath_elder_frenzy", name: "Riding the Lightning", desc: "Get a 666x Elder Frenzy from a wrath cookie", type: "elderFrenzyTriggered", requirement: 1 },
   { id: "wrinkler_profit", name: "Patient Investor", desc: "Pop a wrinkler that ate 1 hour worth of CPS", type: "wrinklerBigPop", requirement: 1 },
-]; 
+  // Alchemy achievements
+  { id: "alchemy_25", name: "Apprentice Alchemist", desc: "Discover 25 alchemy recipes", type: "alchemyDiscovered", requirement: 25 },
+  { id: "alchemy_100", name: "Journeyman Baker", desc: "Discover 100 alchemy recipes", type: "alchemyDiscovered", requirement: 100 },
+  { id: "alchemy_500", name: "Master Alchemist", desc: "Discover 500 alchemy recipes", type: "alchemyDiscovered", requirement: 500 },
+  { id: "alchemy_1000", name: "Grand Confectioner", desc: "Discover 1000 alchemy recipes", type: "alchemyDiscovered", requirement: 1000 },
+  { id: "alchemy_mastery", name: "Philosopher's Cookie", desc: "Discover every alchemy recipe", type: "alchemyMastery", requirement: 1 },
+  { id: "alchemy_perfect", name: "Perfect Formula", desc: "Complete an alchemy session with zero failed merges", type: "alchemyPerfect", requirement: 1 },
+  { id: "alchemy_legendary_session", name: "One With The Cauldron", desc: "Discover 15+ recipes in a single alchemy session", type: "alchemyBestSession", requirement: 15 },
+];

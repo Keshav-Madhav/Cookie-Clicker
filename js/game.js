@@ -1679,6 +1679,7 @@ export class Game {
       { id: "launch",     emoji: "🚀", name: "Cookie Launch",      desc: "Slingshot cookies to the target" },
       { id: "wordle",     emoji: "📝", name: "Cookie Wordle",      desc: "Guess the baking word" },
       { id: "assembly",   emoji: "🧑‍🍳", name: "Cookie Assembly",   desc: "Replicate the target cookie" },
+      { id: "alchemy",    emoji: "🧪", name: "Cookie Alchemy",    desc: "Combine ingredients, discover recipes" },
     ];
 
     const body = document.getElementById("minigame-select-body");
@@ -1709,6 +1710,7 @@ export class Game {
       launch:  () => mg._cookieLaunch(),
       wordle:  () => mg._cookieWordle(),
       assembly:() => mg._cookieAssembly(),
+      alchemy: () => mg._cookieAlchemy(),
     };
 
     body.querySelectorAll('.minigame-select-btn').forEach(btn => {
@@ -2781,6 +2783,12 @@ export class Game {
       wrathCookiesClicked: this.stats.wrathCookiesClicked || 0,
       wrathClotSurvived: this.stats.wrathClotSurvived || 0,
       elderFrenzyTriggered: this.stats.elderFrenzyTriggered || 0,
+      // Alchemy stats (persist across prestiges — too grindy to lose)
+      alchemyDiscovered: this.stats.alchemyDiscovered || [],
+      alchemyResets: this.stats.alchemyResets || 0,
+      alchemyBestSession: this.stats.alchemyBestSession || 0,
+      alchemyTotalMerges: this.stats.alchemyTotalMerges || 0,
+      alchemyPerfectSessions: this.stats.alchemyPerfectSessions || 0,
     };
 
     // Reset purchase amount to default

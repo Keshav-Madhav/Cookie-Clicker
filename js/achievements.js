@@ -153,6 +153,20 @@ export class AchievementManager {
         case "wrinklerBigPop":
           met = (stats.wrinklerBigPop || 0) >= achievement.requirement;
           break;
+        // Alchemy achievements
+        case "alchemyDiscovered":
+          met = Array.isArray(stats.alchemyDiscovered) &&
+                stats.alchemyDiscovered.length >= achievement.requirement;
+          break;
+        case "alchemyMastery":
+          met = (stats.alchemyResets || 0) >= achievement.requirement;
+          break;
+        case "alchemyPerfect":
+          met = (stats.alchemyPerfectSessions || 0) >= achievement.requirement;
+          break;
+        case "alchemyBestSession":
+          met = (stats.alchemyBestSession || 0) >= achievement.requirement;
+          break;
       }
 
       if (met) {

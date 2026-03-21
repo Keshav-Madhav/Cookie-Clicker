@@ -621,9 +621,10 @@ export const MINI_GAME_SETTINGS = {
       none: 'None',
     },
   },
+
+  // cookieAlchemy — all config moved to js/cookieAlchemy.js
 };
 
-// ─────────────────────────────────────────────────────────────
 //  VISUAL EFFECTS — viewport rain, shimmers, bursts
 // ─────────────────────────────────────────────────────────────
 export const VISUAL = {
