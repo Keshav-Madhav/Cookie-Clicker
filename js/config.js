@@ -532,6 +532,31 @@ export const MINI_GAME_SETTINGS = {
     /** Result display time (ms) */
     resultDisplayMs: 2500,
   },
+
+  cookieWordle: {
+    /** Word length */
+    wordLength: 5,
+    /** Max guesses */
+    maxGuesses: 6,
+    /** Score thresholds (guesses used — fewer = better) */
+    legendaryGuesses: 2,
+    epicGuesses: 3,
+    greatGuesses: 4,
+    normalGuesses: 6,
+    /** Result display time (ms) */
+    resultDisplayMs: 3000,
+    /** Word pool — 5-letter baking/cookie themed words */
+    words: [
+      'FLOUR', 'SUGAR', 'CREAM', 'DOUGH', 'BATCH',
+      'SWEET', 'FROST', 'YEAST', 'CRUST', 'GLAZE',
+      'BLEND', 'WHISK', 'KNEAD', 'RISEN', 'TOAST',
+      'CANDY', 'FUDGE', 'SCONE', 'SPICE', 'HONEY',
+      'MAPLE', 'COCOA', 'CRUMB', 'FLAKY', 'MOIST',
+      'BAKED', 'MIXER', 'GRAIN', 'ROLLS', 'ICING',
+      'MOCHA', 'PECAN', 'LEMON', 'GRATE', 'SIFTS',
+      'TORTE', 'TREAT', 'CRISP', 'LAYER', 'PLATE',
+    ],
+  },
 };
 
 // ─────────────────────────────────────────────────────────────

@@ -2126,4 +2126,45 @@ export class SoundManager {
     this._playTone('sine', 880, 880, 0.2, 0.04, 0.7);
     this._playNoise(0.12, 0.02, 0.65, 4000);
   }
+
+  // ── Cookie Wordle sounds ───────────────────────────────────
+
+  /** Soft key tap for typing a letter */
+  wordleType() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 600, 500, 0.025, 0.025);
+  }
+
+  /** Backspace/delete — slightly lower */
+  wordleDelete() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 400, 300, 0.03, 0.025);
+  }
+
+  /** Tile reveal: correct position — bright chime */
+  wordleCorrect() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 660, 660, 0.08, 0.04);
+    this._playTone('triangle', 880, 880, 0.06, 0.02, 0.02);
+  }
+
+  /** Tile reveal: present but wrong position — warm mid tone */
+  wordlePresent() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 440, 440, 0.07, 0.03);
+    this._playTone('sine', 554, 554, 0.05, 0.02, 0.02);
+  }
+
+  /** Tile reveal: absent — dull low thud */
+  wordleAbsent() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 220, 180, 0.05, 0.025);
+  }
+
+  /** Invalid submission (not enough letters, etc.) */
+  wordleInvalid() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 300, 200, 0.08, 0.03);
+    this._playTone('sine', 250, 180, 0.06, 0.025, 0.05);
+  }
 }

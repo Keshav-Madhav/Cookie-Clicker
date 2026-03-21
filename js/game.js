@@ -1677,6 +1677,7 @@ export class Game {
       { id: "dungeon",    emoji: "⚔️", name: "Dungeon Crawl",      desc: "Turn-based RPG adventure" },
       { id: "safe",       emoji: "🔐", name: "Safe Cracker",       desc: "Crack the combination lock" },
       { id: "launch",     emoji: "🚀", name: "Cookie Launch",      desc: "Slingshot cookies to the target" },
+      { id: "wordle",     emoji: "📝", name: "Cookie Wordle",      desc: "Guess the baking word" },
     ];
 
     const body = document.getElementById("minigame-select-body");
@@ -1705,6 +1706,7 @@ export class Game {
       dungeon: () => mg._dungeonCrawl(),
       safe:    () => mg._safeCracker(),
       launch:  () => mg._cookieLaunch(),
+      wordle:  () => mg._cookieWordle(),
     };
 
     body.querySelectorAll('.minigame-select-btn').forEach(btn => {
