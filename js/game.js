@@ -1676,6 +1676,7 @@ export class Game {
       { id: "math",       emoji: "🔢", name: "Math Baker",         desc: "Solve math for cookies" },
       { id: "dungeon",    emoji: "⚔️", name: "Dungeon Crawl",      desc: "Turn-based RPG adventure" },
       { id: "safe",       emoji: "🔐", name: "Safe Cracker",       desc: "Crack the combination lock" },
+      { id: "launch",     emoji: "🚀", name: "Cookie Launch",      desc: "Slingshot cookies to the target" },
     ];
 
     const body = document.getElementById("minigame-select-body");
@@ -1703,6 +1704,7 @@ export class Game {
       math:    () => mg._mathBaker(),
       dungeon: () => mg._dungeonCrawl(),
       safe:    () => mg._safeCracker(),
+      launch:  () => mg._cookieLaunch(),
     };
 
     body.querySelectorAll('.minigame-select-btn').forEach(btn => {

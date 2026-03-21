@@ -7152,6 +7152,49 @@ html {
   font-size: 0.8rem; color: #c5aa80; margin-bottom: 8px;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   🚀  COOKIE LAUNCH MINIGAME
+   ═══════════════════════════════════════════════════════════ */
+.launch-card { max-width: 560px; padding: 14px 18px !important; }
+
+.launch-info {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 6px; font-size: 0.78rem;
+}
+.launch-wind { color: #add8e6; }
+.launch-score { color: #ffd700; font-weight: 700; }
+
+.launch-canvas {
+  width: 100%; border-radius: 8px;
+  border: 1.5px solid rgba(200,144,80,0.25);
+  background: #0d0620; cursor: crosshair;
+  touch-action: none;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.launch-hint {
+  font-size: 0.7rem; color: #8a7a6a; text-align: center;
+  margin-top: 6px; min-height: 14px;
+}
+
+.launch-result { text-align: center; padding: 12px 0; }
+.launch-result-tier {
+  font-size: 1.3rem; font-weight: 800; color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.4); margin-bottom: 4px;
+}
+.launch-result-total {
+  font-size: 1rem; color: #f5e8d3; margin-bottom: 8px;
+}
+.launch-round-scores {
+  display: flex; justify-content: center; gap: 12px;
+  margin-bottom: 8px;
+}
+.launch-round-score {
+  font-size: 0.82rem; color: #c5aa80;
+  background: rgba(0,0,0,0.2); padding: 4px 10px;
+  border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);
+}
+
 /* === Enhanced Offline Summary — Newspaper Parchment === */
 .offline-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;

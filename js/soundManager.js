@@ -2048,6 +2048,66 @@ export class SoundManager {
     this._playTone('sine', 784, 784, 0.1, 0.03, 0.18);
   }
 
+  // ── Cookie Launch sounds ─────────────────────────────────
+
+  /** Slingshot stretch — rising tone as you pull back, call with power 0-1 */
+  launchStretch(power) {
+    if (!this._canPlayEffects()) return;
+    const freq = 150 + power * 400;
+    this._playTone('sine', freq, freq + 30, 0.04, 0.02);
+  }
+
+  /** Slingshot release — elastic twang snap */
+  launchFire() {
+    if (!this._canPlayEffects()) return;
+    // Rubber band snap
+    this._playTone('sine', 400, 800, 0.06, 0.05);
+    this._playTone('sine', 250, 500, 0.05, 0.03, 0.01);
+    this._playTone('triangle', 600, 1200, 0.03, 0.02, 0.02);
+    this._playNoise(0.04, 0.03, 0, 3000);
+  }
+
+  /** Wind whoosh — call with wind strength 0-1, pitch/volume scales */
+  launchWindWhoosh(strength) {
+    if (!this._canPlayEffects()) return;
+    if (strength < 0.1) return;
+    const vol = 0.01 + strength * 0.025;
+    const freq = 300 + strength * 600;
+    this._playBandNoise(0.3, vol, 0, freq, 0.8);
+  }
+
+  /** Ground bounce thud */
+  launchBounce() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 120, 70, 0.06, 0.04);
+    this._playNoise(0.03, 0.02, 0, 600);
+  }
+
+  /** Hit the target zone */
+  launchHit() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 440, 440, 0.1, 0.04);
+    this._playTone('triangle', 554, 554, 0.08, 0.03, 0.05);
+    this._playNoise(0.06, 0.02, 0.02, 1500);
+  }
+
+  /** Bullseye! */
+  launchBullseye() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 523, 523, 0.12, 0.05);
+    this._playTone('sine', 659, 659, 0.12, 0.05, 0.08);
+    this._playTone('triangle', 784, 784, 0.15, 0.04, 0.16);
+    this._playTone('sine', 1047, 1047, 0.1, 0.03, 0.24);
+    this._playNoise(0.1, 0.02, 0.2, 4000);
+  }
+
+  /** Missed the target */
+  launchMiss() {
+    if (!this._canPlayEffects()) return;
+    this._playTone('sine', 300, 180, 0.12, 0.04);
+    this._playNoise(0.08, 0.02, 0.02, 800);
+  }
+
   /** Vault fully cracked — heavy mechanism + triumphant ascension */
   safeCrackOpen() {
     if (!this._canPlayEffects()) return;

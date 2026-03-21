@@ -468,6 +468,70 @@ export const MINI_GAME_SETTINGS = {
     /** Result display time (ms) */
     resultDisplayMs: 2500,
   },
+
+  cookieLaunch: {
+    /** Number of rounds */
+    rounds: 3,
+    /** Canvas dimensions — large for comfortable dragging */
+    canvasWidth: 520,
+    canvasHeight: 320,
+    /** Ground Y level (flat ground across entire canvas) */
+    groundY: 260,
+    /** Gravity (pixels/frame²) */
+    gravity: 0.22,
+    /** Wind range (pixels/frame, randomised per round) */
+    windMin: -0.06,
+    windMax: 0.06,
+    /** Launch power scaling (drag distance → velocity) */
+    powerScale: 0.11,
+    /** Max drag distance for power */
+    maxDrag: 140,
+    /** Launcher X position (fixed) */
+    launcherX: 100,
+    /** Target distance from launcher (randomised per round) */
+    targetDistMin: 180,
+    targetDistMax: 360,
+    /** Wall bounce restitution (left/right walls) */
+    wallBounce: 0.5,
+    /** Trickshot bonus points for scoring via wall bounce */
+    trickshotBonus: 25,
+    /** Bounce physics */
+    bounceRestitution: 0.45,
+    bounceFriction: 0.8,
+    maxBounces: 3,
+    /** Rolling ground friction (multiplied per frame) */
+    rollFriction: 0.94,
+    /** Minimum vx to stop rolling */
+    rollStopThreshold: 0.3,
+    /** Trajectory preview max length (frames to simulate) */
+    previewMaxFrames: 35,
+    /** Obstacle wall settings (round 3 only) */
+    obstacleRound: 3,
+    /** Obstacle X: fraction of distance between launcher and target (0.3-0.7) */
+    obstacleXFracMin: 0.3,
+    obstacleXFracMax: 0.7,
+    /** Obstacle height: fraction of play area (ground to top), max 70% */
+    obstacleHeightMin: 0.3,
+    obstacleHeightMax: 0.7,
+    /** Obstacle width in pixels */
+    obstacleWidth: 10,
+    /** Bullseye radius and zone radii for scoring */
+    bullseyeRadius: 14,
+    greatRadius: 36,
+    okRadius: 64,
+    /** Points per hit zone */
+    bullseyePoints: 100,
+    greatPoints: 60,
+    okPoints: 30,
+    missPoints: 0,
+    /** Score thresholds (total across all rounds) */
+    legendaryThreshold: 260,
+    epicThreshold: 180,
+    greatThreshold: 100,
+    normalThreshold: 30,
+    /** Result display time (ms) */
+    resultDisplayMs: 2500,
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
