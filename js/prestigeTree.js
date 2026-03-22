@@ -768,121 +768,80 @@ export class PrestigeTree {
     return c;
   }
 
-  // ── Pre-render black hole with noise-textured accretion disk ──
+  // ── Pre-render black hole components ────────────────────────
+  // Returns { disk, haze, ehR, sz } — disk is CIRCULAR (top-down view),
+  // perspective squash + spin applied at draw time for animation.
   _renderBlackHole() {
     const sz = 1200, hf = sz / 2;
-    const c = document.createElement("canvas");
-    c.width = c.height = sz;
-    const x = c.getContext("2d");
-    const ehR = sz * 0.1; // event horizon radius
-
-    // Gravitational lensing haze
-    const haze = x.createRadialGradient(hf, hf, ehR, hf, hf, hf);
-    haze.addColorStop(0, "rgba(80, 30, 150, 0.12)");
-    haze.addColorStop(0.4, "rgba(40, 15, 80, 0.05)");
-    haze.addColorStop(1, "transparent");
-    x.fillStyle = haze;
-    x.fillRect(0, 0, sz, sz);
-
-    // Accretion disk — noise-textured, rendered into two halves:
-    //   backDisk (top half, behind event horizon)
-    //   frontDisk (bottom half, in front of event horizon)
-    // The disk is tilted so bottom = closer to viewer.
+    const ehR = sz * 0.1;
     const innerR = ehR * 1.3, outerR = ehR * 4.5;
 
-    function renderDiskHalf(isBack) {
-      const dc = document.createElement("canvas");
-      dc.width = dc.height = sz;
-      const dx2 = dc.getContext("2d");
-      const img = dx2.createImageData(sz, sz);
-      const dd = img.data;
-      for (let py = 0; py < sz; py++) {
-        // Back = top half (py < hf), Front = bottom half (py >= hf)
-        const isTop = py < hf;
-        if (isBack !== isTop) continue;
+    // ── Circular accretion disk (no perspective, top-down) ──
+    const disk = document.createElement("canvas");
+    disk.width = disk.height = sz;
+    const dc = disk.getContext("2d");
+    const img = dc.createImageData(sz, sz);
+    const dd = img.data;
 
-        for (let px2 = 0; px2 < sz; px2++) {
-          const ddx = px2 - hf, ddy = (py - hf) / 0.3;
-          const dist = Math.sqrt(ddx * ddx + ddy * ddy);
-          if (dist < innerR || dist > outerR) continue;
+    for (let py = 0; py < sz; py++) {
+      for (let px2 = 0; px2 < sz; px2++) {
+        const ddx = px2 - hf, ddy = py - hf; // circular — no Y flattening
+        const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+        if (dist < innerR || dist > outerR) continue;
 
-          const angle = Math.atan2(ddy, ddx);
-          const t = (dist - innerR) / (outerR - innerR);
-          // Use sin/cos of angle as noise coords — seamless wrap, no atan2 discontinuity
-          const ca = Math.cos(angle) * 3, sa = Math.sin(angle) * 3;
-          const dr = dist * 0.015;
-          const n1 = _fbm(ca + dr, sa + dr, 4, 2.2, 0.5);
-          const n2 = _fbm(ca * 2 + sa + 50, dr + 50, 3, 2, 0.5);
+        const angle = Math.atan2(ddy, ddx);
+        const t = (dist - innerR) / (outerR - innerR);
+        const ca = Math.cos(angle) * 3, sa = Math.sin(angle) * 3;
+        const dr = dist * 0.015;
+        const n1 = _fbm(ca + dr, sa + dr, 4, 2.2, 0.5);
+        const n2 = _fbm(ca * 2 + sa + 50, dr + 50, 3, 2, 0.5);
 
-          let dens = Math.sin(t * Math.PI) * (0.6 + n1 * 0.4);
-          dens *= (0.7 + n2 * 0.3);
-          dens = clamp(dens, 0, 1);
+        let dens = Math.sin(t * Math.PI) * (0.6 + n1 * 0.4);
+        dens *= (0.7 + n2 * 0.3);
+        dens = clamp(dens, 0, 1);
 
-          let r, g, b;
-          if (t < 0.25) {
-            const it = t / 0.25;
-            r = 255; g = 220 + (1 - it) * 35; b = 180 + (1 - it) * 75;
-          } else if (t < 0.6) {
-            const mt = (t - 0.25) / 0.35;
-            r = 255; g = 220 - mt * 120; b = 180 - mt * 150;
-          } else {
-            const ot = (t - 0.6) / 0.4;
-            r = 255 - ot * 80; g = 100 - ot * 70; b = 30 - ot * 20;
-          }
-
-          const idx = (py * sz + px2) * 4;
-          const a = dens * (0.85 - t * 0.4);
-          dd[idx]     = clamp(r * (0.8 + n1 * 0.2), 0, 255);
-          dd[idx + 1] = clamp(g * (0.8 + n2 * 0.2), 0, 255);
-          dd[idx + 2] = clamp(b, 0, 255);
-          dd[idx + 3] = clamp(a * 255, 0, 255);
+        let r, g, b;
+        if (t < 0.25) {
+          const it = t / 0.25;
+          r = 255; g = 220 + (1 - it) * 35; b = 180 + (1 - it) * 75;
+        } else if (t < 0.6) {
+          const mt = (t - 0.25) / 0.35;
+          r = 255; g = 220 - mt * 120; b = 180 - mt * 150;
+        } else {
+          const ot = (t - 0.6) / 0.4;
+          r = 255 - ot * 80; g = 100 - ot * 70; b = 30 - ot * 20;
         }
+
+        const idx = (py * sz + px2) * 4;
+        const a = dens * (0.85 - t * 0.4);
+        dd[idx]     = clamp(r * (0.8 + n1 * 0.2), 0, 255);
+        dd[idx + 1] = clamp(g * (0.8 + n2 * 0.2), 0, 255);
+        dd[idx + 2] = clamp(b, 0, 255);
+        dd[idx + 3] = clamp(a * 255, 0, 255);
       }
-      dx2.putImageData(img, 0, 0);
-      // Additive glow
-      dx2.globalCompositeOperation = "lighter";
-      const gl = dx2.createRadialGradient(hf, hf, ehR * 1.2, hf, hf, ehR * 3);
-      gl.addColorStop(0, "rgba(255, 200, 100, 0.06)");
-      gl.addColorStop(0.5, "rgba(255, 120, 50, 0.03)");
-      gl.addColorStop(1, "transparent");
-      dx2.fillStyle = gl;
-      dx2.fillRect(0, 0, sz, sz);
-      return dc;
     }
+    dc.putImageData(img, 0, 0);
+    // Additive glow on disk
+    dc.globalCompositeOperation = "lighter";
+    const gl = dc.createRadialGradient(hf, hf, ehR * 1.2, hf, hf, ehR * 3);
+    gl.addColorStop(0, "rgba(255, 200, 100, 0.06)");
+    gl.addColorStop(0.5, "rgba(255, 120, 50, 0.03)");
+    gl.addColorStop(1, "transparent");
+    dc.fillStyle = gl;
+    dc.fillRect(0, 0, sz, sz);
 
-    const backDisk = renderDiskHalf(true);
-    const frontDisk = renderDiskHalf(false);
+    // ── Gravitational haze (separate, always behind) ────────
+    const haze = document.createElement("canvas");
+    haze.width = haze.height = sz;
+    const hc = haze.getContext("2d");
+    const hg = hc.createRadialGradient(hf, hf, ehR, hf, hf, hf);
+    hg.addColorStop(0, "rgba(80, 30, 150, 0.12)");
+    hg.addColorStop(0.4, "rgba(40, 15, 80, 0.05)");
+    hg.addColorStop(1, "transparent");
+    hc.fillStyle = hg;
+    hc.fillRect(0, 0, sz, sz);
 
-    // Composite: back disk → event horizon → photon ring → front disk
-    // 1. Back disk (behind the black hole)
-    x.drawImage(backDisk, 0, 0);
-
-    // 2. Event horizon (absolute black, covers back disk center)
-    x.fillStyle = "#010005";
-    x.beginPath();
-    x.arc(hf, hf, ehR, 0, Math.PI * 2);
-    x.fill();
-
-    // 3. Photon ring with glow
-    x.save();
-    x.shadowColor = "rgba(255, 180, 80, 0.9)";
-    x.shadowBlur = 15;
-    x.strokeStyle = "rgba(255, 210, 140, 0.6)";
-    x.lineWidth = 2;
-    x.beginPath();
-    x.arc(hf, hf, ehR * 1.05, 0, Math.PI * 2);
-    x.stroke();
-    x.restore();
-    x.strokeStyle = "rgba(255, 240, 200, 0.3)";
-    x.lineWidth = 0.8;
-    x.beginPath();
-    x.arc(hf, hf, ehR * 1.02, 0, Math.PI * 2);
-    x.stroke();
-
-    // 4. Front disk (in front of the black hole)
-    x.drawImage(frontDisk, 0, 0);
-
-    return c;
+    return { disk, haze, ehR, sz };
   }
 
   // ── Pre-render planet with shading ────────────────────────
@@ -1438,12 +1397,69 @@ export class PrestigeTree {
     ctx.drawImage(this._galaxySprite, -80, -20, 160, 40);
     ctx.restore();
 
-    // ═══ BLACK HOLE (massive, bottom-left, clearly visible) ══
-    const bhSz = 5600;
+    // ═══ BLACK HOLE (animated spinning disk) ══════════════════
+    const bh = this._bhSprite; // { disk, haze, ehR, sz }
+    const bhDiam = 8000;                      // disk diameter in world px (2x old bhSz of ~4000 visual)
+    const bhScale = bhDiam / bh.sz;           // world pixels per sprite pixel
+    const bhEhWorld = bh.ehR * bhScale;       // event horizon radius in world px
+    const spin = ts * 0.06;                   // slow spin
+    const squash = 0.3;                       // perspective flattening
+    const hf2 = bhDiam / 2;
+    // Clip margin: large enough for the full disk at any rotation
+    const clipM = hf2 + 200;
+
     ctx.save();
     ctx.translate(600, WH + 100);
-    ctx.rotate(0.3);
-    ctx.drawImage(this._bhSprite, -bhSz / 2, -bhSz / 2, bhSz, bhSz);
+    ctx.rotate(0.3); // overall tilt
+
+    // Haze (always behind, no spin)
+    ctx.drawImage(bh.haze, -hf2, -hf2 * squash, bhDiam, bhDiam * squash);
+
+    // Helper: draw disk in squashed+spun coordinate space
+    const drawDisk = () => {
+      ctx.scale(1, squash);
+      ctx.rotate(spin);
+      ctx.drawImage(bh.disk, -hf2, -hf2, bhDiam, bhDiam);
+    };
+
+    // BACK HALF: clip to y < 0 (behind the hole in screen space)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-clipM, -clipM, clipM * 2, clipM); // top half
+    ctx.clip();
+    drawDisk();
+    ctx.restore();
+
+    // Event horizon (absolute black, screen space)
+    ctx.fillStyle = "#010005";
+    ctx.beginPath();
+    ctx.arc(0, 0, bhEhWorld, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Photon ring
+    ctx.save();
+    ctx.shadowColor = "rgba(255, 180, 80, 0.9)";
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = "rgba(255, 210, 140, 0.6)";
+    ctx.lineWidth = Math.max(2, bhScale);
+    ctx.beginPath();
+    ctx.arc(0, 0, bhEhWorld * 1.05, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255, 240, 200, 0.3)";
+    ctx.lineWidth = Math.max(1, bhScale * 0.5);
+    ctx.beginPath();
+    ctx.arc(0, 0, bhEhWorld * 1.02, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // FRONT HALF: clip to y > 0 (in front of the hole)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-clipM, 0, clipM * 2, clipM); // bottom half
+    ctx.clip();
+    drawDisk();
+    ctx.restore();
+
     ctx.restore();
 
     // ═══ CELESTIAL BODIES (procedurally scattered, draw if visible) ═══
