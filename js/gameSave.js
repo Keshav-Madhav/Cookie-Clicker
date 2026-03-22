@@ -313,6 +313,10 @@ _restoreSave(data) {
           offlineMultiplier = upgrade.multiplier;
         }
       });
+      // Prestige offline bonuses (Idle Angels + Idle Empire + Idle Mastery)
+      if (this.prestige) {
+        offlineMultiplier = Math.min(1, offlineMultiplier + this.prestige.getOfflineBonus());
+      }
 
       // Exclude wrinkler drain — wrinklers don't feed while offline
       const baseCps = this.getEffectiveCPS({ excludeWrinklerDrain: true });

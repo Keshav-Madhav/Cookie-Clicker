@@ -61,6 +61,11 @@ export class PrestigeManager {
       mult *= (1 + this._getUpgradeData('angels').value);
     }
 
+    // First Light: +1% base CPS
+    if (this.hasUpgrade('firstLight')) {
+      mult *= (1 + this._getUpgradeData('firstLight').value);
+    }
+
     return mult;
   }
 
@@ -187,8 +192,27 @@ export class PrestigeManager {
       case 'elderKnowledge':
       case 'wrinklerReturnBonus':
       case 'elderPledgeDiscount':
+      case 'baseCpsMultiplier2':
+      case 'clickMultiplier4':
+      case 'clickMultiplier5':
+      case 'clickMultiplier6':
+      case 'clickMultiplier7':
+      case 'offlineBonus':
+      case 'offlineBonus2':
+      case 'offlineBonus3':
+      case 'goldenCookieDuration':
+      case 'goldenCookieDuration2':
         // Checked dynamically during gameplay
         break;
+      case 'minigamePrestigeBonus':
+      case 'minigamePrestigeBonus2':
+      case 'minigamePrestigeBonus3': {
+        // Apply directly to game.miniGameBonus (replayed via applyAllEffects)
+        if (this.game.miniGameBonus !== undefined) {
+          this.game.miniGameBonus *= upgrade.value;
+        }
+        break;
+      }
       default:
         // Most effects are checked dynamically during gameplay
         break;
@@ -459,6 +483,43 @@ export class PrestigeManager {
       return this._getUpgradeData('realityArchitect').value;
     }
     return 0;
+  }
+
+  // === NEW upgrade getters ===
+
+  getBaseCpsMultiplier2() {
+    return this.hasUpgrade('firstLight') ? this._getUpgradeData('firstLight').value : 0;
+  }
+
+  getClickMultiplier4() {
+    return this.hasUpgrade('quickFingers') ? this._getUpgradeData('quickFingers').value : 1;
+  }
+
+  getClickMultiplier5() {
+    return this.hasUpgrade('nimbleClicks') ? this._getUpgradeData('nimbleClicks').value : 1;
+  }
+
+  getClickMultiplier6() {
+    return this.hasUpgrade('clickStorm') ? this._getUpgradeData('clickStorm').value : 1;
+  }
+
+  getClickMultiplier7() {
+    return this.hasUpgrade('clickNirvana') ? this._getUpgradeData('clickNirvana').value : 1;
+  }
+
+  getOfflineBonus() {
+    let bonus = 0;
+    if (this.hasUpgrade('idleAngels')) bonus += this._getUpgradeData('idleAngels').value;
+    if (this.hasUpgrade('idleEmpire')) bonus += this._getUpgradeData('idleEmpire').value;
+    if (this.hasUpgrade('idleMastery')) bonus += this._getUpgradeData('idleMastery').value;
+    return bonus; // additive: 0.15 + 0.20 + 0.15 = 0.50 max extra
+  }
+
+  getGoldenCookieDurationBonus() {
+    let bonus = 0;
+    if (this.hasUpgrade('touchOfGold')) bonus += this._getUpgradeData('touchOfGold').value;
+    if (this.hasUpgrade('goldenGlow')) bonus += this._getUpgradeData('goldenGlow').value;
+    return bonus; // additive: 0.30 + 0.50 = 0.80 → 80% longer
   }
 
   // === Grandmapocalypse Heavenly Upgrade Getters ===

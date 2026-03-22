@@ -4,7 +4,7 @@ import { AchievementManager } from "./achievements.js";
 import { PrestigeManager } from "./prestige.js";
 import { VisualEffects } from "./visualEffects.js";
 import { Tutorial } from "./tutorial.js";
-import { buildings, upgrades, heavenlyUpgrades } from "./gameData.js";
+import { buildings, upgrades } from "./gameData.js";
 import { formatNumberInWords, setShortNumbers } from "./utils.js";
 import { SoundManager } from "./soundManager.js";
 import {
@@ -19,6 +19,7 @@ import { NewspaperMixin } from "./newspaper.js";
 import { SaveLoadMixin } from "./gameSave.js";
 import { OverlaysMixin } from "./gameOverlays.js";
 import { ParticlesMixin } from "./gameParticles.js";
+import { PrestigeTree } from "./prestigeTree.js";
 
 export class Game {
   constructor() {
@@ -537,6 +538,11 @@ export class Game {
     cpc = cpc.mul(this.prestige.getClickMultiplier());
     // Astral Clicking: x3 clicking power
     cpc = cpc.mul(this.prestige.getClickMultiplier3());
+    // Quick Fingers / Nimble Clicks / Click Storm / Click Nirvana
+    cpc = cpc.mul(this.prestige.getClickMultiplier4());
+    cpc = cpc.mul(this.prestige.getClickMultiplier5());
+    cpc = cpc.mul(this.prestige.getClickMultiplier6());
+    cpc = cpc.mul(this.prestige.getClickMultiplier7());
     // Apply all active click buffs
     for (const buff of this.activeBuffs) {
       if (buff.type === 'click') cpc = cpc.mul(buff.multiplier);
@@ -1040,57 +1046,20 @@ export class Game {
   }
 
   renderHeavenlyShop() {
-    const grid = document.getElementById("heavenly-upgrade-grid");
+    const body = document.querySelector(".heavenly-body");
     const chipsEl = document.getElementById("heavenly-available-chips");
-    if (!grid) return;
+    if (!body) return;
 
     const spendable = this.prestige.getSpendableChips();
     if (chipsEl) chipsEl.textContent = formatNumberInWords(spendable);
 
-    grid.innerHTML = "";
-    heavenlyUpgrades.forEach(upgrade => {
-      const owned = this.prestige.hasUpgrade(upgrade.id);
-      const canBuy = this.prestige.canBuyUpgrade(upgrade.id);
-
-      const prereqsMet = !upgrade.requires || upgrade.requires.length === 0 ||
-        upgrade.requires.every(r => this.prestige.hasUpgrade(r));
-      const unaffordable = !owned && !canBuy && prereqsMet && spendable < upgrade.cost;
-
-      const card = document.createElement("div");
-      card.className = `heavenly-card${owned ? ' heavenly-owned' : ''}${canBuy ? ' heavenly-buyable' : ''}${!prereqsMet && !owned ? ' heavenly-locked' : ''}${unaffordable ? ' heavenly-unaffordable' : ''}`;
-
-      const costStr = formatNumberInWords(upgrade.cost);
-      const prereqNames = (upgrade.requires || []).map(r => {
-        const u = heavenlyUpgrades.find(h => h.id === r);
-        return u ? u.name : r;
-      });
-
-      card.innerHTML = `
-        <div class="heavenly-card-header">
-          <span class="heavenly-card-name">${upgrade.name}</span>
-          <span class="heavenly-card-cost">${owned ? '✓' : `<span class="heavenly-cookie-small">🍪</span> ${costStr}`}</span>
-        </div>
-        <div class="heavenly-card-desc">${upgrade.desc}</div>
-        ${!prereqsMet && !owned ? `<div class="heavenly-card-prereq">Requires: ${prereqNames.join(', ')}</div>` : ''}
-        ${unaffordable ? `<div class="heavenly-card-prereq">Need ${costStr} chips (have ${formatNumberInWords(spendable)})</div>` : ''}
-      `;
-
-      if (!owned && canBuy) {
-        card.addEventListener("click", () => {
-          if (this.prestige.buyUpgrade(upgrade.id)) {
-            this.soundManager.prestigeUpgrade();
-            this.renderHeavenlyShop();
-            this.calculateCPS();
-            this.updateLeftPanel();
-            this.saveGame();
-            const newChipsEl = document.getElementById("heavenly-available-chips");
-            if (newChipsEl) newChipsEl.classList.add('heavenly-chip-flash');
-          }
-        });
-      }
-
-      grid.appendChild(card);
-    });
+    // Destroy and re-create the tree each time — the overlay's display:none
+    // invalidates canvas content and container dimensions
+    if (this._prestigeTree) {
+      this._prestigeTree.destroy();
+    }
+    this._prestigeTree = new PrestigeTree(this);
+    this._prestigeTree.render(body);
   }
 
   updateHeavenlyShopButton() {
@@ -1554,6 +1523,12 @@ export class Game {
     // Remove any lingering floating text from clicks
     document.querySelectorAll('.cookie-text').forEach(el => el.remove());
 
+    // Force prestige tree rebuild on next open
+    if (this._prestigeTree) {
+      this._prestigeTree.destroy();
+      this._prestigeTree = null;
+    }
+
     this.updateUI();
     this.updateLeftPanel();
     this.updatePurchaseButtons();
@@ -1735,7 +1710,7 @@ export class Game {
     const hasPrestiged = this.prestige.timesPrestiged >= 1;
 
     if (hasPrestiged) {
-      btn.innerHTML = "<span class='heavenly-cookie-small'>🍪</span> Prestige<br>Upgrades";
+      btn.innerHTML = "<span class='heavenly-cookie-small'>🍪</span> Prestige<br>Tree";
       btn.addEventListener("click", () => {
         this.renderHeavenlyShop();
         const overlay = document.getElementById("heavenly-overlay");

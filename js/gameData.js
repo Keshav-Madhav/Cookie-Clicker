@@ -770,6 +770,68 @@ export const heavenlyUpgrades = [
     effect: "allBuildingCpsMultiplier", value: 3,
     requires: ["cookieSingularity", "celestialSynergy"] },
 
+  // ── NEW: Cheap roots (1-2 chips) ──────────────────────────
+  { id: "firstLight", name: "First Light", cost: 1,
+    desc: "Your cookie glows faintly. +1% base CPS permanently.",
+    effect: "baseCpsMultiplier2", value: 0.01,
+    requires: [] },
+  { id: "quickFingers", name: "Quick Fingers", cost: 2,
+    desc: "Nimble hands click faster. +20% clicking power.",
+    effect: "clickMultiplier4", value: 1.2,
+    requires: [] },
+
+  // ── NEW: Tier 1.5 (15-25 chips) ─────────────────────────
+  { id: "idleAngels", name: "Idle Angels", cost: 15,
+    desc: "Angels bake while you sleep. Offline production +15% (65% total).",
+    effect: "offlineBonus", value: 0.15,
+    requires: ["angels"] },
+  { id: "gameTalent", name: "Game Talent", cost: 20,
+    desc: "A knack for mini-games. Minigame rewards x1.3.",
+    effect: "minigamePrestigeBonus", value: 1.3,
+    requires: ["heavenlyCookies"] },
+  { id: "touchOfGold", name: "Touch of Gold", cost: 25,
+    desc: "Golden cookies linger 30% longer before vanishing.",
+    effect: "goldenCookieDuration", value: 0.3,
+    requires: ["heavenlyLuck"] },
+
+  // ── NEW: Tier 2 gap-fillers (150-600 chips) ─────────────
+  { id: "nimbleClicks", name: "Nimble Clicks", cost: 150,
+    desc: "Clicking power +50% (stacks with Quick Fingers).",
+    effect: "clickMultiplier5", value: 1.5,
+    requires: ["quickFingers"] },
+  { id: "gameExpert", name: "Game Expert", cost: 600,
+    desc: "Minigame mastery grows. Minigame rewards x1.5 (stacks).",
+    effect: "minigamePrestigeBonus2", value: 1.5,
+    requires: ["gameTalent"] },
+  { id: "goldenGlow", name: "Golden Glow", cost: 500,
+    desc: "Golden cookies stay 50% longer (stacks with Touch of Gold).",
+    effect: "goldenCookieDuration2", value: 0.5,
+    requires: ["touchOfGold", "goldenWindfall"] },
+
+  // ── NEW: Tier 3 (2K-8K chips) ───────────────────────────
+  { id: "idleEmpire", name: "Idle Empire", cost: 2000,
+    desc: "Your bakery never sleeps. Offline production +20% (85% total).",
+    effect: "offlineBonus2", value: 0.20,
+    requires: ["idleAngels", "seasonSavings"] },
+  { id: "clickStorm", name: "Click Storm", cost: 5000,
+    desc: "Fingers of fury. Clicking power x2 (stacks).",
+    effect: "clickMultiplier6", value: 2,
+    requires: ["nimbleClicks"] },
+  { id: "idleMastery", name: "Idle Mastery", cost: 8000,
+    desc: "Perfect idle efficiency. Offline production at 100%.",
+    effect: "offlineBonus3", value: 0.15,
+    requires: ["idleEmpire"] },
+
+  // ── NEW: Tier 4+ (50K-200K chips) ───────────────────────
+  { id: "gameMastery", name: "Game Mastery", cost: 80000,
+    desc: "Legendary gamer. Minigame rewards x2 (stacks).",
+    effect: "minigamePrestigeBonus3", value: 2.0,
+    requires: ["gameExpert", "eternalDominion"] },
+  { id: "clickNirvana", name: "Click Nirvana", cost: 200000,
+    desc: "Transcendent clicking. Clicking power x3 (stacks). The ultimate finger workout.",
+    effect: "clickMultiplier7", value: 3,
+    requires: ["clickStorm", "heavenlyClicking"] },
+
   // Tier GP — Grandmapocalypse Heavenly Upgrades
   { id: "elderKnowledge", name: "Elder Knowledge", cost: 15000,
     desc: "Start each run with the Bingo Center already researched.",

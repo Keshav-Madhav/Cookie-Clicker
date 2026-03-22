@@ -825,7 +825,8 @@ export class VisualEffects {
         this._scheduleGoldenCookie();
       }, 600);
     };
-    this._goldenTimeout = setTimeout(fadeGolden, GOLDEN_COOKIE.lifetimeMs);
+    const durationBonus = this.game.prestige ? this.game.prestige.getGoldenCookieDurationBonus() : 0;
+    this._goldenTimeout = setTimeout(fadeGolden, GOLDEN_COOKIE.lifetimeMs * (1 + durationBonus));
   }
 
   _setupGoldenCookieClick() {
