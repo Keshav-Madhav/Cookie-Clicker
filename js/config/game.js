@@ -36,9 +36,11 @@ export const GAME = {
 // ─────────────────────────────────────────────────────────────
 export const PRESTIGE = {
   /** Prestige chip formula: floor( (totalCookies / divisor) ^ exponent )
-   *  100M → 1, 1B → 3, 10B → 10, 100B → 31, 1T → 100, 100T → 1K, 1Qi → 100K */
+   *  Close to original Cookie Clicker's cube root (0.333). To double HC you need
+   *  ~7.2× more cookies. Progression:
+   *  100M → 1, 1B → 5, 100B → 46, 1T → 100, 100T → 2.2K, 1Qi → 10K */
   chipDivisor: 1e8,
-  chipExponent: 0.5,
+  chipExponent: 0.35,
   /** CPS multiplier from chips: 1 + bonusScale × chips^bonusExponent
    *  Diminishing returns — 1 chip → 1.2x, 100 → 2.6x, 1K → 5.5x, 10K → 15x */
   bonusScale: 0.2,

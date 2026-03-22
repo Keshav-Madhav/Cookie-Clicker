@@ -296,7 +296,8 @@ _restoreSave(data) {
   if (data.luckyClickChance) this.luckyClickChance = data.luckyClickChance;
   if (data.cpsClickBonus) this.cpsClickBonus = data.cpsClickBonus;
   if (data.miniGameBonus) this.miniGameBonus = data.miniGameBonus;
-  if (data.frenzyDurationMultiplier) this.frenzyDurationMultiplier = data.frenzyDurationMultiplier;
+  // frenzyDurationMultiplier is recomputed from upgrade effects on load — do not
+  // restore the saved value, as upgrade bonus values may have been rebalanced.
 
   // Calculate offline earnings
   if (data.lastSavedTime) {

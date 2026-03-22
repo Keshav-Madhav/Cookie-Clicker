@@ -379,9 +379,9 @@ export const upgrades = [
     requires: [{ type: "miniGamesWon", min: 1 }] },
 
   // === Frenzy Duration ===
-  { name: "Extended Frenzy", cost: 10000000, effect: "Frenzies last 50% longer", type: "frenzyDuration", bonus: 1.5, max_level: 1, cost_multiplier: 1,
+  { name: "Extended Frenzy", cost: 10000000, effect: "Frenzies last twice as long", type: "frenzyDuration", bonus: 2.0, max_level: 1, cost_multiplier: 1,
     requires: [{ type: "cps", min: 5000 }, { type: "totalCookies", min: 10000000 }] },
-  { name: "Mega Frenzy", cost: 5000000000, effect: "Frenzies last 2x longer", type: "frenzyDuration", bonus: 2.0, max_level: 1, cost_multiplier: 1,
+  { name: "Mega Frenzy", cost: 5000000000, effect: "Frenzies last 10% longer", type: "frenzyDuration", bonus: 1.1, max_level: 1, cost_multiplier: 1,
     requires: [{ type: "cps", min: 500000 }, { type: "prestige", min: 1 }] },
 
   // === Offline Production (tiered) ===
@@ -458,7 +458,7 @@ export const upgrades = [
     requires: [{ type: "cps", min: 1000000000000000 }, { type: "totalBuildings", min: 1200 }, { type: "prestige", min: 7 }] },
 
   // === Late-Game Frenzy ===
-  { name: "Eternal Frenzy", cost: 1000000000000000000, effect: "Frenzies last 3x longer", type: "frenzyDuration", bonus: 3.0, max_level: 1, cost_multiplier: 1,
+  { name: "Eternal Frenzy", cost: 1000000000000000000, effect: "Frenzies last 15% longer", type: "frenzyDuration", bonus: 1.15, max_level: 1, cost_multiplier: 1,
     requires: [{ type: "cps", min: 5000000000 }, { type: "prestige", min: 3 }] },
 
   // === Late-Game Building Boosts (2nd tier for early buildings) ===
@@ -606,8 +606,8 @@ export const heavenlyUpgrades = [
     effect: "upgradeCostReduction", value: 0.05,
     requires: ["twinGates"] },
   { id: "seasonSavings", name: "Veteran's Bonus", cost: 75,
-    desc: "+5% CPS per prestige level.",
-    effect: "cpsPerPrestige", value: 0.05,
+    desc: "+3% CPS per prestige level.",
+    effect: "cpsPerPrestige", value: 0.03,
     requires: ["angels"] },
   { id: "divineBakeries", name: "Sacred Ovens", cost: 100,
     desc: "Buildings produce +1% CPS per prestige level.",
@@ -740,12 +740,12 @@ export const heavenlyUpgrades = [
     effect: "cpsPerBuildingType2", value: 0.006,
     requires: ["cosmicResonance"] },
   { id: "timelessBaking", name: "Timeless Baking", cost: 2000000,
-    desc: "+10% CPS per prestige level (stacks with Veteran's Bonus).",
-    effect: "cpsPerPrestige2", value: 0.10,
+    desc: "+5% CPS per prestige level (stacks with Veteran's Bonus).",
+    effect: "cpsPerPrestige2", value: 0.05,
     requires: ["seasonSavings"] },
   { id: "ascendantFrenzies", name: "Ascendant Frenzies", cost: 2500000,
-    desc: "Frenzy durations are doubled.",
-    effect: "frenzyDuration", value: 2,
+    desc: "Frenzies last 10% longer.",
+    effect: "frenzyDuration", value: 1.1,
     requires: ["frenzyMastery"] },
 
   // Tier 6 — Endgame (4M-10M chips)

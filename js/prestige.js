@@ -15,10 +15,11 @@ export class PrestigeManager {
     this.purchasedUpgrades = new Set();
   }
 
-  // Heavenly chips earned = (total cookies / 1 trillion) ^ exponent
+  // Heavenly chips earned = (total cookies / divisor) ^ exponent
+  // Using 0.35 exponent (close to original CC's cube root 0.333) — to double HC
+  // you need ~7.2× more cookies, providing natural diminishing returns without a soft cap.
   calculateHeavenlyChipsOnReset() {
     const total = this.totalCookiesBakedAllTime.add(this.game.stats.totalCookiesBaked);
-    // Convert to Number for chip calculation (chips are sqrt-scale, fit in Number)
     let chips = Math.floor(Math.pow(total.toNumber() / PRESTIGE.chipDivisor, PRESTIGE.chipExponent));
 
     // HC Interest bonus from heavenly upgrade
@@ -41,16 +42,18 @@ export class PrestigeManager {
     const available = this.getSpendableChips();
     let mult = 1 + PRESTIGE.bonusScale * Math.pow(available, PRESTIGE.bonusExponent);
 
-    // Season Savings: +10% CPS per prestige level
+    // Veteran's Bonus: +3% CPS per effective prestige (diminishing: n^0.7)
     if (this.hasUpgrade('seasonSavings')) {
       const bonus = this._getUpgradeData('seasonSavings').value;
-      mult *= (1 + bonus * this.timesPrestiged);
+      const effectivePrestiges = Math.pow(this.timesPrestiged, 0.7);
+      mult *= (1 + bonus * effectivePrestiges);
     }
 
-    // Timeless Baking: +10% CPS per prestige level (stacks)
+    // Timeless Baking: +5% CPS per effective prestige (diminishing: n^0.7, stacks)
     if (this.hasUpgrade('timelessBaking')) {
       const bonus = this._getUpgradeData('timelessBaking').value;
-      mult *= (1 + bonus * this.timesPrestiged);
+      const effectivePrestiges = Math.pow(this.timesPrestiged, 0.7);
+      mult *= (1 + bonus * effectivePrestiges);
     }
 
     // Angels: +5% base CPS permanently
