@@ -227,69 +227,533 @@ export const MINI_GAME_SETTINGS = {
   },
 
   dungeon: {
-    totalFloors: 5,
+    minFloors: 8, maxFloors: 16,  // random floor count per run
     entryFeeMultiplier: 8,
     // Player
-    baseHp: 100, hpPerBuilding: 0.2, baseAtk: 12, atkCpsScale: 0.0002, atkCap: 35,
+    baseHp: 120, hpPerBuilding: 0.2, baseAtk: 14, atkCpsScale: 0.0002, atkCap: 38,
     potions: 2, potionHeal: 0.35,
     // Combat
     critChance: 0.12, critMult: 1.75,
     blockPercent: 0.65,
     heavyAtkMult: 1.6,       // player heavy attack: 1.6x dmg but skip next turn
-    scoutCost: 0.08,          // scout costs 8% of max HP
+    scoutCost: 1,             // scout costs 1 flat HP
     // Enemy AI — context-aware, not random pool
     enemyHeavyChance: 0.2,    // 20% chance of heavy (increased for bosses)
     enemyBlockChance: 0.15,   // 15% chance to block
     enemyHealChance: 0.25,    // heal when below 70% HP, 25% chance
-    enemyHealAmount: 0.2,     // heals 20% of max HP
+    enemyHealAmount: 0.15,    // heals 15% of max HP
     enemyFleeHpThreshold: 0.5, // can flee below 50% HP
     enemyFleeChance: 0.08,    // 8% chance to flee (rare)
-    heavyMult: 1.7,           // enemy heavy does 1.7x
+    heavyMult: 1.5,           // enemy heavy does 1.5x
     enemyBlockReduction: 0.5, // enemy block reduces player dmg by 50%
-    // Enemy pools by tier (randomly picked per floor)
+    // Enemy pools by tier — ATK ramps up noticeably per tier
     enemyTiers: [
-      // Tier 1 — floors 1-2
+      // Tier 0 — early floors: 2-3 hits to kill, gentle damage
       [
-        { name: "Stale Cookie",    emoji: "🍘", hp: 55, atk: 13 },
-        { name: "Crumb Rat",       emoji: "🐀", hp: 50, atk: 15 },
-        { name: "Flour Phantom",   emoji: "👻", hp: 48, atk: 16 },
-        { name: "Moldy Morsel",    emoji: "🦠", hp: 52, atk: 12 },
+        { name: "Stale Cookie",    emoji: "🍘", hp: 70, atk: 10 },
+        { name: "Crumb Rat",       emoji: "🐀", hp: 65, atk: 12 },
+        { name: "Flour Phantom",   emoji: "👻", hp: 60, atk: 13 },
+        { name: "Moldy Morsel",    emoji: "🦠", hp: 75, atk: 9 },
       ],
-      // Tier 2 — floors 3-4
+      // Tier 1 — mid floors: 3-4 hits to kill, hits start hurting
       [
-        { name: "Raisin Imposter", emoji: "🫘", hp: 80, atk: 20 },
-        { name: "Burnt Batch",     emoji: "🌋", hp: 85, atk: 21 },
-        { name: "Cookie Golem",    emoji: "🗿", hp: 90, atk: 18 },
-        { name: "Sugar Wraith",    emoji: "💀", hp: 75, atk: 23 },
-        { name: "Dough Beast",     emoji: "🫠", hp: 95, atk: 17 },
+        { name: "Raisin Imposter", emoji: "🫘", hp: 100, atk: 18 },
+        { name: "Burnt Batch",     emoji: "🌋", hp: 110, atk: 19 },
+        { name: "Cookie Golem",    emoji: "🗿", hp: 120, atk: 16 },
+        { name: "Sugar Wraith",    emoji: "💀", hp: 95, atk: 21 },
+        { name: "Dough Beast",     emoji: "🫠", hp: 115, atk: 17 },
       ],
-      // Tier 3 — elite
+      // Tier 2 — elite: 4-5 hits to kill, serious damage
       [
-        { name: "Grandma's Wrath", emoji: "👹", hp: 110, atk: 26 },
-        { name: "Sugar Elemental", emoji: "⚡", hp: 120, atk: 25 },
-        { name: "Oven Fiend",      emoji: "😈", hp: 115, atk: 28 },
-        { name: "Frosting Hydra",  emoji: "🐲", hp: 125, atk: 24 },
+        { name: "Grandma's Wrath", emoji: "👹", hp: 150, atk: 24 },
+        { name: "Sugar Elemental", emoji: "⚡", hp: 160, atk: 22 },
+        { name: "Oven Fiend",      emoji: "😈", hp: 145, atk: 26 },
+        { name: "Frosting Hydra",  emoji: "🐲", hp: 170, atk: 21 },
       ],
     ],
-    // Boss pool — one randomly chosen per run
+    // Boss pool — high HP, punishing ATK. A long fight where blocking and potions matter.
+    // 5-floor boss: ~15 hits to kill, deals ~28 per hit (player must block/heal)
+    // 10-floor boss: ~22 hits to kill, deals ~35 per hit (need loot HP + potions to survive)
     bosses: [
-      { name: "Cookie Dragon",     emoji: "🐉", hp: 280, atk: 34 },
-      { name: "The Grand Grandma", emoji: "👑", hp: 260, atk: 36 },
-      { name: "Dough Titan",       emoji: "🦍", hp: 300, atk: 32 },
-      { name: "Infernal Oven",     emoji: "🌋", hp: 240, atk: 38 },
+      { name: "Cookie Dragon",     emoji: "🐉", hp: 500, atk: 28 },
+      { name: "The Grand Grandma", emoji: "👑", hp: 480, atk: 30 },
+      { name: "Dough Titan",       emoji: "🦍", hp: 550, atk: 26 },
+      { name: "Infernal Oven",     emoji: "🌋", hp: 460, atk: 32 },
     ],
-    /** Which tier to use per floor index (0-based). Last floor is always boss. */
-    floorTiers: [0, 0, 1, 1, 2],
-    depthScale: 0.15,
-    loot: [
+    bossHpScale: 0.10,       // boss HP scales +10% per floor beyond 8 (8 extra = 1.8x)
+    bossAtkScale: 0.04,      // boss ATK scales +4% per floor beyond 8 (8 extra = 1.32x)
+    depthScale: 0.04,        // regular enemy stat scaling per floor (gentle for 16 floors)
+    // Loot tables — early and late game rewards
+    lootEarly: [
       { icon: "🗡️", label: "+3 Attack",     apply: (p) => { p.atk += 3; } },
-      { icon: "🛡️", label: "+15 Max HP",    apply: (p) => { p.maxHp += 15; p.hp = Math.min(p.hp + 15, p.maxHp); } },
-      { icon: "🧪", label: "+1 Potion",     apply: (p) => { p.potions++; } },
-      { icon: "❤️‍🩹", label: "Heal 40%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.4)); } },
-      { icon: "🎯", label: "+10% Crit",     apply: (p) => { p.critChance = Math.min(0.5, p.critChance + 0.1); } },
-      { icon: "⚡", label: "Next hit 2x",   apply: (p) => { p.x2 = true; } },
+      { icon: "🛡️", label: "+12 Max HP",    apply: (p) => { p.maxHp += 12; p.hp = Math.min(p.hp + 12, p.maxHp); } },
+      { icon: "🧪", label: "+1 Potion",     apply: (p) => { p.pot++; } },
+      { icon: "❤️‍🩹", label: "Heal 30%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3)); } },
+      { icon: "🎯", label: "+8% Crit",      apply: (p) => { p.crit = Math.min(0.5, p.crit + 0.08); } },
+      { icon: "⚡", label: "Next hit 2x",   apply: (p) => { p.x2 = true; p.x2Count = (p.x2Count || 0) + 1; } },
+      { icon: "🪙", label: "+3 Coins",      apply: () => {}, coins: 3 },
     ],
-    rewardTiers: { 5: "legendary", 4: "epic", 3: "great", 2: "normal", 1: "normal", 0: null },
+    lootLate: [
+      { icon: "🗡️", label: "+6 Attack",     apply: (p) => { p.atk += 6; } },
+      { icon: "🛡️", label: "+25 Max HP",    apply: (p) => { p.maxHp += 25; p.hp = Math.min(p.hp + 25, p.maxHp); } },
+      { icon: "🧪", label: "+2 Potions",    apply: (p) => { p.pot += 2; } },
+      { icon: "❤️‍🩹", label: "Heal 50%",      apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.5)); } },
+      { icon: "🎯", label: "+15% Crit",     apply: (p) => { p.crit = Math.min(0.6, p.crit + 0.15); } },
+      { icon: "⚡", label: "Next 2 hits 2x", apply: (p) => { p.x2 = true; p.x2Count = (p.x2Count || 0) + 2; } },
+      { icon: "💪", label: "+4 ATK, +15 HP", apply: (p) => { p.atk += 4; p.maxHp += 15; p.hp = Math.min(p.hp + 15, p.maxHp); } },
+      { icon: "🪙", label: "+5 Coins",      apply: () => {}, coins: 5 },
+    ],
+    // Coin economy
+    coinPerCombat: 3,         // coins for killing a regular enemy
+    coinPerElite: 6,          // coins for killing an elite
+    coinPerBoss: 15,          // coins for killing the boss
+    coinPerFlee: 2,           // coins when enemy flees
+    coinRestBonus: 4,          // coins from rest room coin option
+    coinTreasureBonus: 4,     // bonus coins from treasure rooms
+    coinTrapBonus: 3,         // bonus coins from successful traps
+    coinGreatTrapBonus: 6,    // bonus coins from great trap outcome
+    // Coin → cookie conversion: cookies = coins × CPS × coinMultiplier
+    coinCpsMultiplier: 30,    // each coin = 30 seconds of CPS
+    coinMinPayout: 100,       // minimum payout per coin (for early game)
+    // Reward tiers by floors cleared (keys are string floor counts)
+    rewardTierThresholds: { legendary: 0.9, epic: 0.7, great: 0.5, normal: 0.2 },
+
+    // ── Exploration: room types and path generation ──
+    // Room types: 'combat', 'elite', 'rest', 'treasure', 'event', 'trap'
+    // Path choices shown between floors (2-3 doors with hints)
+    pathChoices: 3,           // number of doors to show (2 or 3)
+    // Room weights by dungeon phase (early = first 40%, mid = 40-70%, late = 70%+)
+    roomWeights: {
+      early:  { combat: 50, rest: 20, event: 20, treasure: 10, trap: 0,  elite: 0  },
+      mid:    { combat: 35, rest: 15, event: 25, treasure: 5,  trap: 10, elite: 10 },
+      late:   { combat: 30, rest: 10, event: 20, treasure: 0,  trap: 15, elite: 25 },
+    },
+    // Rules
+    maxTreasurePerRun: 1,
+    restCooldown: 2,          // minimum floors between rest rooms
+    eliteMinFloor: 0.35,      // elite can't appear before 35% through the dungeon
+    // Rest room config
+    restHealPercent: 0.35,    // heal 35% of max HP
+    restAtkBonus: 4,          // +4 ATK permanently
+    restPotionChance: 0.3,    // 30% chance rest also offers a potion option
+    // Elite combat scaling
+    eliteHpMult: 1.4,         // elite enemies have 1.4x HP
+    eliteAtkMult: 1.2,        // elite enemies have 1.2x ATK
+    eliteLootChoices: 3,      // elite gives 3 loot options instead of 2
+    // Trap/gamble config
+    trapRiskPercent: 0.20,    // risk 20% of max HP
+    trapGoodChance: 0.55,     // 55% chance of good outcome
+    trapGreatChance: 0.15,    // 15% chance of great outcome (within the 55%)
+    // Mystery events
+    events: [
+      {
+        name: "The Cookie Fountain",
+        text: "A fountain bubbles with melted chocolate. Steam rises in sweet spirals...",
+        emoji: "⛲",
+        choices: [
+          { label: "Drink deeply", outcomes: [
+            { weight: 65, text: "Refreshing! The warmth fills you.", effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3)); }, good: true },
+            { weight: 35, text: "Too hot! It scalds your throat.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.12)); }, good: false },
+          ]},
+          { label: "Fill your flask", outcomes: [
+            { weight: 100, text: "You carefully bottle the liquid. +1 Potion.", effect: (p) => { p.pot++; }, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "The Grandma's Riddle",
+        text: "An ancient grandma blocks the path. Her eyes glint with challenge...",
+        emoji: "👵",
+        choices: [
+          { label: "Answer her riddle", outcomes: [
+            { weight: 55, text: "Correct! She nods and empowers your weapon.", effect: (p) => { p.atk += 4; }, good: true },
+            { weight: 45, text: "Wrong. She cackles and vanishes. Nothing happens.", effect: () => {}, good: false },
+          ]},
+          { label: "Offer cookies", outcomes: [
+            { weight: 100, text: "She smiles warmly and heals your wounds.", effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.2)); }, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "Suspicious Oven",
+        text: "A glowing oven sits open in an empty room. Something's baking inside...",
+        emoji: "🔥",
+        choices: [
+          { label: "Reach in", outcomes: [
+            { weight: 50, text: "A perfectly baked cookie! You feel stronger.", effect: (p) => { p.atk += 3; p.maxHp += 10; p.hp = Math.min(p.hp + 10, p.maxHp); }, good: true },
+            { weight: 50, text: "OW! The oven snaps shut on your hand.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.18)); }, good: false },
+          ]},
+          { label: "Walk away", outcomes: [
+            { weight: 100, text: "You leave it alone. Probably wise.", effect: () => {}, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "The Wishing Well",
+        text: "A deep well hums with energy. Coins glitter at the bottom...",
+        emoji: "🕳️",
+        choices: [
+          { label: "Toss in some cookies", outcomes: [
+            { weight: 40, text: "The well grants you great power!", effect: (p) => { p.atk += 5; }, good: true },
+            { weight: 35, text: "A potion floats to the surface!", effect: (p) => { p.pot += 1; }, good: true },
+            { weight: 25, text: "The cookies sink. Nothing happens.", effect: () => {}, good: false },
+          ]},
+          { label: "Peer inside", outcomes: [
+            { weight: 70, text: "You see a vision of the future. Knowledge is power.", effect: (p) => { p.crit = Math.min(0.5, p.crit + 0.06); }, good: true },
+            { weight: 30, text: "Something stares back. You stumble away.", effect: (p) => { p.hp = Math.max(1, p.hp - 5); }, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "Abandoned Bakery",
+        text: "Shelves of forgotten recipes line the walls. Dust covers everything...",
+        emoji: "🏚️",
+        choices: [
+          { label: "Search the shelves", outcomes: [
+            { weight: 60, text: "You find a secret recipe! Your attacks feel sharper.", effect: (p) => { p.crit = Math.min(0.5, p.crit + 0.08); }, good: true },
+            { weight: 40, text: "Just dust and cobwebs. You cough.", effect: () => {}, good: false },
+          ]},
+          { label: "Check the oven", outcomes: [
+            { weight: 50, text: "Stale but edible cookies! You scarf them down.", effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.15)); }, good: true },
+            { weight: 50, text: "Empty. But the oven is still warm...", effect: () => {}, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "The Cookie Golem's Offer",
+        text: "A dormant cookie golem awakens. It speaks in crumbs: 'Trade?'",
+        emoji: "🗿",
+        choices: [
+          { label: "Trade HP for power", outcomes: [
+            { weight: 100, text: "You feel drained but mighty. -15% HP, +6 ATK.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.15)); p.atk += 6; }, good: true },
+          ]},
+          { label: "Trade power for HP", outcomes: [
+            { weight: 100, text: "Your strikes soften but you feel restored. -3 ATK, +30% HP.", effect: (p) => { p.atk = Math.max(5, p.atk - 3); p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.30)); }, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "Mysterious Shrine",
+        text: "An altar glows with strange symbols. You feel its power calling...",
+        emoji: "🛕",
+        choices: [
+          { label: "Pray for strength", outcomes: [
+            { weight: 50, text: "The shrine blesses you! +20 Max HP.", effect: (p) => { p.maxHp += 20; p.hp = Math.min(p.hp + 20, p.maxHp); }, good: true },
+            { weight: 50, text: "The shrine demands tribute. -10% HP.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.10)); }, good: false },
+          ]},
+          { label: "Leave an offering", outcomes: [
+            { weight: 100, text: "The altar hums. Your next 2 hits deal double!", effect: (p) => { p.x2 = true; p.x2Count = (p.x2Count || 0) + 2; }, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "Cookie Merchant",
+        text: "A hooded figure sits behind stacked crates. 'Psst... want some potions?'",
+        emoji: "🧙",
+        choices: [
+          { label: "Buy potions (-15% HP)", outcomes: [
+            { weight: 100, text: "The merchant hands over 2 potions. Your wallet... er, HP hurts.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.15)); p.pot += 2; }, good: true },
+          ]},
+          { label: "Ask for a tip", outcomes: [
+            { weight: 70, text: "'Block when they wind up, kid.' +5% crit.", effect: (p) => { p.crit = Math.min(0.5, p.crit + 0.05); }, good: true },
+            { weight: 30, text: "'Get lost.' He vanishes in a puff of flour.", effect: () => {}, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "The Dough Mirror",
+        text: "A mirror made of polished cookie dough reflects a stronger version of you...",
+        emoji: "🪞",
+        choices: [
+          { label: "Step through the mirror", outcomes: [
+            { weight: 45, text: "You merge with your reflection! Permanently stronger.", effect: (p) => { p.atk += 5; p.maxHp += 15; p.hp = Math.min(p.hp + 15, p.maxHp); }, good: true },
+            { weight: 55, text: "The reflection shatters. Glass cuts you.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.15)); }, good: false },
+          ]},
+          { label: "Smash the mirror", outcomes: [
+            { weight: 100, text: "Shards scatter. You find a potion hidden behind it.", effect: (p) => { p.pot++; }, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "Rolling Pin of Doom",
+        text: "A massive rolling pin blocks the corridor. It looks... sentient.",
+        emoji: "🪵",
+        choices: [
+          { label: "Try to dodge past it", outcomes: [
+            { weight: 60, text: "You roll under just in time! The adrenaline sharpens your reflexes.", effect: (p) => { p.crit = Math.min(0.5, p.crit + 0.10); }, good: true },
+            { weight: 40, text: "It clips you. Ouch.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.12)); }, good: false },
+          ]},
+          { label: "Wait for it to pass", outcomes: [
+            { weight: 100, text: "Patience pays off. It rolls away harmlessly.", effect: () => {}, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "The Sugar Sprite",
+        text: "A tiny glowing sprite made of crystallized sugar hovers before you. 'A gift or a game?'",
+        emoji: "✨",
+        choices: [
+          { label: "Accept the gift", outcomes: [
+            { weight: 50, text: "The sprite dissolves into healing energy!", effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.25)); }, good: true },
+            { weight: 50, text: "It was a trick! The sprite steals some of your strength.", effect: (p) => { p.atk = Math.max(5, p.atk - 2); }, good: false },
+          ]},
+          { label: "Play the game", outcomes: [
+            { weight: 40, text: "You win! The sprite grants you great power.", effect: (p) => { p.atk += 4; p.crit = Math.min(0.5, p.crit + 0.05); }, good: true },
+            { weight: 35, text: "A draw. The sprite giggles and vanishes.", effect: () => {}, good: false },
+            { weight: 25, text: "You lose. The sprite takes a potion!", effect: (p) => { p.pot = Math.max(0, p.pot - 1); }, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "Flooded Kitchen",
+        text: "Ankle-deep milk floods this room. Something large moves beneath the surface...",
+        emoji: "🥛",
+        choices: [
+          { label: "Wade through quickly", outcomes: [
+            { weight: 55, text: "You splash through safely. The milk was just milk.", effect: () => {}, good: true },
+            { weight: 45, text: "Something bites your ankle! It stings.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.10)); }, good: false },
+          ]},
+          { label: "Search underwater", outcomes: [
+            { weight: 40, text: "You find a waterproof pouch with supplies!", effect: (p) => { p.pot++; p.maxHp += 10; p.hp = Math.min(p.hp + 10, p.maxHp); }, good: true },
+            { weight: 60, text: "Just soggy cookies. What a waste of time.", effect: () => {}, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "The Eternal Oven",
+        text: "An oven that has been burning for centuries. The heat is unbearable but the cookies inside look divine...",
+        emoji: "🔥",
+        choices: [
+          { label: "Brave the heat", outcomes: [
+            { weight: 35, text: "You grab a legendary cookie! Its power flows through you.", effect: (p) => { p.atk += 6; }, good: true },
+            { weight: 65, text: "Too hot! You burn your hands badly.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.20)); }, good: false },
+          ]},
+          { label: "Use a potion to cool it", outcomes: [
+            { weight: 100, text: "The potion evaporates but cools the oven enough. You grab two cookies!", effect: (p) => { if (p.pot > 0) { p.pot--; p.atk += 4; p.maxHp += 12; p.hp = Math.min(p.hp + 12, p.maxHp); } else { p.hp = Math.max(1, p.hp - 5); } }, good: true },
+          ]},
+          { label: "Walk away", outcomes: [
+            { weight: 100, text: "Not worth the risk. You move on.", effect: () => {}, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "Crumbling Bridge",
+        text: "A narrow cookie bridge spans a dark chasm. It's cracking...",
+        emoji: "🌉",
+        choices: [
+          { label: "Sprint across", outcomes: [
+            { weight: 70, text: "You make it! Heart pounding, but alive.", effect: (p) => { p.crit = Math.min(0.5, p.crit + 0.06); }, good: true },
+            { weight: 30, text: "The bridge collapses! You barely grab the edge.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.15)); }, good: false },
+          ]},
+          { label: "Look for another way", outcomes: [
+            { weight: 50, text: "A hidden side passage! And there's loot here.", effect: (p) => { p.pot++; }, good: true },
+            { weight: 50, text: "Dead end. You have to go back and cross anyway.", effect: () => {}, good: false },
+          ]},
+        ],
+      },
+      {
+        name: "The Cookie Oracle",
+        text: "A fortune cookie the size of a boulder pulses with ancient wisdom...",
+        emoji: "🥠",
+        choices: [
+          { label: "Crack it open", outcomes: [
+            { weight: 33, text: "'Your future holds great strength.' +5 ATK!", effect: (p) => { p.atk += 5; }, good: true },
+            { weight: 33, text: "'Health is the greatest wealth.' +25 Max HP!", effect: (p) => { p.maxHp += 25; p.hp = Math.min(p.hp + 25, p.maxHp); }, good: true },
+            { weight: 34, text: "'The next two strikes shall be mighty.' Double damage x2!", effect: (p) => { p.x2 = true; p.x2Count = (p.x2Count || 0) + 2; }, good: true },
+          ]},
+          { label: "Read the outside", outcomes: [
+            { weight: 100, text: "Faded text reads: 'Block the heavy, strike the healer.' Useful advice.", effect: (p) => { p.crit = Math.min(0.5, p.crit + 0.04); }, good: true },
+          ]},
+        ],
+      },
+      {
+        name: "Grandma's Secret Stash",
+        text: "Behind a false wall, you find a grandma's hidden pantry. Jars line the shelves...",
+        emoji: "🫙",
+        choices: [
+          { label: "Open the red jar", outcomes: [
+            { weight: 50, text: "Spicy cookie salve! Your attacks burn hotter. +3 ATK.", effect: (p) => { p.atk += 3; }, good: true },
+            { weight: 50, text: "Hot sauce. Very, very hot sauce. Your mouth is on fire.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.08)); }, good: false },
+          ]},
+          { label: "Open the blue jar", outcomes: [
+            { weight: 50, text: "Cooling cream! It soothes your wounds.", effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.20)); }, good: true },
+            { weight: 50, text: "Old milk. You feel a bit queasy.", effect: (p) => { p.hp = Math.max(1, p.hp - Math.floor(p.maxHp * 0.05)); }, good: false },
+          ]},
+          { label: "Take a jar for later", outcomes: [
+            { weight: 100, text: "You pocket a jar. It'll come in handy. +1 Potion.", effect: (p) => { p.pot++; }, good: true },
+          ]},
+        ],
+      },
+    ],
+    // Door hints — intentionally ambiguous. Some overlap between types to prevent easy gaming.
+    // Player should be able to narrow down with thought, but never be 100% certain.
+    // 25 hints per type = 150 total. Intentionally ambiguous — some overlap between types.
+    doorHints: {
+      combat: [
+        "Something paces behind the door...",
+        "You hear heavy breathing...",
+        "Claw marks line the doorframe...",
+        "A low growl rumbles from within...",
+        "Shadows shift underneath the crack...",
+        "A sharp scraping noise echoes...",
+        "The air feels tense and charged...",
+        "Something slams against the other side...",
+        "Dried crumbs trail through the doorway...",
+        "You smell sweat and burnt sugar...",
+        "The door shudders rhythmically...",
+        "Teeth marks cover the handle...",
+        "A guttural hiss seeps through the gap...",
+        "The wood is splintered from the inside...",
+        "You hear bones crunching...",
+        "Something sniffs at the door crack...",
+        "A tail-like shadow sweeps beneath...",
+        "The air reeks of stale dough...",
+        "You hear claws on stone...",
+        "A wet, smacking sound from within...",
+        "The door rattles in its frame...",
+        "Footsteps circle the room beyond...",
+        "You hear a plate shatter...",
+        "An angry chittering fills the air...",
+        "The handle vibrates with impact...",
+      ],
+      elite: [
+        "The ground vibrates with each step...",
+        "An overwhelming presence radiates...",
+        "The door is reinforced with iron...",
+        "You feel a chill in your bones...",
+        "The air crackles with dark energy...",
+        "Something massive shifts beyond...",
+        "Ancient warning symbols cover the walls...",
+        "A deep, rhythmic thumping echoes...",
+        "The torches flicker violently...",
+        "Your instincts scream danger...",
+        "The stone around the frame is cracked...",
+        "Heat radiates through the iron door...",
+        "You hear chains dragging on stone...",
+        "The air itself feels heavy here...",
+        "A low horn sounds from deep within...",
+        "The door is scratched by something huge...",
+        "Red light pulses through the keyhole...",
+        "Your hands tremble involuntarily...",
+        "The hallway narrows to this door...",
+        "Scorch marks blacken the threshold...",
+        "A foul wind blows from the gap...",
+        "Something roars, muffled by stone...",
+        "The door is twice the normal height...",
+        "You feel your courage wavering...",
+        "Battle scars mark every surface...",
+      ],
+      rest: [
+        "A gentle warmth seeps through...",
+        "The air smells faintly sweet...",
+        "Quiet crackling sounds, like a fire...",
+        "A soft humming drifts from within...",
+        "The door feels pleasantly warm...",
+        "You catch the scent of cinnamon...",
+        "Faint music plays from somewhere...",
+        "The corridor feels calmer here...",
+        "A warm orange light glows underneath...",
+        "You hear something bubbling gently...",
+        "The smell of fresh-baked cookies...",
+        "A rocking chair creaks softly...",
+        "Steam curls from under the door...",
+        "You hear a kettle whistling...",
+        "The wood here is polished smooth...",
+        "A cat purrs somewhere nearby...",
+        "Dried flowers hang from the lintel...",
+        "The air is warm and humid...",
+        "You smell vanilla and brown sugar...",
+        "Soft candlelight flickers within...",
+        "A welcome mat sits at the threshold...",
+        "You hear the clink of a teacup...",
+        "The walls here are painted, not stone...",
+        "A blanket is draped over the handle...",
+        "You feel your shoulders relax...",
+      ],
+      treasure: [
+        "Something catches the light inside...",
+        "The door has ornate carvings...",
+        "A faint shimmer reflects off the walls...",
+        "The lock on this door is already broken...",
+        "You notice a sweet, rich aroma...",
+        "The hinges are gold-plated...",
+        "Dust motes sparkle in the air...",
+        "The room beyond seems untouched...",
+        "An old sign reads 'KEEP OUT'...",
+        "You hear a faint, musical chime...",
+        "The door is inlaid with gems...",
+        "A golden thread hangs from the keyhole...",
+        "The air smells of wealth and old wood...",
+        "You spot a coin near the threshold...",
+        "The frame is carved with cookie shapes...",
+        "Velvet curtains are visible through the gap...",
+        "A chest's shadow is visible underneath...",
+        "The door is heavier than the others...",
+        "You notice a wax seal on the frame...",
+        "Light refracts in rainbow patterns...",
+        "The stonework here is finer quality...",
+        "An inscription reads 'For the worthy'...",
+        "You smell aged wood and polish...",
+        "The handle is wrapped in silk...",
+        "Something glints behind the keyhole...",
+      ],
+      event: [
+        "Strange whispers echo from within...",
+        "The air shimmers oddly...",
+        "Something feels... different here...",
+        "An unfamiliar sound hums ahead...",
+        "The walls seem to pulse faintly...",
+        "A curious smell you can't place...",
+        "The door handle tingles when touched...",
+        "You feel watched, but not threatened...",
+        "Symbols glow faintly on the threshold...",
+        "The air tastes like static...",
+        "Colors seem wrong near this door...",
+        "You hear your own voice echoed back...",
+        "The door is neither hot nor cold...",
+        "A butterfly lands on the handle...",
+        "The grain of the wood spirals inward...",
+        "You smell something that triggers a memory...",
+        "The shadows don't match the light source...",
+        "A single musical note repeats...",
+        "The floor tiles change pattern here...",
+        "You feel a slight breeze from nowhere...",
+        "The door seems to breathe...",
+        "Your shadow moves independently...",
+        "Time feels slower near this door...",
+        "The keyhole shows swirling colors...",
+        "A riddle is carved into the stone...",
+      ],
+      trap: [
+        "You notice thin wires near the floor...",
+        "The stones here are unevenly placed...",
+        "A faint clicking comes from the walls...",
+        "The dust pattern looks disturbed...",
+        "Something about this door feels wrong...",
+        "You spot scratches around the handle...",
+        "The air has a sharp, metallic tang...",
+        "A barely visible groove crosses the floor...",
+        "The torchlight reveals hidden holes...",
+        "You smell oil and old mechanisms...",
+        "The handle has a suspicious seam...",
+        "One floorboard is slightly raised...",
+        "You notice a pressure plate outline...",
+        "The ceiling has a suspiciously clean patch...",
+        "Tiny dart holes line the walls...",
+        "A tripwire glints in the torchlight...",
+        "The door opens too easily...",
+        "You hear a spring under tension...",
+        "The mortar between stones is fresh...",
+        "A faint ticking emanates from within...",
+        "The handle has a needle-thin groove...",
+        "Scuff marks suggest something slides...",
+        "You notice a counterweight above...",
+        "The threshold stone wobbles slightly...",
+        "A chemical smell wafts from inside...",
+      ],
+    },
+    // Door icons (shown when scouted or after choice)
+    doorIcons: { combat: '🗡️', elite: '💀', rest: '🏕️', treasure: '💰', event: '❓', trap: '⚠️', boss: '👑' },
   },
 
   safeCracker: {

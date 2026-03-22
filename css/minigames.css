@@ -14,10 +14,10 @@
 }
 .dng-help-btn:hover { background: rgba(255,255,255,0.15); color: #f8c471; border-color: #f8c471; }
 /* ── floor pips ── */
-.dng-pips { display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; }
-.dng-pip { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; background: rgba(255,255,255,0.05); color: #666; border: 1.5px solid rgba(255,255,255,0.08); transition: all 0.3s; }
-.dng-pip.done { background: rgba(34,197,94,0.15); color: #4ade80; border-color: rgba(34,197,94,0.3); font-size: 13px; }
-.dng-pip.now { background: rgba(248,196,113,0.15); color: #f8c471; border-color: #f8c471; box-shadow: 0 0 10px rgba(248,196,113,0.3); font-weight: 700; }
+.dng-pips { display: flex; justify-content: center; gap: 3px; margin-bottom: 14px; flex-wrap: nowrap; }
+.dng-pip { width: 22px; height: 22px; min-width: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; background: rgba(255,255,255,0.05); color: #666; border: 1.5px solid rgba(255,255,255,0.08); transition: all 0.3s; flex-shrink: 1; }
+.dng-pip.done { background: rgba(255,255,255,0.06); color: #888; border-color: rgba(255,255,255,0.15); font-size: 9px; opacity: 0.7; }
+.dng-pip.now { background: rgba(248,196,113,0.15); color: #f8c471; border-color: #f8c471; box-shadow: 0 0 6px rgba(248,196,113,0.3); font-weight: 700; }
 /* ── battlefield ── */
 .dng-field { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.22); border-radius: 14px; padding: 20px 16px; margin-bottom: 12px; }
 .dng-side { flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
@@ -54,7 +54,8 @@
 .dng-bottom { display: flex; gap: 10px; align-items: stretch; }
 
 /* ── utility sidebar (left, vertical, icon-only squares) ── */
-.dng-utils { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.dng-utils { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; align-items: center; }
+.dng-util-label { font-size: 8px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.3px; text-align: center; line-height: 1.2; width: 46px; word-wrap: break-word; }
 .dng-u {
   width: 46px; height: 46px; border-radius: 12px; cursor: pointer; position: relative;
   border: 1.5px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);
@@ -88,7 +89,8 @@
 .dng-b-heavy { border-color: rgba(255,107,53,0.3); } .dng-b-heavy:hover:not(:disabled) { background: rgba(255,107,53,0.12); }
 .dng-b-blk { border-color: rgba(59,130,246,0.25); } .dng-b-blk:hover:not(:disabled) { background: rgba(59,130,246,0.12); }
 .dng-b-skip { border-color: rgba(168,162,158,0.25); color: #a8a29e; } .dng-b-skip:hover:not(:disabled) { background: rgba(168,162,158,0.12); }
-.dng-earned { font-size: 12px; color: #4ade80; font-weight: 700; margin-left: auto; }
+.dng-b-run { border-color: rgba(248,196,113,0.3); color: #f8c471; } .dng-b-run:hover:not(:disabled) { background: rgba(248,196,113,0.12); }
+.dng-earned { font-size: 12px; color: #fbbf24; font-weight: 700; margin-left: auto; }
 
 /* ── floating damage/heal numbers ── */
 .dng-float { position: relative; height: 0; width: 100%; pointer-events: none; }
@@ -123,15 +125,16 @@
 
 /* ── splash ── */
 .dng-splash { text-align: center; padding: 20px 0 10px; font-size: 16px; color: #d5c4a1; line-height: 1.5; }
-.dng-loots { display: flex; gap: 12px; width: 100%; }
-.dng-loot { flex: 1 1 0; padding: 18px 12px; border-radius: 12px; cursor: pointer; text-align: center; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.1); transition: all 0.15s; min-width: 0; }
-.dng-loot:hover { background: rgba(248,196,113,0.12); border-color: #f8c471; transform: translateY(-3px); }
-.dng-loot-ico { font-size: 32px; display: block; margin-bottom: 8px; }
-.dng-loot-txt { font-size: 14px; font-weight: 600; color: #f5e8d3; }
-.dng-loot-head { text-align: center; font-size: 16px; color: #f8c471; font-weight: 700; }
+.dng-loots { display: flex; gap: 12px; width: 100%; justify-content: center; }
+.dng-loot { flex: 1 1 0; max-width: 160px; padding: 20px 14px; border-radius: 12px; cursor: pointer; text-align: center; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.1); transition: all 0.2s ease; min-width: 0; }
+.dng-loot:hover { background: rgba(248,196,113,0.12); border-color: rgba(248,196,113,0.6); transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+.dng-loot:active { transform: translateY(-1px); }
+.dng-loot-ico { font-size: 34px; display: block; margin-bottom: 10px; }
+.dng-loot-txt { font-size: 14px; font-weight: 600; color: #f5e8d3; line-height: 1.3; }
+.dng-loot-head { text-align: center; font-size: 16px; color: #f8c471; font-weight: 700; margin-bottom: 6px; }
 
 /* ── loot area (replaces button grid when picking) ── */
-.dng-loot-area { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.dng-loot-area { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
 
 /* ── result ── */
 .dng-result { text-align: center; padding: 28px 14px 16px; }
@@ -158,6 +161,86 @@
 .dng-tip-footer b { color: #f8c471; }
 
 /* (dng-loot-area defined above with loot cards) */
+
+/* ── Path choice / exploration UI ── */
+.dng-path-choice { text-align: center; }
+.dng-path-head { font-size: 18px; font-weight: 700; color: #f8c471; margin-bottom: 10px; }
+.dng-path-status { display: flex; justify-content: center; gap: 16px; font-size: 13px; color: #c0a880; margin-bottom: 16px; flex-wrap: wrap; }
+.dng-doors { display: flex; gap: 14px; width: 100%; justify-content: center; }
+
+/* Door shape: arched top, wood gradient, panel lines */
+.dng-door {
+  flex: 1 1 0; max-width: 140px; min-width: 100px; min-height: 170px;
+  padding: 20px 12px 16px; cursor: pointer; text-align: center; position: relative;
+  border-radius: 50% 50% 6px 6px / 30% 30% 6px 6px;
+  background: linear-gradient(180deg, #5c3d2e 0%, #4a2f20 40%, #3d2518 100%);
+  border: 2px solid #6b4430;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.4);
+  transition: all 0.2s ease;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  animation: dngDoorIn 0.3s ease-out both;
+}
+/* Wood panel lines */
+.dng-door::before {
+  content: ''; position: absolute; top: 35%; left: 12%; right: 12%; bottom: 15%;
+  border: 1.5px solid rgba(255,255,255,0.06); border-radius: 4px;
+  pointer-events: none;
+}
+/* Doorknob */
+.dng-door::after {
+  content: ''; position: absolute; right: 16px; top: 52%;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #d4a04a, #8b6914);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+.dng-door:hover {
+  background: linear-gradient(180deg, #6d4a38 0%, #5a3828 40%, #4a2f20 100%);
+  border-color: #f8c471; transform: translateY(-4px);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.4), 0 0 15px rgba(248,196,113,0.15);
+}
+.dng-door:active { transform: translateY(-1px); }
+.dng-door:nth-child(2) { animation-delay: 0.08s; }
+.dng-door:nth-child(3) { animation-delay: 0.16s; }
+@keyframes dngDoorIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.dng-door-hint { font-size: 12px; color: #c0a070; font-style: italic; line-height: 1.5; z-index: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+
+/* ── Room card (rest, event, treasure, trap) ── */
+.dng-room-card { text-align: center; padding: 12px 0; animation: dngRoomIn 0.35s ease-out; }
+@keyframes dngRoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+.dng-room-emoji { font-size: 52px; margin-bottom: 8px; }
+.dng-room-title { font-size: 20px; font-weight: 700; color: #f8c471; margin-bottom: 10px; }
+.dng-room-text { font-size: 14px; color: #c0a880; line-height: 1.6; margin-bottom: 18px; max-width: 380px; margin-left: auto; margin-right: auto; }
+/* ── Event/trap choice buttons (text-based, not doors) ── */
+.dng-choices { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px; margin: 0 auto; }
+.dng-choice {
+  display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.1);
+  transition: all 0.15s ease; text-align: left;
+}
+.dng-choice:hover { background: rgba(248,196,113,0.10); border-color: rgba(248,196,113,0.5); transform: translateX(4px); }
+.dng-choice:active { transform: translateX(2px); }
+.dng-choice-arrow { font-size: 20px; flex-shrink: 0; }
+.dng-choice-label { font-size: 14px; color: #f5e8d3; font-weight: 600; }
+
+/* ── Stat diff after event outcomes ── */
+.dng-stat-diff { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 700; margin-bottom: 16px; padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+
+/* ── Boss intro splash ── */
+.dng-boss-intro .dng-room-emoji { font-size: 64px; animation: dngBossPulse 1.5s ease-in-out infinite; }
+.dng-boss-intro .dng-room-title { font-size: 24px; color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.4); }
+@keyframes dngBossPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+/* ── End screen ── */
+.dng-coin-summary { font-size: 18px; color: #fbbf24; font-weight: 700; margin: 6px 0 4px; }
+.dng-coin-rate { font-size: 11px; color: #a09080; margin-bottom: 4px; }
+.dng-r-path { font-size: 14px; letter-spacing: 2px; margin: 6px 0; color: #888; }
+.dng-r-stats { font-size: 12px; color: #a09080; margin-top: 8px; }
+.dng-tier-badge { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 12px; border-radius: 20px; margin: 4px 0 6px; }
+.dng-tier-legendary { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+.dng-tier-epic { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+.dng-tier-great { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+.dng-tier-normal { background: rgba(255,255,255,0.06); color: #888; border: 1px solid rgba(255,255,255,0.1); }
 
 /* ═══════════════════════════════════════════════════════════
    🔐  SAFE CRACKER MINIGAME
