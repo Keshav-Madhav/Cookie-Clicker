@@ -1356,11 +1356,14 @@ export class Game {
       this.grandmapocalypse.elderPledgeActive = false;
       clearTimeout(this.grandmapocalypse._pledgeTimer);
       this.grandmapocalypse.pledgeCount = 0;
+      this.grandmapocalypse.pledgeEndTime = 0;
       this.grandmapocalypse.covenantActive = false;
       this.grandmapocalypse._covenantPenaltyApplied = false;
       this.grandmapocalypse._previousStage = keepStage ? 1 : 0;
       this.grandmapocalypse._apocalypseStartTime = 0;
       this.grandmapocalypse._pledgeTimer = null;
+      this.grandmapocalypse._toggleInitialized = false;
+      this.grandmapocalypse._tutorialResearchShown = false;
       this._grandmapocalypseGrandmaBoost = 1;
       this.grandmapocalypse._applyResearchBoosts();
       this.grandmapocalypse.applyStageTheme(keepStage ? 1 : 0);
@@ -1374,6 +1377,10 @@ export class Game {
       this.wrinklerManager.wrinklers = [];
       this.wrinklerManager._stopSpawning();
       this.wrinklerManager._stopRenderLoop();
+      // Clear the wrinkler canvas so old sprites don't linger
+      if (this.wrinklerManager._ctx && this.wrinklerManager._canvas) {
+        this.wrinklerManager._ctx.clearRect(0, 0, this.wrinklerManager._canvas.width, this.wrinklerManager._canvas.height);
+      }
       if (this.grandmapocalypse && this.grandmapocalypse.stage >= 1) {
         this.wrinklerManager._startRenderLoop();
         this.wrinklerManager.onStageChange(this.grandmapocalypse.stage);
@@ -1517,6 +1524,12 @@ export class Game {
       wrathCookiesClicked: this.stats.wrathCookiesClicked || 0,
       wrathClotSurvived: this.stats.wrathClotSurvived || 0,
       elderFrenzyTriggered: this.stats.elderFrenzyTriggered || 0,
+      // Dungeon stats (persist across prestiges)
+      dungeonRuns: this.stats.dungeonRuns || 0,
+      dungeonBossesDefeated: this.stats.dungeonBossesDefeated || 0,
+      dungeonBestRooms: this.stats.dungeonBestRooms || 0,
+      // Play time (persist across prestiges)
+      totalPlayTime: this.stats.totalPlayTime || 0,
       // Per-minigame stats (persist across prestiges)
       perGame: this.stats.perGame || {},
       // Alchemy stats (persist across prestiges — too grindy to lose)
