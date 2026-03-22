@@ -174,12 +174,6 @@ export class AchievementManager {
         case "alchemyMastery":
           met = (stats.alchemyResets || 0) >= achievement.requirement;
           break;
-        case "alchemyPerfect":
-          met = (stats.alchemyPerfectSessions || 0) >= achievement.requirement;
-          break;
-        case "alchemyBestSession":
-          met = (stats.alchemyBestSession || 0) >= achievement.requirement;
-          break;
       }
 
       if (met) {

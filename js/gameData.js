@@ -844,7 +844,7 @@ export const achievements = [
 
   // Play-style milestones (moved from easter eggs)
   { id: "speed_1k", name: "Speedrunner", desc: "Reach 1,000 CPS within 5 minutes of starting", type: "speedrunner", requirement: 1000 },
-  { id: "devoted", name: "Devoted Clicker", desc: "Click 5,000 times", type: "totalClicks", requirement: 5000 },
+  { id: "devoted", name: "Devoted Clicker", desc: "Click 7,500 times", type: "totalClicks", requirement: 7500 },
   { id: "bulk_buyer", name: "Bulk Buyer", desc: "Buy 100 buildings at once — that's not shopping, that's a hostile takeover", type: "bulkBuyer", requirement: 1 },
 
   // Mini-game achievements
@@ -877,12 +877,12 @@ export const achievements = [
   // Extended cookie milestones
   { id: "bake_1q", name: "Cookie Dimension", desc: "Bake 1 quadrillion cookies", type: "totalCookies", requirement: 1000000000000000 },
   { id: "bake_100q", name: "Cookie Omniverse", desc: "Bake 100 quadrillion cookies", type: "totalCookies", requirement: 100000000000000000 },
-  { id: "bake_10qi", name: "Cookie Infinity", desc: "Bake 10 quintillion cookies", type: "totalCookies", requirement: 10000000000000000000 },
+  { id: "bake_10qi", name: "Cookie Beyond", desc: "Bake 10 quintillion cookies", type: "totalCookies", requirement: 10000000000000000000 },
   { id: "bake_1sx", name: "Cookie Eternity", desc: "Bake 1 sextillion cookies", type: "totalCookies", requirement: 1e21 },
   { id: "bake_100sx", name: "Cookie Godhood", desc: "Bake 100 sextillion cookies", type: "totalCookies", requirement: 1e23 },
   { id: "bake_1sp", name: "Cookie Nirvana", desc: "Bake 1 septillion cookies", type: "totalCookies", requirement: 1e24 },
   { id: "bake_100sp", name: "Cookie Enlightenment", desc: "Bake 100 septillion cookies", type: "totalCookies", requirement: 1e26 },
-  { id: "bake_1oc", name: "Cookie Ascension", desc: "Bake 1 octillion cookies", type: "totalCookies", requirement: 1e27 },
+  { id: "bake_1oc", name: "Cookie Zenith", desc: "Bake 1 octillion cookies", type: "totalCookies", requirement: 1e27 },
 
   // Extended CPS milestones
   { id: "cps_10b", name: "Cookie Hypernova", desc: "Reach 10 billion CPS", type: "cps", requirement: 10000000000 },

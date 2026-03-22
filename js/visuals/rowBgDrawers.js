@@ -1,0 +1,1693 @@
+import { circle, roundRect, star, miniCookie } from "./iconDrawers.js";
+
+export const rowBgDrawers = {
+
+  /* ── Cursor: Tech desk with monitors & keyboards ── */
+  Cursor(ctx, w, h) {
+    // Dark desk background
+    ctx.fillStyle = '#16213e';
+    ctx.fillRect(0, 0, w, h);
+
+    // Desk surface
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, h * 0.6, w, h * 0.4);
+
+    // Grid lines (matrix/tech feel)
+    ctx.strokeStyle = 'rgba(0,255,136,0.06)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < w; x += 20) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = 0; y < h; y += 10) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    // Monitors scattered along desk
+    const monitorCount = Math.floor(w / 80);
+    for (let i = 0; i < monitorCount; i++) {
+      const mx = 20 + i * 70 + Math.sin(i * 2.3) * 15;
+      const my = h * 0.25;
+      const mw = 30, mh = 20;
+      // Monitor body
+      roundRect(ctx, mx, my, mw, mh, 2);
+      ctx.fillStyle = '#2a2a3e';
+      ctx.fill();
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Screen
+      ctx.fillStyle = i % 3 === 0 ? '#0a2a1a' : i % 3 === 1 ? '#1a0a2a' : '#0a1a2a';
+      ctx.fillRect(mx + 2, my + 2, mw - 4, mh - 5);
+      // (text lines drawn by animation overlay)
+      // Stand
+      ctx.fillStyle = '#444';
+      ctx.fillRect(mx + mw / 2 - 2, my + mh, 4, 6);
+      ctx.fillRect(mx + mw / 2 - 6, my + mh + 5, 12, 2);
+    }
+
+    // (mouse cursors drawn by animation overlay)
+  },
+
+  /* ── Grandma: Bakery kitchen with shelves & pies ── */
+  Grandma(ctx, w, h) {
+    // Warm bakery wall
+    ctx.fillStyle = '#5a3a28';
+    ctx.fillRect(0, 0, w, h);
+
+    // Wallpaper pattern (small diamonds)
+    ctx.fillStyle = 'rgba(255,220,180,0.07)';
+    for (let y = 0; y < h; y += 12) {
+      for (let x = 0; x < w; x += 12) {
+        ctx.beginPath();
+        ctx.moveTo(x + 6, y); ctx.lineTo(x + 12, y + 6);
+        ctx.lineTo(x + 6, y + 12); ctx.lineTo(x, y + 6);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+
+    // Counter / shelf at bottom
+    ctx.fillStyle = '#7a5a42';
+    ctx.fillRect(0, h * 0.65, w, h * 0.35);
+    ctx.strokeStyle = '#6a4a32';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.65); ctx.lineTo(w, h * 0.65);
+    ctx.stroke();
+
+    // Checkered tablecloth strip
+    const clothY = h * 0.65;
+    for (let x = 0; x < w; x += 8) {
+      ctx.fillStyle = (x / 8) % 2 === 0 ? 'rgba(200,60,60,0.2)' : 'rgba(255,255,255,0.08)';
+      ctx.fillRect(x, clothY, 8, 4);
+    }
+
+    // Shelves with cookies/pies
+    const shelfCount = Math.floor(w / 60);
+    for (let i = 0; i < shelfCount; i++) {
+      const sx = 15 + i * 55;
+      // Shelf board
+      ctx.fillStyle = '#6a4a32';
+      ctx.fillRect(sx - 5, h * 0.32, 40, 3);
+      // Items on shelf
+      if (i % 3 === 0) {
+        // Pie
+        ctx.beginPath();
+        ctx.ellipse(sx + 15, h * 0.3, 10, 5, 0, Math.PI, 0);
+        ctx.fillStyle = '#c49030';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(sx + 15, h * 0.3, 10, 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#daa850';
+        ctx.fill();
+      } else if (i % 3 === 1) {
+        // Cookie jar
+        roundRect(ctx, sx + 5, h * 0.15, 14, 16, 3);
+        ctx.fillStyle = 'rgba(180,140,100,0.4)';
+        ctx.fill();
+        ctx.strokeStyle = '#8a6a4a';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        // Lid
+        ctx.fillStyle = '#8a6a4a';
+        ctx.fillRect(sx + 4, h * 0.14, 16, 3);
+      } else {
+        // Rolling pin
+        ctx.fillStyle = '#c0a080';
+        ctx.fillRect(sx + 3, h * 0.28, 24, 4);
+        circle(ctx, sx + 3, h * 0.3, 3);
+        ctx.fill();
+        circle(ctx, sx + 27, h * 0.3, 3);
+        ctx.fill();
+      }
+    }
+
+    // (steam wisps drawn by animation overlay)
+  },
+
+  /* ── Farm: Seamless field — icons sit on the ground as cookie plants ── */
+  Farm(ctx, w, h) {
+    // Sky — upper 35%
+    const sky = ctx.createLinearGradient(0, 0, 0, h * 0.35);
+    sky.addColorStop(0, '#6bb8d9');
+    sky.addColorStop(1, '#a8d8ea');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h * 0.35);
+
+    // (sun glow drawn by animation overlay)
+
+    // Distant hills at horizon
+    ctx.fillStyle = '#6a9a30';
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.35);
+    for (let x = 0; x <= w; x += 40) {
+      ctx.lineTo(x, h * 0.33 + Math.sin(x * 0.03) * h * 0.04);
+    }
+    ctx.lineTo(w, h * 0.4);
+    ctx.lineTo(0, h * 0.4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Ground — starts at ~38%, same soil color as the Farm icon
+    const ground = ctx.createLinearGradient(0, h * 0.38, 0, h);
+    ground.addColorStop(0, '#8B6914');
+    ground.addColorStop(0.4, '#7a5c10');
+    ground.addColorStop(1, '#6b4f0e');
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, h * 0.38, w, h * 0.62);
+
+    // Furrow lines across soil
+    ctx.strokeStyle = 'rgba(90,65,12,0.4)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      const fy = h * 0.52 + i * h * 0.1;
+      ctx.beginPath();
+      ctx.moveTo(0, fy);
+      ctx.lineTo(w, fy);
+      ctx.stroke();
+    }
+
+    // (grass tufts drawn by animation overlay)
+
+    // Fence at the back
+    ctx.fillStyle = 'rgba(90,60,20,0.3)';
+    for (let i = 0; i < Math.floor(w / 45) + 1; i++) {
+      ctx.fillRect(i * 45, h * 0.28, 2, h * 0.12);
+    }
+    ctx.strokeStyle = 'rgba(90,60,20,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.32);
+    ctx.lineTo(w, h * 0.32);
+    ctx.stroke();
+
+    // Tiny background cookie seedlings (very muted, so icon plants pop)
+    ctx.globalAlpha = 0.2;
+    for (let i = 0; i < Math.floor(w / 50); i++) {
+      const sx = 25 + i * 48;
+      ctx.strokeStyle = '#2d7a2d';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, h * 0.52);
+      ctx.lineTo(sx, h * 0.42);
+      ctx.stroke();
+      ctx.fillStyle = '#3a9a3a';
+      ctx.beginPath();
+      ctx.ellipse(sx + 3, h * 0.44, 3, 1.5, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  /* ── Factory: Industrial interior with conveyor belts ── */
+  Factory(ctx, w, h) {
+    // Industrial wall
+    ctx.fillStyle = '#4a3a30';
+    ctx.fillRect(0, 0, w, h);
+
+    // Brick pattern
+    ctx.strokeStyle = 'rgba(60,40,25,0.3)';
+    ctx.lineWidth = 0.5;
+    for (let y = 0; y < h; y += 8) {
+      const offset = (y / 8) % 2 === 0 ? 0 : 10;
+      for (let x = -10; x < w + 10; x += 20) {
+        ctx.strokeRect(x + offset, y, 20, 8);
+      }
+    }
+
+    // Conveyor belt at bottom
+    ctx.fillStyle = '#333';
+    ctx.fillRect(0, h * 0.7, w, h * 0.15);
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, h * 0.7); ctx.lineTo(w, h * 0.7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h * 0.85); ctx.lineTo(w, h * 0.85); ctx.stroke();
+    // (belt rollers & cookies drawn by animation overlay)
+
+    // Pipes along top
+    ctx.fillStyle = '#666';
+    ctx.fillRect(0, 2, w, 5);
+    ctx.fillStyle = '#777';
+    ctx.fillRect(0, 2, w, 2);
+    // Pipe joints
+    for (let x = 0; x < w; x += 40) {
+      ctx.fillStyle = '#888';
+      ctx.fillRect(x, 0, 8, 8);
+    }
+
+    // Saw-tooth ceiling segments
+    ctx.fillStyle = '#5a4a3a';
+    ctx.beginPath();
+    ctx.moveTo(0, 8);
+    for (let i = 0; i < Math.ceil(w / 50); i++) {
+      ctx.lineTo(i * 50 + 25, 16);
+      ctx.lineTo((i + 1) * 50, 8);
+    }
+    ctx.lineTo(w, 0);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // (gears drawn by animation overlay)
+  },
+
+  /* ── Mine: Underground cavern with ore veins ── */
+  Mine(ctx, w, h) {
+    // Rock background
+    ctx.fillStyle = '#3a2a1a';
+    ctx.fillRect(0, 0, w, h);
+
+    // Rock layers
+    ctx.strokeStyle = '#2a1a0a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      const y = 3 + i * (h / 5);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x < w; x += 30) {
+        ctx.quadraticCurveTo(x + 15, y + (i % 2 ? 4 : -4), x + 30, y);
+      }
+      ctx.stroke();
+    }
+
+    // Gold/cookie ore veins
+    ctx.fillStyle = 'rgba(255,200,80,0.2)';
+    const oreCount = Math.floor(w / 50);
+    for (let i = 0; i < oreCount; i++) {
+      const ox = 20 + i * 45 + Math.sin(i * 2.7) * 10;
+      const oy = h * 0.3 + Math.cos(i * 1.8) * h * 0.2;
+      ctx.beginPath();
+      ctx.ellipse(ox, oy, 8, 4, Math.sin(i) * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      // (sparkle drawn by animation overlay)
+      ctx.fillStyle = 'rgba(255,200,80,0.2)';
+    }
+
+    // Track rails at bottom
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, h * 0.85); ctx.lineTo(w, h * 0.85); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h * 0.92); ctx.lineTo(w, h * 0.92); ctx.stroke();
+    // Ties
+    ctx.strokeStyle = '#4a3820';
+    ctx.lineWidth = 2;
+    for (let x = 0; x < w; x += 15) {
+      ctx.beginPath(); ctx.moveTo(x, h * 0.83); ctx.lineTo(x, h * 0.94); ctx.stroke();
+    }
+
+    // Lantern housings (glow drawn by animation overlay)
+    for (let i = 0; i < Math.floor(w / 100); i++) {
+      const lx = 50 + i * 90;
+      const ly = h * 0.15;
+      ctx.fillStyle = '#997030';
+      ctx.fillRect(lx - 2, ly - 3, 4, 6);
+    }
+
+    // Cookie ores (bigger)
+    for (let i = 0; i < Math.floor(w / 80); i++) {
+      miniCookie(ctx, 35 + i * 75 + Math.sin(i * 3.1) * 15, h * 0.55 + Math.cos(i * 2) * 8, 5);
+    }
+  },
+
+  /* ── Shipment: Vast cosmic expanse — nebulas, galaxies, comets ── */
+  Shipment(ctx, w, h) {
+    // Deep space gradient — rich blues and purples
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#050520');
+    bg.addColorStop(0.3, '#0a0a30');
+    bg.addColorStop(0.7, '#08082e');
+    bg.addColorStop(1, '#050518');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Large diffuse nebula clouds (3 overlapping)
+    const nebulas = [
+      { x: w * 0.2, y: h * 0.4, r: h * 1.2, c1: 'rgba(120,40,180,0.15)', c2: 'rgba(80,20,140,0)' },
+      { x: w * 0.65, y: h * 0.3, r: h * 1.0, c1: 'rgba(40,80,200,0.12)', c2: 'rgba(20,40,100,0)' },
+      { x: w * 0.85, y: h * 0.7, r: h * 0.9, c1: 'rgba(180,60,80,0.08)', c2: 'rgba(100,20,40,0)' },
+    ];
+    nebulas.forEach(n => {
+      const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+      grad.addColorStop(0, n.c1);
+      grad.addColorStop(0.6, n.c2);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    });
+
+    // Milky Way band — diagonal haze across the scene
+    ctx.save();
+    ctx.translate(w * 0.5, h * 0.5);
+    ctx.rotate(-0.2);
+    const milky = ctx.createLinearGradient(0, -h * 0.3, 0, h * 0.3);
+    milky.addColorStop(0, 'rgba(150,140,200,0)');
+    milky.addColorStop(0.3, 'rgba(150,140,200,0.04)');
+    milky.addColorStop(0.5, 'rgba(180,170,220,0.07)');
+    milky.addColorStop(0.7, 'rgba(150,140,200,0.04)');
+    milky.addColorStop(1, 'rgba(150,140,200,0)');
+    ctx.fillStyle = milky;
+    ctx.fillRect(-w, -h * 0.3, w * 3, h * 0.6);
+    ctx.restore();
+
+    // Dense star field — many tiny stars, varied brightness and warmth
+    for (let i = 0; i < Math.floor(w / 2.5); i++) {
+      const sx = Math.sin(i * 7.13 + 0.5) * w * 0.5 + w * 0.5;
+      const sy = Math.cos(i * 4.37 + 0.3) * h * 0.5 + h * 0.5;
+      const brightness = 0.15 + Math.sin(i * 2.1) * 0.15 + Math.cos(i * 3.7) * 0.1;
+      const size = 0.3 + Math.sin(i * 5.3) * 0.3;
+      // Slightly warm or cool tint
+      const tint = i % 5;
+      if (tint === 0) ctx.fillStyle = `rgba(255,220,180,${brightness + 0.1})`;
+      else if (tint === 1) ctx.fillStyle = `rgba(180,200,255,${brightness + 0.05})`;
+      else ctx.fillStyle = `rgba(255,255,255,${brightness})`;
+      circle(ctx, sx, sy, size);
+      ctx.fill();
+    }
+
+    // Brighter feature stars with glow halos
+    const featureStars = [
+      { x: w * 0.15, y: h * 0.2, r: 1.5, hue: '200,220,255' },
+      { x: w * 0.4, y: h * 0.15, r: 1.2, hue: '255,240,200' },
+      { x: w * 0.55, y: h * 0.75, r: 1.3, hue: '255,200,200' },
+      { x: w * 0.9, y: h * 0.35, r: 1.0, hue: '200,200,255' },
+    ];
+    featureStars.forEach(fs => {
+      if (fs.x > w) return;
+      // Halo
+      const halo = ctx.createRadialGradient(fs.x, fs.y, 0, fs.x, fs.y, fs.r * 6);
+      halo.addColorStop(0, `rgba(${fs.hue},0.25)`);
+      halo.addColorStop(1, `rgba(${fs.hue},0)`);
+      circle(ctx, fs.x, fs.y, fs.r * 6);
+      ctx.fillStyle = halo;
+      ctx.fill();
+      // Star cross
+      ctx.strokeStyle = `rgba(${fs.hue},0.3)`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(fs.x - fs.r * 4, fs.y); ctx.lineTo(fs.x + fs.r * 4, fs.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fs.x, fs.y - fs.r * 4); ctx.lineTo(fs.x, fs.y + fs.r * 4); ctx.stroke();
+      // Core
+      circle(ctx, fs.x, fs.y, fs.r);
+      ctx.fillStyle = `rgba(${fs.hue},0.6)`;
+      ctx.fill();
+    });
+
+    // Planets with atmosphere glow
+    // Large gas giant
+    const p1x = w * 0.72, p1y = h * 0.42;
+    // Atmosphere glow
+    const atmo = ctx.createRadialGradient(p1x, p1y, 8, p1x, p1y, 16);
+    atmo.addColorStop(0, 'rgba(100,140,200,0)');
+    atmo.addColorStop(0.7, 'rgba(80,120,200,0.06)');
+    atmo.addColorStop(1, 'rgba(60,100,180,0)');
+    circle(ctx, p1x, p1y, 16);
+    ctx.fillStyle = atmo;
+    ctx.fill();
+    // Planet body
+    circle(ctx, p1x, p1y, 9);
+    const pGrad = ctx.createRadialGradient(p1x - 3, p1y - 3, 0, p1x, p1y, 9);
+    pGrad.addColorStop(0, '#8eaad0');
+    pGrad.addColorStop(0.5, '#5a7aa0');
+    pGrad.addColorStop(1, '#2a4a6a');
+    ctx.fillStyle = pGrad;
+    ctx.fill();
+    // Cloud bands
+    ctx.strokeStyle = 'rgba(140,170,210,0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p1x, p1y, 6, -0.3, 0.8); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p1x, p1y, 3, 0.5, 2.0); ctx.stroke();
+    // Ring system
+    ctx.strokeStyle = 'rgba(180,200,230,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(p1x, p1y, 15, 3.5, 0.25, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(160,180,210,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(p1x, p1y, 18, 4.5, 0.25, 0, Math.PI * 2); ctx.stroke();
+
+    // Small rocky planet
+    const p2x = w * 0.28, p2y = h * 0.68;
+    circle(ctx, p2x, p2y, 5);
+    const p2Grad = ctx.createRadialGradient(p2x - 1, p2y - 1, 0, p2x, p2y, 5);
+    p2Grad.addColorStop(0, '#c0a080');
+    p2Grad.addColorStop(1, '#6a5040');
+    ctx.fillStyle = p2Grad;
+    ctx.fill();
+
+    // Comet streaks
+    for (let i = 0; i < Math.max(2, Math.floor(w / 120)); i++) {
+      const cx2 = 40 + i * 110 + Math.sin(i * 3.7) * 20;
+      const cy2 = h * 0.2 + Math.cos(i * 2.3) * h * 0.15;
+      // Tail
+      const tailGrad = ctx.createLinearGradient(cx2 - 35, cy2 + 10, cx2, cy2);
+      tailGrad.addColorStop(0, 'rgba(100,180,255,0)');
+      tailGrad.addColorStop(1, 'rgba(200,230,255,0.2)');
+      ctx.strokeStyle = tailGrad;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx2 - 35, cy2 + 10);
+      ctx.quadraticCurveTo(cx2 - 15, cy2 + 5, cx2, cy2);
+      ctx.stroke();
+      // Wider dim tail
+      ctx.strokeStyle = 'rgba(100,160,255,0.06)';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(cx2 - 30, cy2 + 8);
+      ctx.quadraticCurveTo(cx2 - 12, cy2 + 4, cx2, cy2);
+      ctx.stroke();
+      // Comet head
+      const headGlow = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, 4);
+      headGlow.addColorStop(0, 'rgba(220,240,255,0.5)');
+      headGlow.addColorStop(1, 'rgba(150,200,255,0)');
+      circle(ctx, cx2, cy2, 4);
+      ctx.fillStyle = headGlow;
+      ctx.fill();
+      circle(ctx, cx2, cy2, 1.2);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fill();
+    }
+
+    // Rocket ships — small but detailed
+    for (let i = 0; i < Math.floor(w / 160); i++) {
+      const rx = 70 + i * 150;
+      const ry = h * 0.55 + Math.sin(i * 2.5) * h * 0.15;
+      ctx.save();
+      ctx.translate(rx, ry);
+      ctx.rotate(-0.4 + i * 0.2);
+      // (flame drawn by animation overlay)
+      // Body
+      ctx.fillStyle = 'rgba(220,220,230,0.35)';
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.quadraticCurveTo(3, -3, 3, 4);
+      ctx.lineTo(-3, 4);
+      ctx.quadraticCurveTo(-3, -3, 0, -6);
+      ctx.fill();
+      // Nose
+      ctx.fillStyle = 'rgba(200,80,60,0.3)';
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.quadraticCurveTo(1.5, -4, 1.5, -2);
+      ctx.lineTo(-1.5, -2);
+      ctx.quadraticCurveTo(-1.5, -4, 0, -6);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Distant galaxy spiral
+    const gx = w * 0.45, gy = h * 0.25;
+    ctx.strokeStyle = 'rgba(180,160,220,0.08)';
+    ctx.lineWidth = 1.5;
+    for (let arm = 0; arm < 2; arm++) {
+      ctx.beginPath();
+      for (let t = 0; t < 1; t += 0.02) {
+        const angle = t * Math.PI * 4 + arm * Math.PI;
+        const r = t * 12;
+        const x = gx + r * Math.cos(angle);
+        const y = gy + r * 0.5 * Math.sin(angle);
+        if (t === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    // Galaxy core glow
+    const galGlow = ctx.createRadialGradient(gx, gy, 0, gx, gy, 5);
+    galGlow.addColorStop(0, 'rgba(200,190,240,0.15)');
+    galGlow.addColorStop(1, 'rgba(150,140,200,0)');
+    circle(ctx, gx, gy, 5);
+    ctx.fillStyle = galGlow;
+    ctx.fill();
+  },
+
+  /* ── Alchemy Lab: Mystical workshop — muted bg flasks, icon pops ── */
+  'Alchemy Lab'(ctx, w, h) {
+    // Richer purple stone room
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#201038');
+    bg.addColorStop(1, '#180828');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle stone texture
+    ctx.strokeStyle = 'rgba(60,30,80,0.35)';
+    ctx.lineWidth = 0.5;
+    for (let y = 0; y < h; y += 10) {
+      const off = (y / 10) % 2 === 0 ? 0 : 12;
+      for (let x = -12; x < w + 12; x += 24) {
+        ctx.strokeRect(x + off, y, 24, 10);
+      }
+    }
+
+    // Stone floor
+    ctx.fillStyle = '#281840';
+    ctx.fillRect(0, h * 0.75, w, h * 0.25);
+
+    // Ambient magical glow from floor
+    const floorGlow = ctx.createLinearGradient(0, h * 0.75, 0, h);
+    floorGlow.addColorStop(0, 'rgba(150,60,220,0.08)');
+    floorGlow.addColorStop(1, 'rgba(100,30,180,0.02)');
+    ctx.fillStyle = floorGlow;
+    ctx.fillRect(0, h * 0.75, w, h * 0.25);
+
+    // Wooden shelves (two rows) — brighter
+    ctx.fillStyle = '#3a2818';
+    ctx.fillRect(0, h * 0.22, w, 3);
+    ctx.fillRect(0, h * 0.55, w, 3);
+
+    // Background flasks — brighter colors
+    const shapes = ['round', 'tall', 'wide', 'erlenmeyer', 'vial'];
+    const mutedColors = [
+      'rgba(100,50,140,0.4)', 'rgba(50,90,110,0.35)', 'rgba(80,40,70,0.38)',
+      'rgba(70,70,50,0.35)', 'rgba(60,35,90,0.4)', 'rgba(40,80,80,0.3)'
+    ];
+
+    // Top shelf flasks
+    for (let i = 0; i < Math.floor(w / 30); i++) {
+      const fx = 10 + i * 28 + Math.sin(i * 2.3) * 4;
+      const fy = h * 0.2;
+      const shape = shapes[i % shapes.length];
+      const col = mutedColors[i % mutedColors.length];
+      ctx.fillStyle = col;
+      ctx.strokeStyle = 'rgba(120,80,160,0.3)';
+      ctx.lineWidth = 0.8;
+      if (shape === 'round') {
+        circle(ctx, fx, fy - 5, 6); ctx.fill(); ctx.stroke();
+        ctx.fillRect(fx - 2, fy - 12, 4, 4);
+      } else if (shape === 'tall') {
+        roundRect(ctx, fx - 3, fy - 16, 6, 14, 2); ctx.fill(); ctx.stroke();
+      } else if (shape === 'wide') {
+        ctx.beginPath();
+        ctx.moveTo(fx - 3, fy - 14); ctx.lineTo(fx - 3, fy - 8);
+        ctx.lineTo(fx - 7, fy - 2); ctx.lineTo(fx + 7, fy - 2);
+        ctx.lineTo(fx + 3, fy - 8); ctx.lineTo(fx + 3, fy - 14);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else if (shape === 'erlenmeyer') {
+        ctx.beginPath();
+        ctx.moveTo(fx - 2, fy - 14); ctx.lineTo(fx - 2, fy - 8);
+        ctx.lineTo(fx - 6, fy - 1); ctx.lineTo(fx + 6, fy - 1);
+        ctx.lineTo(fx + 2, fy - 8); ctx.lineTo(fx + 2, fy - 14);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.fillRect(fx - 1.5, fy - 14, 3, 12); ctx.strokeRect(fx - 1.5, fy - 14, 3, 12);
+      }
+    }
+
+    // Bottom shelf — different set
+    for (let i = 0; i < Math.floor(w / 35); i++) {
+      const fx = 15 + i * 32 + Math.cos(i * 1.7) * 5;
+      const fy = h * 0.53;
+      const shape = shapes[(i + 2) % shapes.length];
+      const col = mutedColors[(i + 3) % mutedColors.length];
+      ctx.fillStyle = col;
+      ctx.strokeStyle = 'rgba(120,80,160,0.25)';
+      ctx.lineWidth = 0.6;
+      if (shape === 'round') {
+        circle(ctx, fx, fy - 5, 7); ctx.fill(); ctx.stroke();
+      } else if (shape === 'tall') {
+        roundRect(ctx, fx - 3, fy - 18, 6, 16, 2); ctx.fill(); ctx.stroke();
+      } else if (shape === 'wide') {
+        ctx.beginPath();
+        ctx.moveTo(fx - 3, fy - 14); ctx.lineTo(fx - 8, fy - 2);
+        ctx.lineTo(fx + 8, fy - 2); ctx.lineTo(fx + 3, fy - 14);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        roundRect(ctx, fx - 4, fy - 12, 8, 10, 3); ctx.fill(); ctx.stroke();
+      }
+    }
+
+    // (sparkle motes, floor circles, and drips drawn by animation overlay)
+  },
+
+  /* ── Portal: Eldritch void with rifts, floating islands, tentacles ── */
+  Portal(ctx, w, h) {
+    // Richer void gradient
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#0c0028');
+    bg.addColorStop(0.5, '#180048');
+    bg.addColorStop(1, '#0c0028');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Dimensional rift crack shapes (glow/pulse drawn by animation overlay)
+    ctx.strokeStyle = 'rgba(220,100,255,0.12)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < Math.floor(w / 60); i++) {
+      const rx = i * 55 + 20;
+      ctx.beginPath();
+      ctx.moveTo(rx, 0);
+      ctx.lineTo(rx + 8, h * 0.2);
+      ctx.lineTo(rx + 3, h * 0.35);
+      ctx.lineTo(rx + 12, h * 0.5);
+      ctx.stroke();
+    }
+
+    // Floating stone platforms — brighter
+    for (let i = 0; i < Math.floor(w / 90); i++) {
+      const px = 30 + i * 85;
+      const py = h * 0.7 + Math.sin(i * 2.3) * h * 0.08;
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(px + 2, py + 8, 18, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#241840';
+      ctx.beginPath();
+      ctx.ellipse(px, py, 18, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(180,100,240,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(200,120,255,0.2)';
+      ctx.fillRect(px - 6, py - 1, 3, 2);
+      ctx.fillRect(px + 3, py - 1, 3, 2);
+    }
+
+    // Larger portal vortexes — brighter
+    const portalCount = Math.max(2, Math.floor(w / 90));
+    for (let p = 0; p < portalCount; p++) {
+      const px = 45 + p * 85;
+      const py = h * 0.38 + Math.sin(p * 1.7) * h * 0.12;
+      const pr = 12 + (p % 3) * 4;
+
+      const glow = ctx.createRadialGradient(px, py, 0, px, py, pr * 2.5);
+      glow.addColorStop(0, 'rgba(180,80,240,0.3)');
+      glow.addColorStop(0.5, 'rgba(120,30,200,0.12)');
+      glow.addColorStop(1, 'rgba(80,0,150,0)');
+      circle(ctx, px, py, pr * 2.5);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(200,120,255,0.4)';
+      ctx.lineWidth = 2;
+      circle(ctx, px, py, pr);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(170,80,230,0.25)';
+      ctx.lineWidth = 1;
+      circle(ctx, px, py, pr * 1.2);
+      ctx.stroke();
+
+      const inner = ctx.createRadialGradient(px, py, 0, px, py, pr * 0.7);
+      inner.addColorStop(0, '#100028');
+      inner.addColorStop(1, '#280058');
+      circle(ctx, px, py, pr * 0.7);
+      ctx.fillStyle = inner;
+      ctx.fill();
+
+      // (spiral arms, tendrils, particles, tentacles drawn by animation overlay)
+    }
+  },
+
+  /* ── Time Machine: Clockwork gears & timepieces ── */
+  'Time Machine'(ctx, w, h) {
+    // Richer steampunk bronze/blue gradient
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#141e30');
+    bg.addColorStop(0.5, '#243348');
+    bg.addColorStop(1, '#141e30');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Time-stream lines — brighter
+    for (let i = 0; i < Math.floor(w / 12); i++) {
+      const ty = Math.sin(i * 3.7) * h * 0.5 + h * 0.5;
+      const len = 20 + Math.sin(i * 2.1) * 15;
+      const tx = Math.sin(i * 7.3) * w * 0.5 + w * 0.5;
+      ctx.strokeStyle = `rgba(120,200,255,${0.06 + Math.sin(i) * 0.04})`;
+      ctx.lineWidth = 0.5 + Math.sin(i * 1.5) * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx + len, ty);
+      ctx.stroke();
+    }
+
+    // Large interlocking gears — brighter alphas
+    const gearSets = [
+      { x: w * 0.15, y: h * 0.35, r: 22, t: 12, alpha: 0.22 },
+      { x: w * 0.15 + 28, y: h * 0.55, r: 16, t: 10, alpha: 0.18 },
+      { x: w * 0.5, y: h * 0.6, r: 26, t: 14, alpha: 0.15 },
+      { x: w * 0.5 + 18, y: h * 0.3, r: 14, t: 8, alpha: 0.18 },
+      { x: w * 0.8, y: h * 0.4, r: 20, t: 11, alpha: 0.2 },
+      { x: w * 0.8 - 10, y: h * 0.65, r: 12, t: 8, alpha: 0.16 },
+    ];
+    // Only render gears that fit
+    gearSets.forEach(g => {
+      if (g.x > w + 30) return;
+      ctx.strokeStyle = `rgba(184,160,96,${g.alpha})`;
+      ctx.lineWidth = 1.5;
+      // Outer ring
+      circle(ctx, g.x, g.y, g.r);
+      ctx.stroke();
+      // Inner ring
+      circle(ctx, g.x, g.y, g.r * 0.6);
+      ctx.stroke();
+      // Hub
+      circle(ctx, g.x, g.y, g.r * 0.15);
+      ctx.fillStyle = `rgba(184,160,96,${g.alpha * 0.8})`;
+      ctx.fill();
+      // (teeth & spokes drawn by animation overlay)
+    });
+
+    // Clock faces scattered at different sizes
+    const clocks = [
+      { x: w * 0.3, y: h * 0.2, r: 10 },
+      { x: w * 0.6, y: h * 0.15, r: 8 },
+      { x: w * 0.85, y: h * 0.75, r: 12 },
+      { x: w * 0.1, y: h * 0.7, r: 7 },
+    ];
+    clocks.forEach(c => {
+      if (c.x > w + 15) return;
+      circle(ctx, c.x, c.y, c.r);
+      ctx.fillStyle = 'rgba(232,184,76,0.18)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(200,175,110,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      for (let d = 0; d < 12; d++) {
+        const angle = (d * Math.PI * 2) / 12 - Math.PI / 2;
+        circle(ctx, c.x + c.r * 0.75 * Math.cos(angle), c.y + c.r * 0.75 * Math.sin(angle), 0.8);
+        ctx.fillStyle = 'rgba(200,175,110,0.35)';
+        ctx.fill();
+      }
+      // (clock hands drawn by animation overlay)
+    });
+
+    // (vortex ripples & lightning drawn by animation overlay)
+
+    // Floating Roman numeral hints — brighter
+    ctx.fillStyle = 'rgba(200,175,110,0.12)';
+    ctx.font = '14px serif';
+    ctx.textAlign = 'center';
+    const numerals = ['XII', 'III', 'VI', 'IX'];
+    for (let i = 0; i < Math.min(numerals.length, Math.floor(w / 80)); i++) {
+      ctx.fillText(numerals[i], 40 + i * 75, h * 0.9);
+    }
+  },
+
+  /* ── Antimatter Condenser: Particle collider tunnel ── */
+  'Antimatter Condenser'(ctx, w, h) {
+    // Richer dark base with subtle gradient
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#0c0020');
+    bg.addColorStop(0.5, '#10002a');
+    bg.addColorStop(1, '#0c0020');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Collider ring/tube — brighter
+    ctx.strokeStyle = 'rgba(0,220,255,0.2)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, h * 2, w * 0.45, h * 1.5, 0, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+    // Inner glow on ring
+    ctx.strokeStyle = 'rgba(0,180,255,0.08)';
+    ctx.lineWidth = 16;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, h * 2, w * 0.45, h * 1.5, 0, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+
+    // (energy beams drawn by animation overlay)
+
+    // Atom orbital rings (static structure)
+    for (let i = 0; i < Math.floor(w / 90); i++) {
+      const ax = 45 + i * 85;
+      const ay = h * 0.4 + Math.sin(i * 2.5) * h * 0.15;
+      ctx.strokeStyle = 'rgba(0,220,255,0.28)';
+      ctx.lineWidth = 0.8;
+      for (let r = 0; r < 3; r++) {
+        ctx.save();
+        ctx.translate(ax, ay);
+        ctx.rotate((r * Math.PI) / 3);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 4, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Nucleus glow
+      const nGlow = ctx.createRadialGradient(ax, ay, 0, ax, ay, 5);
+      nGlow.addColorStop(0, 'rgba(255,80,120,0.4)');
+      nGlow.addColorStop(1, 'rgba(255,60,100,0)');
+      circle(ctx, ax, ay, 5);
+      ctx.fillStyle = nGlow;
+      ctx.fill();
+      circle(ctx, ax, ay, 2);
+      ctx.fillStyle = 'rgba(255,80,130,0.5)';
+      ctx.fill();
+    }
+
+    // (particle trails & sparks drawn by animation overlay)
+  },
+
+  /* ── Prism: Luminous crystal gallery — light refracting everywhere ── */
+  Prism(ctx, w, h) {
+    // Deep indigo-violet base with warmth
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#100820');
+    bg.addColorStop(0.3, '#14102a');
+    bg.addColorStop(0.7, '#121028');
+    bg.addColorStop(1, '#0c0818');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Ambient prismatic wash — diagonal rainbow gradient overlay
+    const wash = ctx.createLinearGradient(0, 0, w, h);
+    wash.addColorStop(0, 'rgba(255,50,50,0.03)');
+    wash.addColorStop(0.17, 'rgba(255,140,30,0.03)');
+    wash.addColorStop(0.33, 'rgba(255,240,60,0.025)');
+    wash.addColorStop(0.5, 'rgba(50,210,80,0.025)');
+    wash.addColorStop(0.67, 'rgba(50,120,255,0.03)');
+    wash.addColorStop(0.83, 'rgba(140,50,255,0.03)');
+    wash.addColorStop(1, 'rgba(255,50,100,0.02)');
+    ctx.fillStyle = wash;
+    ctx.fillRect(0, 0, w, h);
+
+    // Floor — polished dark surface with reflections
+    const floor = ctx.createLinearGradient(0, h * 0.72, 0, h);
+    floor.addColorStop(0, '#18143a');
+    floor.addColorStop(1, '#0e0a22');
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, h * 0.72, w, h * 0.28);
+
+    // (rainbow beams drawn by animation overlay)
+
+    // Crystal cluster formations rising from floor
+    const crystalCount = Math.floor(w / 40);
+    for (let i = 0; i < crystalCount; i++) {
+      const cx2 = 18 + i * 38 + Math.sin(i * 2.7) * 8;
+      const baseY = h * 0.74 + Math.sin(i * 1.3) * h * 0.03;
+      const hue = (i / crystalCount) * 360;
+
+      // Each cluster has 2-3 crystals
+      const clusterSize = 2 + (i % 2);
+      for (let c = 0; c < clusterSize; c++) {
+        const offX = (c - 1) * (3 + c);
+        const cH = 18 + Math.sin(i * 3.1 + c * 1.5) * 14 + c * 3;
+        const cW = 3 + (c % 2) * 2;
+        const cHue = hue + c * 25;
+
+        // Crystal body
+        ctx.beginPath();
+        ctx.moveTo(cx2 + offX - cW, baseY);
+        ctx.lineTo(cx2 + offX - cW * 0.5, baseY - cH);
+        ctx.lineTo(cx2 + offX, baseY - cH - 4);
+        ctx.lineTo(cx2 + offX + cW * 0.5, baseY - cH);
+        ctx.lineTo(cx2 + offX + cW, baseY);
+        ctx.closePath();
+
+        // Filled with translucent hue
+        ctx.fillStyle = `hsla(${cHue}, 75%, 60%, 0.2)`;
+        ctx.fill();
+        ctx.strokeStyle = `hsla(${cHue}, 65%, 75%, 0.4)`;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+
+        // Inner highlight facet
+        ctx.beginPath();
+        ctx.moveTo(cx2 + offX - cW * 0.2, baseY);
+        ctx.lineTo(cx2 + offX, baseY - cH * 0.8);
+        ctx.lineTo(cx2 + offX + cW * 0.3, baseY);
+        ctx.closePath();
+        ctx.fillStyle = `hsla(${cHue}, 55%, 85%, 0.1)`;
+        ctx.fill();
+      }
+
+      // (tip glow drawn by animation overlay)
+    }
+
+    // (light pools, sparkles drawn by animation overlay)
+
+    // Ceiling stalactite crystals (hanging down)
+    for (let i = 0; i < Math.floor(w / 70); i++) {
+      const cx2 = 35 + i * 65;
+      const cH = 10 + Math.sin(i * 2.5) * 6;
+      const hue = (i * 80 + 180) % 360;
+      ctx.beginPath();
+      ctx.moveTo(cx2 - 3, 0);
+      ctx.lineTo(cx2, cH);
+      ctx.lineTo(cx2 + 3, 0);
+      ctx.closePath();
+      ctx.fillStyle = `hsla(${hue}, 60%, 60%, 0.15)`;
+      ctx.fill();
+      ctx.strokeStyle = `hsla(${hue}, 50%, 70%, 0.25)`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+  },
+
+  /* ── Chancemaker: Mystical lucky garden with golden magic ── */
+  Chancemaker(ctx, w, h) {
+    // Rich emerald gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0a1e10');
+    bg.addColorStop(0.6, '#143020');
+    bg.addColorStop(1, '#0c2818');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Magical golden ambient glow from above
+    const topGlow = ctx.createRadialGradient(w * 0.5, -h * 0.2, 0, w * 0.5, -h * 0.2, h);
+    topGlow.addColorStop(0, 'rgba(255,215,0,0.06)');
+    topGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = topGlow;
+    ctx.fillRect(0, 0, w, h);
+
+    // Lush grass texture at bottom
+    ctx.fillStyle = '#0f2a14';
+    ctx.fillRect(0, h * 0.7, w, h * 0.3);
+
+    // Grass blades — brighter, denser
+    for (let x = 0; x < w; x += 4) {
+      const bh = 6 + Math.sin(x * 0.3) * 4;
+      ctx.strokeStyle = `rgba(50,200,70,${0.15 + Math.sin(x * 0.7) * 0.05})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, h);
+      ctx.quadraticCurveTo(x + 2, h - bh, x + 1, h - bh - 4);
+      ctx.stroke();
+    }
+
+    // Top hats — scattered lucky gentleman hats
+    for (let i = 0; i < Math.floor(w / 90); i++) {
+      const hx = 30 + i * 85 + Math.sin(i * 2.7) * 10;
+      const hy = h * 0.42 + Math.cos(i * 1.9) * h * 0.08;
+      const hs = 12 + (i % 3) * 2;
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate((Math.sin(i * 1.3) * 0.15));
+      // Hat brim
+      ctx.fillStyle = `rgba(15,12,8,${0.6 + (i % 2) * 0.08})`;
+      ctx.beginPath();
+      ctx.ellipse(0, hs * 0.4, hs * 1.2, hs * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Hat body
+      roundRect(ctx, -hs * 0.55, -hs * 0.7, hs * 1.1, hs * 1.1, 1);
+      const hatGrad = ctx.createLinearGradient(-hs * 0.55, -hs * 0.7, -hs * 0.55, hs * 0.4);
+      hatGrad.addColorStop(0, `rgba(25,20,15,${0.55 + (i % 2) * 0.08})`);
+      hatGrad.addColorStop(1, `rgba(10,8,5,${0.65 + (i % 2) * 0.08})`);
+      ctx.fillStyle = hatGrad;
+      ctx.fill();
+      // Hat outline
+      ctx.strokeStyle = `rgba(60,50,30,${0.35 + (i % 2) * 0.05})`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Hat band — golden, brighter
+      ctx.fillStyle = 'rgba(220,185,50,0.5)';
+      ctx.fillRect(-hs * 0.55, hs * 0.12, hs * 1.1, hs * 0.2);
+      // Band buckle
+      ctx.strokeStyle = 'rgba(255,220,80,0.45)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-hs * 0.1, hs * 0.12, hs * 0.2, hs * 0.2);
+      // Hat shine highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(-hs * 0.35, -hs * 0.6, hs * 0.25, hs * 0.7);
+      ctx.restore();
+    }
+
+    // Beer mugs — celebratory lucky tankards
+    for (let i = 0; i < Math.floor(w / 110); i++) {
+      const mx = 65 + i * 105 + Math.sin(i * 3.5) * 8;
+      const my = h * 0.62 + Math.cos(i * 2.3) * h * 0.06;
+      const ms = 7 + (i % 2) * 2;
+      ctx.save();
+      ctx.translate(mx, my);
+      // Mug body
+      roundRect(ctx, -ms * 0.5, -ms * 0.5, ms, ms * 1.1, 1.5);
+      const mugGrad = ctx.createLinearGradient(-ms * 0.5, 0, ms * 0.5, 0);
+      mugGrad.addColorStop(0, 'rgba(180,140,50,0.22)');
+      mugGrad.addColorStop(0.5, 'rgba(220,180,70,0.28)');
+      mugGrad.addColorStop(1, 'rgba(160,120,40,0.2)');
+      ctx.fillStyle = mugGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(200,160,50,0.3)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Handle
+      ctx.strokeStyle = 'rgba(200,160,50,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(ms * 0.65, 0, ms * 0.35, -1.2, 1.2);
+      ctx.stroke();
+      // Foam on top
+      ctx.fillStyle = 'rgba(255,250,220,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(0, -ms * 0.5, ms * 0.55, ms * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Lucky boots — scattered wee boots
+    for (let i = 0; i < Math.floor(w / 130); i++) {
+      const bx = 45 + i * 125;
+      const by = h * 0.8 + Math.cos(i * 1.7) * h * 0.04;
+      const bs = 7 + (i % 2);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(i % 2 === 0 ? 1 : -1, 1);
+      // Boot shaft
+      ctx.fillStyle = `rgba(120,70,30,${0.25 + (i % 2) * 0.05})`;
+      ctx.beginPath();
+      ctx.moveTo(-bs * 0.3, -bs * 0.8);
+      ctx.lineTo(bs * 0.15, -bs * 0.8);
+      ctx.lineTo(bs * 0.15, bs * 0.15);
+      ctx.lineTo(-bs * 0.3, bs * 0.15);
+      ctx.closePath();
+      ctx.fill();
+      // Boot toe
+      ctx.beginPath();
+      ctx.moveTo(-bs * 0.3, bs * 0.15);
+      ctx.lineTo(bs * 0.6, bs * 0.15);
+      ctx.quadraticCurveTo(bs * 0.7, bs * 0.4, bs * 0.5, bs * 0.45);
+      ctx.lineTo(-bs * 0.3, bs * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      // Boot top cuff
+      ctx.fillStyle = 'rgba(160,100,40,0.2)';
+      ctx.fillRect(-bs * 0.35, -bs * 0.85, bs * 0.55, bs * 0.15);
+      // Buckle
+      ctx.strokeStyle = 'rgba(220,190,60,0.3)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(-bs * 0.1, -bs * 0.2, bs * 0.22, bs * 0.2);
+      ctx.restore();
+    }
+
+    // Golden coins scattered
+    for (let i = 0; i < Math.floor(w / 45); i++) {
+      const coinX = 20 + i * 42 + Math.sin(i * 3.1) * 8;
+      const coinY = h * 0.78 + Math.cos(i * 2.1) * h * 0.06;
+      circle(ctx, coinX, coinY, 4);
+      const coinGrad = ctx.createRadialGradient(coinX - 1, coinY - 1, 0, coinX, coinY, 4);
+      coinGrad.addColorStop(0, 'rgba(255,230,80,0.35)');
+      coinGrad.addColorStop(1, 'rgba(200,160,30,0.2)');
+      ctx.fillStyle = coinGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(180,140,20,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Horseshoes — brighter, golden
+    for (let i = 0; i < Math.floor(w / 100); i++) {
+      const hx = 50 + i * 95;
+      const hy = h * 0.18;
+      ctx.strokeStyle = 'rgba(220,200,80,0.3)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 8, 0.3, Math.PI - 0.3);
+      ctx.stroke();
+      // Horseshoe dots
+      ctx.fillStyle = 'rgba(220,200,80,0.25)';
+      circle(ctx, hx - 6, hy + 5, 1.5);
+      ctx.fill();
+      circle(ctx, hx + 6, hy + 5, 1.5);
+      ctx.fill();
+    }
+
+    // Lucky dice
+    for (let i = 0; i < Math.floor(w / 120); i++) {
+      const dx = 80 + i * 110;
+      const dy = h * 0.32;
+      roundRect(ctx, dx - 5, dy - 5, 10, 10, 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Pips
+      ctx.fillStyle = 'rgba(255,215,0,0.3)';
+      circle(ctx, dx - 2, dy - 2, 1);
+      ctx.fill();
+      circle(ctx, dx + 2, dy + 2, 1);
+      ctx.fill();
+      circle(ctx, dx, dy, 1);
+      ctx.fill();
+    }
+
+    // (sparkle stars & particle trail drawn by animation overlay)
+  },
+
+  /* ── Fractal Engine: Mathematical fractal cosmos ── */
+  'Fractal Engine'(ctx, w, h) {
+    // Deep dark background with warm mathematical tones
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#140e06');
+    bg.addColorStop(0.3, '#1e1408');
+    bg.addColorStop(0.7, '#1a1010');
+    bg.addColorStop(1, '#140e06');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Graph paper grid — fading recursive subdivisions
+    for (let level = 0; level < 4; level++) {
+      const size = 60 / Math.pow(2, level);
+      const alpha = 0.08 - level * 0.018;
+      if (alpha <= 0) break;
+      ctx.strokeStyle = `rgba(200,160,60,${alpha})`;
+      ctx.lineWidth = level === 0 ? 0.8 : 0.4;
+      for (let x = 0; x < w; x += size) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += size) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+    }
+
+    // Sierpinski triangles
+    function drawSierpinski(x, y, size, depth) {
+      if (depth <= 0 || size < 3) {
+        ctx.beginPath();
+        ctx.moveTo(x, y - size * 0.5);
+        ctx.lineTo(x - size * 0.5, y + size * 0.4);
+        ctx.lineTo(x + size * 0.5, y + size * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255,200,60,${0.06 + depth * 0.02})`;
+        ctx.fill();
+        return;
+      }
+      const half = size * 0.5;
+      drawSierpinski(x, y - half * 0.3, half, depth - 1);
+      drawSierpinski(x - half * 0.5, y + half * 0.3, half, depth - 1);
+      drawSierpinski(x + half * 0.5, y + half * 0.3, half, depth - 1);
+    }
+    const sierpCount = Math.max(1, Math.floor(w / 190));
+    for (let i = 0; i < sierpCount; i++) {
+      drawSierpinski(80 + i * 180, h * 0.38, 32, 3);
+    }
+
+    // (golden spiral drawn by animation overlay)
+
+    // Koch snowflake segments along the bottom
+    function drawKochLine(x1, y1, x2, y2, depth) {
+      if (depth <= 0) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        return;
+      }
+      const dx = x2 - x1, dy = y2 - y1;
+      const ax = x1 + dx / 3, ay = y1 + dy / 3;
+      const bx = x1 + dx * 2 / 3, by = y1 + dy * 2 / 3;
+      const px = (ax + bx) / 2 - (by - ay) * 0.866;
+      const py = (ay + by) / 2 + (bx - ax) * 0.866;
+      drawKochLine(x1, y1, ax, ay, depth - 1);
+      drawKochLine(ax, ay, px, py, depth - 1);
+      drawKochLine(px, py, bx, by, depth - 1);
+      drawKochLine(bx, by, x2, y2, depth - 1);
+    }
+    ctx.strokeStyle = 'rgba(200,170,80,0.12)';
+    ctx.lineWidth = 0.6;
+    const kochSegW = Math.min(160, w / 2.5);
+    const kochCount = Math.max(1, Math.floor(w / kochSegW));
+    for (let i = 0; i < kochCount; i++) {
+      drawKochLine(i * kochSegW + 10, h * 0.82, (i + 1) * kochSegW - 10, h * 0.82, 3);
+    }
+
+    // (recursive squares, math symbols, golden dust drawn by animation overlay)
+  },
+
+  /* ── Idleverse: Parallel universe void with floating portals & dimension rifts ── */
+  Idleverse(ctx, w, h) {
+    // Rich purple void — brighter base so purple is unmistakable
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#120028');
+    bg.addColorStop(0.25, '#1e0050');
+    bg.addColorStop(0.5, '#250060');
+    bg.addColorStop(0.75, '#1a0048');
+    bg.addColorStop(1, '#0e0020');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Vivid purple nebula clouds (multiverse haze)
+    const nebulas = [
+      { x: w * 0.2, y: h * 0.3, r: h * 1.2, c1: 'rgba(139,92,246,0.14)', c2: 'rgba(80,20,140,0)' },
+      { x: w * 0.7, y: h * 0.6, r: h * 1.0, c1: 'rgba(168,85,247,0.10)', c2: 'rgba(100,40,180,0)' },
+      { x: w * 0.5, y: h * 0.2, r: h * 0.8, c1: 'rgba(192,132,252,0.08)', c2: 'rgba(120,60,200,0)' },
+    ];
+    nebulas.forEach(n => {
+      const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+      grad.addColorStop(0, n.c1);
+      grad.addColorStop(0.6, n.c2);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    });
+
+    // Dense multiverse star field (deterministic) — brighter purple-tinted stars
+    for (let i = 0; i < Math.floor(w / 3); i++) {
+      const sx = Math.sin(i * 7.13 + 0.5) * w * 0.5 + w * 0.5;
+      const sy = Math.cos(i * 4.37 + 0.3) * h * 0.5 + h * 0.5;
+      const brightness = 0.15 + Math.sin(i * 2.1) * 0.15 + Math.cos(i * 3.7) * 0.1;
+      const size = 0.3 + Math.sin(i * 5.3) * 0.3;
+      const tint = i % 4;
+      if (tint === 0) ctx.fillStyle = `rgba(192,132,252,${brightness + 0.12})`;
+      else if (tint === 1) ctx.fillStyle = `rgba(168,85,247,${brightness + 0.05})`;
+      else if (tint === 2) ctx.fillStyle = `rgba(233,213,255,${brightness + 0.08})`;
+      else ctx.fillStyle = `rgba(200,160,255,${brightness})`;
+      circle(ctx, sx, sy, size);
+      ctx.fill();
+    }
+
+    // Portal circles at intervals — larger, more detailed
+    const portalCount = Math.max(2, Math.floor(w / 130));
+    for (let i = 0; i < portalCount; i++) {
+      const px = (i + 0.5) * (w / portalCount);
+      const py = h * 0.45 + Math.sin(i * 1.7) * h * 0.15;
+      const pr = 20 + Math.sin(i * 2.3) * 6;
+
+      // Deep portal void
+      circle(ctx, px, py, pr * 0.5);
+      const voidGrad = ctx.createRadialGradient(px, py, 0, px, py, pr * 0.5);
+      voidGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+      voidGrad.addColorStop(1, 'rgba(139,92,246,0.05)');
+      ctx.fillStyle = voidGrad;
+      ctx.fill();
+
+      // Portal glow halo — brighter
+      const glow = ctx.createRadialGradient(px, py, pr * 0.2, px, py, pr * 2);
+      glow.addColorStop(0, 'rgba(168,85,247,0.28)');
+      glow.addColorStop(0.4, 'rgba(139,92,246,0.12)');
+      glow.addColorStop(1, 'rgba(139,92,246,0)');
+      circle(ctx, px, py, pr * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Outer portal ring — vivid purple
+      ctx.strokeStyle = 'rgba(168,85,247,0.5)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr, pr * 0.7, i * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Middle ring
+      ctx.strokeStyle = 'rgba(192,132,252,0.35)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr * 0.7, pr * 0.5, -i * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner ring
+      ctx.strokeStyle = 'rgba(233,213,255,0.25)';
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.ellipse(px, py, pr * 0.4, pr * 0.28, i * 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Mini cookie inside portal
+      ctx.globalAlpha = 0.45;
+      miniCookie(ctx, px, py, 4);
+      ctx.globalAlpha = 1;
+    }
+
+    // Dimension rift lines (vertical tears)
+    for (let i = 0; i < Math.floor(w / 200); i++) {
+      const rx = 80 + i * 190 + Math.sin(i * 3.1) * 20;
+      ctx.strokeStyle = 'rgba(192,132,252,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(rx, h * 0.1);
+      for (let y = h * 0.1; y < h * 0.9; y += 8) {
+        ctx.lineTo(rx + Math.sin(y * 0.08 + i) * 6, y);
+      }
+      ctx.stroke();
+      // Rift glow
+      ctx.strokeStyle = 'rgba(192,132,252,0.03)';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(rx, h * 0.1);
+      for (let y = h * 0.1; y < h * 0.9; y += 8) {
+        ctx.lineTo(rx + Math.sin(y * 0.08 + i) * 6, y);
+      }
+      ctx.stroke();
+    }
+
+    // Floating alternate-universe cookie fragments
+    for (let i = 0; i < Math.floor(w / 65); i++) {
+      const fx = 30 + i * 60 + Math.sin(i * 2.7) * 15;
+      const fy = h * 0.2 + Math.cos(i * 1.9) * h * 0.25;
+      ctx.globalAlpha = 0.15 + Math.sin(i * 1.3) * 0.05;
+      miniCookie(ctx, fx, fy, 2.5 + Math.sin(i * 0.7) * 1);
+      ctx.globalAlpha = 1;
+    }
+
+    // Wispy connection tendrils between portals
+    ctx.lineWidth = 0.7;
+    for (let i = 0; i < portalCount - 1; i++) {
+      const x1 = (i + 0.5) * (w / portalCount);
+      const x2 = (i + 1.5) * (w / portalCount);
+      // Main tendril
+      ctx.strokeStyle = 'rgba(139,92,246,0.08)';
+      ctx.beginPath();
+      ctx.moveTo(x1, h * 0.5);
+      ctx.bezierCurveTo(x1 + 40, h * 0.25, x2 - 40, h * 0.65, x2, h * 0.5);
+      ctx.stroke();
+      // Secondary tendril
+      ctx.strokeStyle = 'rgba(168,85,247,0.04)';
+      ctx.beginPath();
+      ctx.moveTo(x1, h * 0.48);
+      ctx.bezierCurveTo(x1 + 30, h * 0.6, x2 - 30, h * 0.35, x2, h * 0.52);
+      ctx.stroke();
+    }
+
+    // Small dimensional clocks (time distortion motif)
+    for (let i = 0; i < Math.floor(w / 150); i++) {
+      const cx2 = 65 + i * 140;
+      const cy2 = h * 0.78 + Math.cos(i * 2.3) * h * 0.06;
+      // Clock face
+      ctx.strokeStyle = 'rgba(192,132,252,0.15)';
+      ctx.lineWidth = 0.8;
+      circle(ctx, cx2, cy2, 6);
+      ctx.stroke();
+      // Clock hands
+      ctx.strokeStyle = 'rgba(233,213,255,0.2)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(cx2, cy2);
+      ctx.lineTo(cx2 + 3 * Math.cos(i * 2.1), cy2 - 3 * Math.sin(i * 2.1));
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx2, cy2);
+      ctx.lineTo(cx2 + 4 * Math.cos(i * 0.8), cy2 - 4 * Math.sin(i * 0.8));
+      ctx.stroke();
+    }
+
+    // (portal rotation, sparks, cookie rifts drawn by animation overlay)
+  },
+
+  /* ── Cortex Baker: Random neural web — scattered nodes with organic connections + EEG waves ── */
+  'Cortex Baker'(ctx, w, h) {
+    // Clean dark red background
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#1a0406');
+    bg.addColorStop(0.5, '#220608');
+    bg.addColorStop(1, '#160305');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle warm center glow
+    const glow = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.6);
+    glow.addColorStop(0, 'rgba(220,38,38,0.06)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+
+    // ── Neural web: pseudo-random scattered nodes ──
+    // Use deterministic sin/cos hashing for repeatable but random-looking positions
+    const nodeCount = Math.max(18, Math.floor((w * h) / 1800));
+    const nodes = [];
+    for (let i = 0; i < nodeCount; i++) {
+      // Pseudo-random positions using irrational-ratio hashing
+      const px = ((i * 0.618033988 + 0.1) % 1) * w * 0.9 + w * 0.05;
+      const py = ((i * 0.414213562 + 0.2) % 1) * h * 0.75 + h * 0.05;
+      // Extra scatter via sin/cos
+      const jx = Math.sin(i * 13.7 + 3.1) * w * 0.04;
+      const jy = Math.cos(i * 9.3 + 7.7) * h * 0.06;
+      nodes.push({
+        x: Math.max(4, Math.min(w - 4, px + jx)),
+        y: Math.max(4, Math.min(h - 4, py + jy)),
+        r: 2 + Math.sin(i * 2.71) * 1.2,
+      });
+    }
+
+    // ── Web connections: connect each node to its 2-3 nearest neighbours ──
+    // Precompute distances, then draw connections to closest nodes
+    const maxConnDist = Math.hypot(w, h) * 0.28; // max connection range
+    const drawn = new Set();
+    ctx.lineWidth = 0.7;
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      // Find distances to all other nodes
+      const dists = [];
+      for (let j = 0; j < nodes.length; j++) {
+        if (j === i) continue;
+        const d = Math.hypot(nodes[j].x - n.x, nodes[j].y - n.y);
+        if (d < maxConnDist) dists.push({ j, d });
+      }
+      dists.sort((a, b) => a.d - b.d);
+      // Connect to 2-3 nearest (skip some for randomness)
+      const connectCount = 2 + (Math.sin(i * 5.7) > 0.3 ? 1 : 0);
+      for (let k = 0; k < Math.min(connectCount, dists.length); k++) {
+        const { j, d } = dists[k];
+        const key = Math.min(i, j) + ',' + Math.max(i, j);
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        const alpha = Math.max(0.03, 0.11 * (1 - d / maxConnDist));
+        ctx.strokeStyle = `rgba(248,113,113,${alpha.toFixed(3)})`;
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        // Organic curve — offset midpoint perpendicular to the line
+        const mx = (n.x + nodes[j].x) / 2;
+        const my = (n.y + nodes[j].y) / 2;
+        const dx = nodes[j].x - n.x, dy = nodes[j].y - n.y;
+        const perpX = -dy, perpY = dx;
+        const len = Math.hypot(perpX, perpY) || 1;
+        const curveAmount = Math.sin(i * 3.7 + j * 2.3) * 12;
+        ctx.quadraticCurveTo(
+          mx + (perpX / len) * curveAmount,
+          my + (perpY / len) * curveAmount,
+          nodes[j].x, nodes[j].y
+        );
+        ctx.stroke();
+      }
+    }
+
+    // ── Neuron nodes: small dots at each intersection ──
+    nodes.forEach((n) => {
+      // Soft red glow halo
+      const nodeGlow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 3);
+      nodeGlow.addColorStop(0, 'rgba(252,165,165,0.12)');
+      nodeGlow.addColorStop(1, 'rgba(252,165,165,0)');
+      circle(ctx, n.x, n.y, n.r * 3);
+      ctx.fillStyle = nodeGlow;
+      ctx.fill();
+
+      // Node dot
+      circle(ctx, n.x, n.y, n.r);
+      ctx.fillStyle = 'rgba(248,113,113,0.3)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(252,165,165,0.2)';
+      ctx.lineWidth = 0.4;
+      ctx.stroke();
+    });
+
+    // ── Scattered mini cookies at a few nodes (subtle) ──
+    for (let i = 0; i < nodes.length; i += Math.max(5, Math.floor(nodes.length / 5))) {
+      const n = nodes[i];
+      ctx.globalAlpha = 0.15;
+      miniCookie(ctx, n.x, n.y, 3);
+      ctx.globalAlpha = 1;
+    }
+
+    // ── EEG waves along the bottom (3 static waves) ──
+    const waveConfigs = [
+      { y: h * 0.84, freq1: 0.05, amp1: 5, freq2: 0.13, amp2: 2.5, color: 'rgba(252,165,165,0.10)', lw: 0.9 },
+      { y: h * 0.89, freq1: 0.07, amp1: 4, freq2: 0.11, amp2: 2, color: 'rgba(248,113,113,0.08)', lw: 0.7 },
+      { y: h * 0.94, freq1: 0.04, amp1: 3, freq2: 0.16, amp2: 1.5, color: 'rgba(220,38,38,0.06)', lw: 0.6 },
+    ];
+    waveConfigs.forEach((wc, wi) => {
+      ctx.strokeStyle = wc.color;
+      ctx.lineWidth = wc.lw;
+      ctx.beginPath();
+      ctx.moveTo(0, wc.y);
+      for (let x = 0; x < w; x += 2) {
+        ctx.lineTo(x, wc.y + Math.sin(x * wc.freq1 + wi * 2) * wc.amp1 + Math.sin(x * wc.freq2 + wi) * wc.amp2);
+      }
+      ctx.stroke();
+    });
+
+    // (pulse animations & animated EEG drawn by animation overlay)
+  },
+
+  /* ── Reality Bender: Dark midnight void with golden reality fractures ── */
+  'Reality Bender'(ctx, w, h) {
+    // Deep midnight blue-black — cold, void-like, no purple
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#020610');
+    bg.addColorStop(0.2, '#040a18');
+    bg.addColorStop(0.4, '#060e20');
+    bg.addColorStop(0.6, '#050c1c');
+    bg.addColorStop(0.8, '#030814');
+    bg.addColorStop(1, '#020610');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Golden reality-glow hazes — warm amber light leaking through cracks
+    const dims = [
+      { x: w * 0.3, y: h * 0.35, r: h * 0.9, c1: 'rgba(251,191,36,0.05)', c2: 'rgba(180,120,0,0)' },
+      { x: w * 0.7, y: h * 0.55, r: h * 0.8, c1: 'rgba(245,158,11,0.04)', c2: 'rgba(160,100,0,0)' },
+      { x: w * 0.5, y: h * 0.5, r: h * 0.5, c1: 'rgba(253,224,71,0.03)', c2: 'rgba(200,160,0,0)' },
+    ];
+    dims.forEach(d => {
+      const grad = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+      grad.addColorStop(0, d.c1);
+      grad.addColorStop(0.7, d.c2);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    });
+
+    // Warped spacetime grid — silver/white tint, no cyan or purple
+    const gridSize = 35;
+    ctx.strokeStyle = 'rgba(180,200,220,0.04)';
+    ctx.lineWidth = 0.4;
+    for (let x = 0; x < w; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      for (let y = 0; y < h; y += 4) {
+        const warp = Math.sin((x + y) * 0.01) * 8 + Math.sin(x * 0.008) * 4;
+        ctx.lineTo(x + warp, y);
+      }
+      ctx.stroke();
+    }
+    for (let y = 0; y < h; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x < w; x += 4) {
+        const warp = Math.cos((x + y) * 0.01) * 8 + Math.cos(y * 0.008) * 4;
+        ctx.lineTo(x, y + warp);
+      }
+      ctx.stroke();
+    }
+
+    // Stars — cool white and pale gold
+    for (let i = 0; i < Math.floor(w / 5); i++) {
+      const sx = Math.sin(i * 6.13 + 1.5) * w * 0.5 + w * 0.5;
+      const sy = Math.cos(i * 3.37 + 2.3) * h * 0.5 + h * 0.5;
+      const brightness = 0.06 + Math.sin(i * 2.1) * 0.05;
+      const size = 0.2 + Math.sin(i * 4.3) * 0.2;
+      const tint = i % 3;
+      if (tint === 0) ctx.fillStyle = `rgba(255,255,255,${brightness})`;
+      else if (tint === 1) ctx.fillStyle = `rgba(253,224,71,${brightness * 0.7})`;
+      else ctx.fillStyle = `rgba(200,210,230,${brightness})`;
+      circle(ctx, sx, sy, size);
+      ctx.fill();
+    }
+
+    // Tesseract cubes — midnight blue with golden edges
+    const cubeCount = Math.max(2, Math.floor(w / 160));
+    for (let i = 0; i < cubeCount; i++) {
+      const tx = (i + 0.5) * (w / cubeCount);
+      const ty = h * 0.48 + Math.sin(i * 2.1) * h * 0.1;
+      const ts = 18 + Math.sin(i * 1.4) * 4;
+      const off = ts * 0.5;
+
+      // Tesseract golden glow halo
+      const tGlow = ctx.createRadialGradient(tx, ty, 0, tx, ty, ts * 1.8);
+      tGlow.addColorStop(0, 'rgba(251,191,36,0.06)');
+      tGlow.addColorStop(0.5, 'rgba(245,158,11,0.02)');
+      tGlow.addColorStop(1, 'rgba(0,0,0,0)');
+      circle(ctx, tx, ty, ts * 1.8);
+      ctx.fillStyle = tGlow;
+      ctx.fill();
+
+      // Front face — dark blue with golden outline
+      ctx.fillStyle = 'rgba(20,40,80,0.12)';
+      ctx.strokeStyle = 'rgba(251,191,36,0.2)';
+      ctx.lineWidth = 0.8;
+      ctx.fillRect(tx - ts / 2, ty - ts / 2, ts, ts);
+      ctx.strokeRect(tx - ts / 2, ty - ts / 2, ts, ts);
+
+      // Back face (offset) — slightly lighter
+      ctx.fillStyle = 'rgba(30,50,90,0.08)';
+      ctx.strokeStyle = 'rgba(245,158,11,0.14)';
+      ctx.lineWidth = 0.6;
+      ctx.fillRect(tx - ts / 2 + off, ty - ts / 2 - off, ts, ts);
+      ctx.strokeRect(tx - ts / 2 + off, ty - ts / 2 - off, ts, ts);
+
+      // Connecting edges — golden
+      ctx.strokeStyle = 'rgba(253,224,71,0.12)';
+      ctx.lineWidth = 0.5;
+      [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
+        ctx.beginPath();
+        ctx.moveTo(tx + dx * ts / 2, ty + dy * ts / 2);
+        ctx.lineTo(tx + dx * ts / 2 + off, ty + dy * ts / 2 - off);
+        ctx.stroke();
+      });
+
+      // Center cookie
+      ctx.globalAlpha = 0.4;
+      miniCookie(ctx, tx + off / 3, ty - off / 3, 3.5);
+      ctx.globalAlpha = 1;
+    }
+
+    // Reality fracture cracks — bright golden lightning
+    ctx.lineWidth = 1;
+    for (let i = 0; i < Math.max(3, Math.floor(w / 130)); i++) {
+      let sx = Math.sin(i * 4.7 + 2.1) * w * 0.4 + w * 0.5;
+      let sy = 0;
+      // Crack glow (wider, softer)
+      ctx.strokeStyle = 'rgba(251,191,36,0.06)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      while (sy < h) {
+        sx += (Math.sin(sy * 0.3 + i * 7) * 15);
+        sy += 8 + Math.abs(Math.cos(sy * 0.2 + i * 5)) * 12;
+        ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      // Crack core line
+      sx = Math.sin(i * 4.7 + 2.1) * w * 0.4 + w * 0.5;
+      sy = 0;
+      ctx.strokeStyle = 'rgba(251,191,36,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      while (sy < h) {
+        sx += (Math.sin(sy * 0.3 + i * 7) * 15);
+        sy += 8 + Math.abs(Math.cos(sy * 0.2 + i * 5)) * 12;
+        ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+    }
+
+    // Scattered physics equation fragments — gold tinted
+    const eqns = ['E=mc²', 'ℏ', 'Ψ', 'Δx·Δp≥ℏ/2', 'c', 'G', '∇²'];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '8px monospace';
+    for (let i = 0; i < Math.floor(w / 120); i++) {
+      const ex = 50 + i * 110 + Math.sin(i * 2.3) * 20;
+      const ey = h * 0.15 + Math.cos(i * 1.8) * h * 0.08;
+      ctx.fillStyle = 'rgba(253,224,71,0.06)';
+      ctx.fillText(eqns[i % eqns.length], ex, ey);
+    }
+
+    // Floating warped cookie fragments — with golden distortion rings
+    for (let i = 0; i < Math.floor(w / 80); i++) {
+      const fx = 40 + i * 75 + Math.sin(i * 2.1) * 12;
+      const fy = h * 0.72 + Math.cos(i * 1.5) * h * 0.08;
+      ctx.globalAlpha = 0.18;
+      miniCookie(ctx, fx, fy, 3);
+      ctx.globalAlpha = 1;
+      // Golden distortion ripple
+      ctx.strokeStyle = 'rgba(251,191,36,0.07)';
+      ctx.lineWidth = 0.5;
+      circle(ctx, fx, fy, 6 + Math.sin(i * 1.7) * 2);
+      ctx.stroke();
+    }
+
+    // Small golden wormhole-like structures
+    for (let i = 0; i < Math.floor(w / 200); i++) {
+      const wx = 90 + i * 190 + Math.sin(i * 3.1) * 20;
+      const wy = h * 0.25 + Math.cos(i * 2.1) * h * 0.1;
+      const wr = 10 + Math.sin(i * 1.7) * 3;
+      // Wormhole ring — golden
+      ctx.strokeStyle = 'rgba(251,191,36,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(wx, wy, wr, wr * 0.4, Math.sin(i) * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      // Inner void
+      circle(ctx, wx, wy, wr * 0.3);
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fill();
+    }
+
+    // (warping grid, fractures, dimensional flickers drawn by animation overlay)
+  },
+};
+
+export function drawDefaultRowBg(ctx, w, h) {
+  ctx.fillStyle = '#2c1a0c';
+  ctx.fillRect(0, 0, w, h);
+  // Simple cookie pattern
+  for (let i = 0; i < Math.floor(w / 50); i++) {
+    miniCookie(ctx, 25 + i * 45, h * 0.5, 5);
+  }
+}
