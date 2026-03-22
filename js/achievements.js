@@ -174,6 +174,17 @@ export class AchievementManager {
         case "alchemyMastery":
           met = (stats.alchemyResets || 0) >= achievement.requirement;
           break;
+        case "cookiesInBank":
+          met = this.game.cookies.gte(achievement.requirement);
+          break;
+        case "totalPlayTime": {
+          const totalSec = (stats.totalPlayTime || 0) + (Date.now() - stats.startTime) / 1000;
+          met = totalSec >= achievement.requirement;
+          break;
+        }
+        case "allAchievements":
+          met = this._unlockedCount >= this.achievements.length - 1;
+          break;
       }
 
       if (met) {

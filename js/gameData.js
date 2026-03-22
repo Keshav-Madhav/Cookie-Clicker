@@ -807,14 +807,12 @@ export const achievements = [
   { id: "cps_1m", name: "Cookie Tsunami", desc: "Reach 1 million CPS", type: "cps", requirement: 1000000 },
   { id: "cps_1b", name: "Cookie Singularity", desc: "Reach 1 billion CPS", type: "cps", requirement: 1000000000 },
 
-  // Click milestones (scaled down - max 15k is achievable without autoclicker)
+  // Click milestones (max 7.5k is achievable without autoclicker)
   { id: "click_100", name: "Casual Clicker", desc: "Click 100 times", type: "totalClicks", requirement: 100 },
   { id: "click_500", name: "Dedicated Clicker", desc: "Click 500 times", type: "totalClicks", requirement: 500 },
   { id: "click_1k", name: "Click Enthusiast", desc: "Click 1,000 times", type: "totalClicks", requirement: 1000 },
   { id: "click_2k", name: "Click Master", desc: "Click 2,000 times", type: "totalClicks", requirement: 2000 },
   { id: "click_5k", name: "Click Legend", desc: "Click 5,000 times", type: "totalClicks", requirement: 5000 },
-  { id: "click_10k", name: "Click God", desc: "Click 10,000 times", type: "totalClicks", requirement: 10000 },
-  { id: "click_15k", name: "Click Transcendent", desc: "Click 15,000 times", type: "totalClicks", requirement: 15000 },
 
   // Building milestones
   { id: "buildings_10", name: "Small Business", desc: "Own 10 buildings", type: "totalBuildings", requirement: 10 },
@@ -838,9 +836,55 @@ export const achievements = [
   { id: "upgrades_25", name: "Serial Upgrader", desc: "Purchase 25 upgrades", type: "totalUpgradesPurchased", requirement: 25 },
   { id: "upgrades_50", name: "Upgrade Addict", desc: "Purchase 50 upgrades", type: "totalUpgradesPurchased", requirement: 50 },
 
-  // Building-specific milestones (moved from easter eggs)
-  { id: "cursor_100", name: "Cursor Army", desc: "Own 100 Cursors clicking in perfect unison", type: "buildingCount", requirement: 100, buildingIndex: 0 },
-  { id: "grandma_50", name: "Grandma Battalion", desc: "Own 50 Grandmas — that's not a bakery, that's an army", type: "buildingCount", requirement: 50, buildingIndex: 1 },
+  // Building-specific milestones (2 tiers each, scaled by building rarity)
+  // Cursor (index 0) — cheapest, easiest to stack
+  { id: "cursor_300", name: "Cursor Army", desc: "Own 300 Cursors clicking in perfect unison", type: "buildingCount", requirement: 300, buildingIndex: 0 },
+  { id: "cursor_600", name: "Cursor Singularity", desc: "Own 600 Cursors — the clicking has become a frequency", type: "buildingCount", requirement: 600, buildingIndex: 0 },
+  // Grandma (index 1)
+  { id: "grandma_250", name: "Grandma Battalion", desc: "Own 250 Grandmas — that's not a bakery, that's an army", type: "buildingCount", requirement: 250, buildingIndex: 1 },
+  { id: "grandma_500", name: "Grandma Invasion", desc: "Own 500 Grandmas — they've taken over everything", type: "buildingCount", requirement: 500, buildingIndex: 1 },
+  // Farm (index 2)
+  { id: "farm_200", name: "Cookie Plantation", desc: "Own 200 Farms — the fields stretch beyond the horizon", type: "buildingCount", requirement: 200, buildingIndex: 2 },
+  { id: "farm_400", name: "Cookie Biome", desc: "Own 400 Farms — an entire continent of cookie crops", type: "buildingCount", requirement: 400, buildingIndex: 2 },
+  // Factory (index 3)
+  { id: "factory_200", name: "Industrial Revolution", desc: "Own 200 Factories — the smoke never clears", type: "buildingCount", requirement: 200, buildingIndex: 3 },
+  { id: "factory_400", name: "Factory Planet", desc: "Own 400 Factories — the entire world is an assembly line", type: "buildingCount", requirement: 400, buildingIndex: 3 },
+  // Mine (index 4)
+  { id: "mine_150", name: "Deep Digger", desc: "Own 150 Mines — you've reached the cookie mantle", type: "buildingCount", requirement: 150, buildingIndex: 4 },
+  { id: "mine_350", name: "Core Tapper", desc: "Own 350 Mines — you're mining the planet's cookie core", type: "buildingCount", requirement: 350, buildingIndex: 4 },
+  // Shipment (index 5)
+  { id: "shipment_150", name: "Trade Fleet", desc: "Own 150 Shipments — the skies are full of cookie freighters", type: "buildingCount", requirement: 150, buildingIndex: 5 },
+  { id: "shipment_300", name: "Galactic Convoy", desc: "Own 300 Shipments — cookies flow between star systems", type: "buildingCount", requirement: 300, buildingIndex: 5 },
+  // Alchemy Lab (index 6)
+  { id: "alchemy_100", name: "Lead to Gold", desc: "Own 100 Alchemy Labs — transmutation is routine now", type: "buildingCount", requirement: 100, buildingIndex: 6 },
+  { id: "alchemy_250", name: "Philosopher's Oven", desc: "Own 250 Alchemy Labs — matter itself tastes like cookies", type: "buildingCount", requirement: 250, buildingIndex: 6 },
+  // Portal (index 7)
+  { id: "portal_100", name: "Dimensional Rift", desc: "Own 100 Portals — reality is mostly holes now", type: "buildingCount", requirement: 100, buildingIndex: 7 },
+  { id: "portal_250", name: "Void Architect", desc: "Own 250 Portals — the boundaries between worlds have dissolved", type: "buildingCount", requirement: 250, buildingIndex: 7 },
+  // Time Machine (index 8)
+  { id: "timemachine_100", name: "Temporal Paradox", desc: "Own 100 Time Machines — yesterday's cookies arrive before you bake them", type: "buildingCount", requirement: 100, buildingIndex: 8 },
+  { id: "timemachine_200", name: "Chrono Collapse", desc: "Own 200 Time Machines — past, present, and future are all cookies", type: "buildingCount", requirement: 200, buildingIndex: 8 },
+  // Antimatter Condenser (index 9)
+  { id: "antimatter_75", name: "Particle Baker", desc: "Own 75 Antimatter Condensers — baking at the subatomic level", type: "buildingCount", requirement: 75, buildingIndex: 9 },
+  { id: "antimatter_175", name: "Annihilation Engine", desc: "Own 175 Antimatter Condensers — each collision yields a cookie", type: "buildingCount", requirement: 175, buildingIndex: 9 },
+  // Prism (index 10)
+  { id: "prism_75", name: "Light Bender", desc: "Own 75 Prisms — the light is delicious", type: "buildingCount", requirement: 75, buildingIndex: 10 },
+  { id: "prism_150", name: "Spectrum Devourer", desc: "Own 150 Prisms — every wavelength tastes different", type: "buildingCount", requirement: 150, buildingIndex: 10 },
+  // Chancemaker (index 11)
+  { id: "chancemaker_50", name: "Probability Bender", desc: "Own 50 Chancemakers — luck is no longer random", type: "buildingCount", requirement: 50, buildingIndex: 11 },
+  { id: "chancemaker_125", name: "Fate Rewriter", desc: "Own 125 Chancemakers — every coin lands on cookies", type: "buildingCount", requirement: 125, buildingIndex: 11 },
+  // Fractal Engine (index 12)
+  { id: "fractal_50", name: "Infinite Recursion", desc: "Own 50 Fractal Engines — cookies within cookies within cookies", type: "buildingCount", requirement: 50, buildingIndex: 12 },
+  { id: "fractal_100", name: "Mandelbaker", desc: "Own 100 Fractal Engines — the pattern never ends", type: "buildingCount", requirement: 100, buildingIndex: 12 },
+  // Idleverse (index 13)
+  { id: "idleverse_35", name: "Multiverse Manager", desc: "Own 35 Idleverses — somewhere, another you is also clicking", type: "buildingCount", requirement: 35, buildingIndex: 13 },
+  { id: "idleverse_75", name: "Omniversal Overlord", desc: "Own 75 Idleverses — every possible reality bakes for you", type: "buildingCount", requirement: 75, buildingIndex: 13 },
+  // Cortex Baker (index 14)
+  { id: "cortex_25", name: "Hivemind", desc: "Own 25 Cortex Bakers — the brains bake as one", type: "buildingCount", requirement: 25, buildingIndex: 14 },
+  { id: "cortex_60", name: "Cosmic Consciousness", desc: "Own 60 Cortex Bakers — thought itself is made of cookies", type: "buildingCount", requirement: 60, buildingIndex: 14 },
+  // Reality Bender (index 15)
+  { id: "reality_10", name: "Reality Warper", desc: "Own 10 Reality Benders — the laws of physics are suggestions", type: "buildingCount", requirement: 10, buildingIndex: 15 },
+  { id: "reality_30", name: "Reality Architect", desc: "Own 30 Reality Benders — you've rewritten existence around cookies", type: "buildingCount", requirement: 30, buildingIndex: 15 },
 
   // Play-style milestones (moved from easter eggs)
   { id: "speed_1k", name: "Speedrunner", desc: "Reach 1,000 CPS within 5 minutes of starting", type: "speedrunner", requirement: 1000 },
@@ -854,11 +898,8 @@ export const achievements = [
   { id: "mini_200", name: "Arcade Addict", desc: "Play 200 mini-games total", type: "miniGamesPlayed", requirement: 200 },
   { id: "mini_cutter_perfect", name: "Surgical Precision", desc: "Score 95%+ accuracy in Cookie Cutter", type: "cutterPerfect", requirement: 95 },
   { id: "mini_kitchen_pro", name: "Kitchen Pro", desc: "Get 5 perfect cookies in a row in Grandma's Kitchen", type: "kitchenPerfectStreak", requirement: 5 },
-  { id: "mini_kitchen_master", name: "Grandma's Apprentice", desc: "Get 10 perfect cookies in a row in Grandma's Kitchen", type: "kitchenPerfectStreak", requirement: 10 },
   { id: "mini_jackpot", name: "Jackpot!", desc: "Hit triple match in the slot machine", type: "slotsJackpot", requirement: 1 },
-  { id: "mini_jackpot5", name: "High Roller", desc: "Hit 5 jackpots in the slot machine", type: "slotsJackpot", requirement: 5 },
-  { id: "mini_dungeon_5", name: "Dungeon Delver", desc: "Clear floor 5 in the Cookie Dungeon", type: "dungeonBestRooms", requirement: 5 },
-  { id: "mini_dungeon_10", name: "Dungeon Master", desc: "Clear floor 10 in the Cookie Dungeon", type: "dungeonBestRooms", requirement: 10 },
+  { id: "mini_dungeon_5", name: "Dungeon Delver", desc: "Clear all 5 floors of the Cookie Dungeon", type: "dungeonBestRooms", requirement: 5 },
   { id: "mini_dungeon_boss5", name: "Boss Hunter", desc: "Defeat 5 dungeon bosses", type: "dungeonBossesDefeated", requirement: 5 },
   { id: "mini_wordle_win", name: "Word Baker", desc: "Win a game of Cookie Wordle", type: "gameWins", requirement: 1, gameName: "cookieWordle" },
   { id: "mini_launch_win", name: "Cookie Astronaut", desc: "Win a game of Cookie Launch", type: "gameWins", requirement: 1, gameName: "cookieLaunch" },
@@ -871,37 +912,44 @@ export const achievements = [
   { id: "mini_alchemy_discover", name: "Apprentice Alchemist", desc: "Discover 25 alchemy recipes", type: "alchemyDiscovered", requirement: 25 },
   { id: "mini_alchemy_mastery", name: "Philosopher's Cookie", desc: "Complete all alchemy recipes and reset", type: "alchemyMastery", requirement: 1 },
   { id: "golden_touch", name: "Golden Touch", desc: "Click 100 golden cookies", type: "goldenCookiesClicked", requirement: 100 },
-  { id: "reality_owner", name: "Reality Bender", desc: "Own at least 1 Reality Bender", type: "buildingCount", requirement: 1, buildingIndex: 15 },
   { id: "fresh_start", name: "Fresh Start Addiction", desc: "Prestige 3 times in one play session", type: "sessionPrestiges", requirement: 3 },
 
-  // Extended cookie milestones
-  { id: "bake_1q", name: "Cookie Dimension", desc: "Bake 1 quadrillion cookies", type: "totalCookies", requirement: 1000000000000000 },
-  { id: "bake_100q", name: "Cookie Omniverse", desc: "Bake 100 quadrillion cookies", type: "totalCookies", requirement: 100000000000000000 },
-  { id: "bake_10qi", name: "Cookie Beyond", desc: "Bake 10 quintillion cookies", type: "totalCookies", requirement: 10000000000000000000 },
+  // Extended cookie milestones (up to decillion)
+  { id: "bake_1q", name: "Cookie Dimension", desc: "Bake 1 quadrillion cookies", type: "totalCookies", requirement: 1e15 },
+  { id: "bake_100q", name: "Cookie Omniverse", desc: "Bake 100 quadrillion cookies", type: "totalCookies", requirement: 1e17 },
+  { id: "bake_10qi", name: "Cookie Beyond", desc: "Bake 10 quintillion cookies", type: "totalCookies", requirement: 1e19 },
   { id: "bake_1sx", name: "Cookie Eternity", desc: "Bake 1 sextillion cookies", type: "totalCookies", requirement: 1e21 },
   { id: "bake_100sx", name: "Cookie Godhood", desc: "Bake 100 sextillion cookies", type: "totalCookies", requirement: 1e23 },
   { id: "bake_1sp", name: "Cookie Nirvana", desc: "Bake 1 septillion cookies", type: "totalCookies", requirement: 1e24 },
   { id: "bake_100sp", name: "Cookie Enlightenment", desc: "Bake 100 septillion cookies", type: "totalCookies", requirement: 1e26 },
   { id: "bake_1oc", name: "Cookie Zenith", desc: "Bake 1 octillion cookies", type: "totalCookies", requirement: 1e27 },
+  { id: "bake_100oc", name: "Cookie Horizon", desc: "Bake 100 octillion cookies", type: "totalCookies", requirement: 1e29 },
+  { id: "bake_1no", name: "Cookie Oblivion", desc: "Bake 1 nonillion cookies", type: "totalCookies", requirement: 1e30 },
+  { id: "bake_100no", name: "Cookie Singularity", desc: "Bake 100 nonillion cookies", type: "totalCookies", requirement: 1e32 },
+  { id: "bake_1de", name: "Cookie Absolute", desc: "Bake 1 decillion cookies", type: "totalCookies", requirement: 1e33 },
 
-  // Extended CPS milestones
-  { id: "cps_10b", name: "Cookie Hypernova", desc: "Reach 10 billion CPS", type: "cps", requirement: 10000000000 },
-  { id: "cps_1t", name: "Cookie Transcendence", desc: "Reach 1 trillion CPS", type: "cps", requirement: 1000000000000 },
-  { id: "cps_100t", name: "Cookie Apotheosis", desc: "Reach 100 trillion CPS", type: "cps", requirement: 100000000000000 },
-  { id: "cps_1q", name: "Cookie Ascension", desc: "Reach 1 quadrillion CPS", type: "cps", requirement: 1000000000000000 },
+  // Extended CPS milestones (up to octillion)
+  { id: "cps_10b", name: "Cookie Hypernova", desc: "Reach 10 billion CPS", type: "cps", requirement: 1e10 },
+  { id: "cps_1t", name: "Cookie Transcendence", desc: "Reach 1 trillion CPS", type: "cps", requirement: 1e12 },
+  { id: "cps_100t", name: "Cookie Apotheosis", desc: "Reach 100 trillion CPS", type: "cps", requirement: 1e14 },
+  { id: "cps_1q", name: "Cookie Ascension", desc: "Reach 1 quadrillion CPS", type: "cps", requirement: 1e15 },
   { id: "cps_100q", name: "Cookie Omniscience", desc: "Reach 100 quadrillion CPS", type: "cps", requirement: 1e17 },
   { id: "cps_1qi", name: "Cookie Divinity", desc: "Reach 1 quintillion CPS", type: "cps", requirement: 1e18 },
   { id: "cps_1sx", name: "Cookie Infinity", desc: "Reach 1 sextillion CPS", type: "cps", requirement: 1e21 },
+  { id: "cps_100sx", name: "Cookie Perpetuity", desc: "Reach 100 sextillion CPS", type: "cps", requirement: 1e23 },
+  { id: "cps_1sp", name: "Cookie Totality", desc: "Reach 1 septillion CPS", type: "cps", requirement: 1e24 },
+  { id: "cps_100sp", name: "Cookie Absolutism", desc: "Reach 100 septillion CPS", type: "cps", requirement: 1e26 },
+  { id: "cps_1oc", name: "Cookie Endgame", desc: "Reach 1 octillion CPS", type: "cps", requirement: 1e27 },
 
-  // Prestige milestones
+  // Prestige milestones (max 10 prestiges)
   { id: "prestige_10", name: "Reborn", desc: "Prestige 10 times", type: "timesPrestiged", requirement: 10 },
-  { id: "prestige_25", name: "Transcendent", desc: "Prestige 25 times", type: "timesPrestiged", requirement: 25 },
-  { id: "prestige_50", name: "Eternal Baker", desc: "Prestige 50 times", type: "timesPrestiged", requirement: 50 },
-  { id: "prestige_100", name: "Cookie God", desc: "Prestige 100 times", type: "timesPrestiged", requirement: 100 },
   { id: "hc_5000", name: "Chip Hoarder", desc: "Earn 5,000 heavenly chips", type: "heavenlyChips", requirement: 5000 },
   { id: "hc_25000", name: "Chip Magnate", desc: "Earn 25,000 heavenly chips", type: "heavenlyChips", requirement: 25000 },
   { id: "hc_100000", name: "Chip Emperor", desc: "Earn 100,000 heavenly chips", type: "heavenlyChips", requirement: 100000 },
   { id: "hc_500000", name: "Chip Deity", desc: "Earn 500,000 heavenly chips", type: "heavenlyChips", requirement: 500000 },
+  { id: "hc_1m", name: "Chip Overlord", desc: "Earn 1 million heavenly chips", type: "heavenlyChips", requirement: 1000000 },
+  { id: "hc_5m", name: "Chip Sovereign", desc: "Earn 5 million heavenly chips", type: "heavenlyChips", requirement: 5000000 },
+  { id: "hc_20m", name: "Chip Transcendent", desc: "Earn 20 million heavenly chips", type: "heavenlyChips", requirement: 20000000 },
 
   // Heavenly shop achievements
   { id: "heavenly_1", name: "Window Shopper", desc: "Purchase your first heavenly upgrade", type: "heavenlyUpgradesPurchased", requirement: 1 },
@@ -916,6 +964,40 @@ export const achievements = [
   // Extended upgrade milestones
   { id: "upgrades_100", name: "Upgrade Maniac", desc: "Purchase 100 upgrades", type: "totalUpgradesPurchased", requirement: 100 },
   { id: "upgrades_200", name: "Upgrade Transcendent", desc: "Purchase 200 upgrades", type: "totalUpgradesPurchased", requirement: 200 },
+
+  // Lucky & frenzy milestones
+  { id: "lucky_100", name: "Four-Leaf Farmer", desc: "Trigger 100 lucky clicks", type: "luckyClicks", requirement: 100 },
+  { id: "lucky_500", name: "Fortune's Favorite", desc: "Trigger 500 lucky clicks", type: "luckyClicks", requirement: 500 },
+  { id: "frenzy_50", name: "Adrenaline Junkie", desc: "Trigger 50 frenzies", type: "frenziesTriggered", requirement: 50 },
+  { id: "frenzy_200", name: "Perpetual Frenzy", desc: "Trigger 200 frenzies", type: "frenziesTriggered", requirement: 200 },
+
+  // Golden cookie milestones
+  { id: "golden_10", name: "Gold Digger", desc: "Click 10 golden cookies", type: "goldenCookiesClicked", requirement: 10 },
+
+  // All-building-type milestones
+  { id: "all_buildings_75", name: "Cookie Connoisseur", desc: "Own at least 75 of every building type", type: "allBuildingTypes", requirement: 75 },
+
+  // Dungeon milestones
+  { id: "mini_dungeon_boss15", name: "Boss Executioner", desc: "Defeat 15 dungeon bosses", type: "dungeonBossesDefeated", requirement: 15 },
+
+  // Mini-game milestones
+  { id: "mini_500", name: "Arcade Immortal", desc: "Play 500 mini-games total", type: "miniGamesPlayed", requirement: 500 },
+  { id: "mini_wordle_5", name: "Wordle Wizard", desc: "Win 5 games of Cookie Wordle", type: "gameWins", requirement: 5, gameName: "cookieWordle" },
+
+  // Wrinkler milestones
+  { id: "wrath_cookie_100", name: "Wrath Addict", desc: "Click 100 wrath cookies — you clearly enjoy pain", type: "wrathCookiesClicked", requirement: 100 },
+
+  // Upgrade milestones
+  { id: "upgrades_150", name: "Upgrade Hoarder", desc: "Purchase 150 upgrades", type: "totalUpgradesPurchased", requirement: 150 },
+
+  // Elder pledge milestone
+  { id: "gp_pledge10", name: "Elder Diplomat", desc: "Use the Elder Pledge 10 times — they keep forgiving you", type: "elderPledge", requirement: 10 },
+
+  // Economy milestones
+  { id: "cookie_banker", name: "Cookie Banker", desc: "Have 1 quintillion cookies in the bank at once", type: "cookiesInBank", requirement: 1e18 },
+
+  // Time milestones
+  { id: "marathon_baker", name: "Marathon Baker", desc: "Play for 8 hours total", type: "totalPlayTime", requirement: 28800 },
 
   // Secret / Easter egg achievements
   { id: "debugger", name: "Console Cowboy", desc: "Open the debug console", type: "manual" },
@@ -938,4 +1020,7 @@ export const achievements = [
   { id: "wrath_clot", name: "The Clot Thickens", desc: "Survive a Clot penalty from a wrath cookie", type: "wrathClotSurvived", requirement: 1 },
   { id: "wrath_elder_frenzy", name: "Riding the Lightning", desc: "Get a 666x Elder Frenzy from a wrath cookie", type: "elderFrenzyTriggered", requirement: 1 },
   { id: "wrinkler_profit", name: "Patient Investor", desc: "Pop a wrinkler that ate 1 hour worth of CPS", type: "wrinklerBigPop", requirement: 1 },
+
+  // Meta achievement — must be last
+  { id: "completionist", name: "Last Cookie Standing", desc: "Unlock every other achievement — you've done it all", type: "allAchievements", requirement: 1 },
 ];

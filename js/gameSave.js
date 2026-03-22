@@ -8,6 +8,10 @@ export const SaveLoadMixin = {
 // === Save / Load ===
 saveGame() {
   if (this._wipedSave || this._savePending) return;
+  // Accumulate play time from current session
+  const now = Date.now();
+  this.stats.totalPlayTime = (this.stats.totalPlayTime || 0) + (now - this.stats.startTime) / 1000;
+  this.stats.startTime = now;
   let saveData = {
     cookies: this.cookies.toJSON(),
     cookiesPerClick: this.cookiesPerClick.toJSON(),

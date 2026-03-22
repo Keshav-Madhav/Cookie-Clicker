@@ -89,6 +89,7 @@ export class Game {
       dungeonRuns: 0,
       dungeonBossesDefeated: 0,
       dungeonBestRooms: 0,
+      totalPlayTime: 0,  // cumulative play time in seconds (across sessions)
       perGame: {},  // per-minigame stats { [name]: { played, wins, totalReward, bestReward } }
     };
 
@@ -187,6 +188,31 @@ export class Game {
     });
 
     // ── Keyboard shortcuts ──
+    // Prevent default on keydown for space/enter to stop page scroll, but don't trigger click
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        const tag = document.activeElement?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      // Skip when typing in inputs
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      // Skip when mini-game overlay is open
+      const miniOverlay = document.getElementById('mini-game-overlay');
+      if (miniOverlay && !miniOverlay.classList.contains('hidden')) return;
+
+      if (e.key === ' ' || e.key === 'Enter') {
+        const btn = document.getElementById('cookie-button');
+        if (btn) btn.click();
+      }
+    });
+
     document.addEventListener('keydown', (e) => {
       // Skip when typing in inputs
       const tag = document.activeElement?.tagName;
@@ -199,13 +225,6 @@ export class Game {
       if (miniOverlay && !miniOverlay.classList.contains('hidden') && e.key !== 'Escape') return;
 
       switch (e.key) {
-        case ' ':
-        case 'Enter': {
-          e.preventDefault();
-          const btn = document.getElementById('cookie-button');
-          if (btn) btn.click();
-          break;
-        }
         case '1': this.setPurchaseAmount(GAME.purchaseAmounts[0]); break;
         case '2': this.setPurchaseAmount(GAME.purchaseAmounts[1]); break;
         case '3': this.setPurchaseAmount(GAME.purchaseAmounts[2]); break;
@@ -639,8 +658,10 @@ export class Game {
   checkLuckyClick(event) {
     if (this.luckyClickChance <= 0) return;
 
-    // Hard cap: skip lucky roll if already at max active buffs
-    if (this.activeBuffs.length >= 4) return;
+    // Skip if both possible lucky frenzy types are already active
+    const hasCpsFrenzy = this.activeBuffs.some(b => b.type === 'cps' && b.baseMultiplier === LUCKY_CLICK.cpsFrenzy.multiplier);
+    const hasClickFrenzy = this.activeBuffs.some(b => b.type === 'click' && b.baseMultiplier === LUCKY_CLICK.clickFrenzy.multiplier);
+    if (hasCpsFrenzy && hasClickFrenzy) return;
 
     if (Math.random() < this.luckyClickChance) {
       this.stats.luckyClicks++;
@@ -677,8 +698,8 @@ export class Game {
   }
 
   startFrenzy(type, multiplier, durationSec) {
-    // Hard cap: max 4 concurrent buffs
-    if (this.activeBuffs.length >= 4) return;
+    // Only one of each distinct effect (same type + base multiplier) allowed at a time
+    if (this.activeBuffs.some(b => b.type === type && b.baseMultiplier === multiplier)) return;
 
     const wasAlreadyActive = this.activeBuffs.length > 0;
     const duration = durationSec * 1000 * this.frenzyDurationMultiplier * (this.prestige ? this.prestige.getFrenzyDurationMultiplier() : 1);
@@ -692,6 +713,7 @@ export class Game {
     this.activeBuffs.push({
       id: Date.now() + Math.random(),
       type,
+      baseMultiplier: multiplier,
       multiplier: effectiveMultiplier,
       endTime: Date.now() + duration,
     });
